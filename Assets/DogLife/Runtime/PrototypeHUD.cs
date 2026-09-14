@@ -9,8 +9,19 @@ namespace DogLife
         public CombatHealth health;
         public string objective = "TRAINING  /  Test movement and all four weapons";
         public bool completed;
+        public string completionTitle = "STAGE 1 CLEAR";
+        public string nextScene;
         GUIStyle title, body;
-        void Update() { if (Input.GetKeyDown(KeyCode.F5)) SceneManager.LoadScene(SceneManager.GetActiveScene().path); }
+        void Update()
+        {
+            if (Input.GetKeyDown(KeyCode.F5)) SceneManager.LoadScene(SceneManager.GetActiveScene().path);
+            if (Input.GetKeyDown(KeyCode.E)) ContinueToNextStage();
+        }
+        public bool ContinueToNextStage()
+        {
+            if (!completed || string.IsNullOrEmpty(nextScene)) return false;
+            SceneManager.LoadScene(nextScene); return true;
+        }
         void OnGUI()
         {
             if (title == null) { title = new GUIStyle(GUI.skin.label) { fontSize = 24, fontStyle = FontStyle.Bold }; body = new GUIStyle(GUI.skin.label) { fontSize = 16 }; }
@@ -23,8 +34,8 @@ namespace DogLife
             if (health.Dead || completed)
             {
                 GUI.Box(new Rect(Screen.width / 2 - 200, Screen.height / 2 - 55, 400, 110), GUIContent.none);
-                GUI.Label(new Rect(Screen.width / 2 - 180, Screen.height / 2 - 40, 370, 40), completed ? "STAGE 1 CLEAR" : "TRY AGAIN", title);
-                GUI.Label(new Rect(Screen.width / 2 - 180, Screen.height / 2, 370, 35), "Press F5 to restart", body);
+                GUI.Label(new Rect(Screen.width / 2 - 180, Screen.height / 2 - 40, 370, 40), completed ? completionTitle : "TRY AGAIN", title);
+                GUI.Label(new Rect(Screen.width / 2 - 180, Screen.height / 2, 370, 35), completed && !string.IsNullOrEmpty(nextScene) ? "E: Next stage   /   F5: Restart" : "Press F5 to restart", body);
             }
         }
     }

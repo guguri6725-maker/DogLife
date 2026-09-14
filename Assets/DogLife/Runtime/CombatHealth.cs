@@ -7,6 +7,8 @@ namespace DogLife
     {
         public float maxHealth = 30;
         public bool player, practiceTarget;
+        [NonSerialized] public bool invulnerable;
+        [NonSerialized] public float minimumHealth;
         public float Current { get; private set; }
         public bool Dead => Current <= 0;
         public event Action Died;
@@ -17,10 +19,10 @@ namespace DogLife
         void Awake() { Current = maxHealth; renderers = GetComponentsInChildren<Renderer>(); block = new MaterialPropertyBlock(); }
         public void Damage(float amount)
         {
-            if (Dead || Time.time < invulnerableUntil || amount <= 0) return;
+            if (Dead || invulnerable || Time.time < invulnerableUntil || amount <= 0) return;
             var motor = GetComponent<SideViewMotor>();
             if (motor && motor.IsDashing) return;
-            Current = Mathf.Max(0, Current - amount);
+            Current = Mathf.Max(Mathf.Min(minimumHealth, Current), Current - amount);
             flashUntil = Time.time + .12f;
             if (player) invulnerableUntil = Time.time + .7f;
             if (!Dead) return;
