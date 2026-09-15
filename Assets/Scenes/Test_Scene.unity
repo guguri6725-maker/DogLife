@@ -848,6 +848,8 @@ MonoBehaviour:
   health: {fileID: 2066398695}
   objective: TRAINING  /  Test movement and all four weapons
   completed: 0
+  completionTitle: STAGE 1 CLEAR
+  nextScene: 
 --- !u!4 &1081595346
 Transform:
   m_ObjectHideFlags: 0
@@ -1298,7 +1300,7 @@ GameObject:
   - component: {fileID: 1839161261}
   m_Layer: 8
   m_Name: Ground
-  m_TagString: Untagged
+  m_TagString: Ground
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
