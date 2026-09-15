@@ -15,10 +15,13 @@ namespace DogLife
         Rigidbody body;
         float attackAt, windupUntil;
         Vector3 lockedAim;
+        Renderer[] healthBarRenderers;
         void Start()
         {
             var player = FindFirstObjectByType<SideViewMotor>(); target = player ? player.transform : null;
             body = GetComponent<Rigidbody>(); health = GetComponent<CombatHealth>();
+            // 모델의 실제 크기로 체력바 위치를 계산하기 위해 외형만 보관합니다.
+            healthBarRenderers = (visualRoot ? visualRoot : transform).GetComponentsInChildren<Renderer>(true);
             body.constraints = RigidbodyConstraints.FreezePositionZ | RigidbodyConstraints.FreezeRotation;
             body.interpolation = RigidbodyInterpolation.Interpolate;
             if (target) Physics.IgnoreCollision(GetComponent<Collider>(), target.GetComponent<Collider>());
@@ -65,13 +68,34 @@ namespace DogLife
         void OnGUI()
         {
             if (!health || health.Dead || !Camera.main) return;
-            var point = Camera.main.WorldToScreenPoint(transform.position + Vector3.up * (boss ? 2.5f : 1.5f));
-            if (point.z <= 0 || point.x < 0 || point.x > Screen.width) return;
+            // 고정 높이 대신 활성 모델의 위쪽 경계를 따라가므로 크기와 피벗이 달라도 맞습니다.
+            var bounds = new Bounds(transform.position, Vector3.zero);
+            bool hasBounds = false;
+            foreach (var renderer in healthBarRenderers)
+            {
+                if (!renderer || !renderer.enabled || !renderer.gameObject.activeInHierarchy ||
+                    (!(renderer is MeshRenderer) && !(renderer is SkinnedMeshRenderer))) continue;
+                if (!hasBounds) { bounds = renderer.bounds; hasBounds = true; }
+                else bounds.Encapsulate(renderer.bounds);
+            }
+            var anchor = hasBounds ? new Vector3(bounds.center.x, bounds.max.y, bounds.center.z)
+                : transform.position + Vector3.up * (boss ? 2.5f : 1.5f);
+            // 카메라 렌더 해상도와 게임 화면 해상도가 달라도 같은 위치에 표시합니다.
+            var point = Camera.main.WorldToViewportPoint(anchor);
+            if (point.z <= 0 || point.x < 0 || point.x > 1 || point.y < 0 || point.y > 1) return;
+            var viewport = Camera.main.rect;
+            point.x = (viewport.x + point.x * viewport.width) * Screen.width;
+            point.y = (viewport.y + point.y * viewport.height) * Screen.height;
+            // 화면 좌표를 GUI 좌표로 바꾸고 머리와 일정한 픽셀 간격을 둡니다.
+            float top = Screen.height - point.y - 17;
+            var previousColor = GUI.color;
             var width = boss ? 160 : 55;
-            GUI.color = Color.black; GUI.DrawTexture(new Rect(point.x - width / 2, Screen.height - point.y, width, 7), Texture2D.whiteTexture);
-            GUI.color = Windup ? Color.yellow : new Color(.95f, .35f, .25f); GUI.DrawTexture(new Rect(point.x - width / 2, Screen.height - point.y, width * health.Current / health.maxHealth, 7), Texture2D.whiteTexture);
+            GUI.color = Color.black; GUI.DrawTexture(new Rect(point.x - width / 2, top, width, 7), Texture2D.whiteTexture);
+            float fraction = health.maxHealth > 0 ? Mathf.Clamp01(health.Current / health.maxHealth) : 0;
+            GUI.color = Windup ? Color.yellow : new Color(.95f, .35f, .25f); GUI.DrawTexture(new Rect(point.x - width / 2, top, width * fraction, 7), Texture2D.whiteTexture);
             GUI.color = Color.white;
-            if (Windup) GUI.Label(new Rect(point.x - 40, Screen.height - point.y - 25, 100, 25), "! ATTACK");
+            if (Windup) GUI.Label(new Rect(point.x - 40, top - 25, 100, 25), "! ATTACK");
+            GUI.color = previousColor;
         }
     }
 }

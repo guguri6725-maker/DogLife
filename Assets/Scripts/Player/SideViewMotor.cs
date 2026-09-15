@@ -10,6 +10,8 @@ namespace DogLife
         public float dashDuration = .22f, dashCooldown = 5f;
         public LayerMask groundMask = 1 << 8;
         public Transform visualRoot;
+        // 2D풍 모델은 좌우 반전해 방향을 바꿔도 얼굴이 카메라에 보이도록 합니다.
+        public bool mirrorVisualFacing;
         public bool readInput = true;
         public float MoveInput { get; set; }
         public bool Grounded { get; private set; }
@@ -49,7 +51,16 @@ namespace DogLife
         {
             if (Mathf.Abs(direction) < .01f) return;
             Facing = direction > 0 ? 1 : -1;
-            if (visualRoot) visualRoot.localRotation = Quaternion.Euler(0, Facing > 0 ? 0 : 180, 0);
+            if (visualRoot)
+            {
+                visualRoot.localRotation = Quaternion.Euler(0, mirrorVisualFacing || Facing > 0 ? 0 : 180, 0);
+                if (mirrorVisualFacing)
+                {
+                    var scale = visualRoot.localScale;
+                    scale.x = Mathf.Abs(scale.x) * Facing;
+                    visualRoot.localScale = scale;
+                }
+            }
         }
         // 물리 프레임마다 지면 판정과 실제 속도를 적용합니다.
         void FixedUpdate()
