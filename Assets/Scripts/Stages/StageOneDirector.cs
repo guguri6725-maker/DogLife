@@ -9,6 +9,7 @@ namespace DogLife
         public Transform exit;
         public Transform[] recoveryStations;
         public PrototypeHUD hud;
+        public ForestRoomStreaming streaming;
         public string stageLabel = "FOREST 01", bossLabel = "FOREST GUARDIAN";
         public int Cleared { get; private set; }
         public bool Complete => hud.completed;
@@ -16,6 +17,8 @@ namespace DogLife
         bool[] usedStations;
         void Start()
         {
+            hud.health.Died += EndRun;
+            if (streaming) return;
             usedStations = new bool[recoveryStations.Length];
             enemies = new CombatHealth[encounters.Length][];
             for (int i = 0; i < encounters.Length; i++)
@@ -23,11 +26,10 @@ namespace DogLife
                 enemies[i] = encounters[i].GetComponentsInChildren<CombatHealth>(true);
                 encounters[i].SetActive(i == 0);
             }
-            hud.health.Died += EndRun;
         }
         void OnDestroy() { if (hud && hud.health) hud.health.Died -= EndRun; }
         // 플레이어 사망이나 클리어 시 모든 전투 동작을 정지합니다.
-        void EndRun()
+        public void EndRun()
         {
             hud.motor.MoveInput = Vector2.zero; hud.motor.readInput = false; hud.weapons.readInput = false;
             hud.motor.enabled = false; hud.weapons.enabled = false;
@@ -46,6 +48,7 @@ namespace DogLife
         // 현재 방의 적 수를 확인해 다음 방과 출구를 순서대로 엽니다.
         void Update()
         {
+            if (streaming) return;
             if (hud.health.Dead || Complete) return;
             if (Cleared < encounters.Length)
             {
@@ -73,5 +76,6 @@ namespace DogLife
                     usedStations[i] = true; hud.health.Restore(); recoveryStations[i].gameObject.SetActive(false);
                 }
         }
+        public void RecordStreamedClear(int count) { Cleared = count; }
     }
 }

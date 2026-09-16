@@ -125,6 +125,7 @@ namespace DogLife
             if (body.position.y < -12) Respawn();
         }
         public void Respawn() { wallNormals.Clear(); body.position = spawn; body.linearVelocity = Vector3.zero; }
+        public void SetRespawnPoint(Vector3 point) { spawn = point; }
         void OnDisable() { wallNormals.Clear(); MoveInput = Vector2.zero; }
     }
 }

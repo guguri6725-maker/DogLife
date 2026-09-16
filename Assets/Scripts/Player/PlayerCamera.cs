@@ -10,6 +10,8 @@ namespace DogLife
         public float shoulderOffset = .55f;
         public float yaw = 90, pitch = 18;
         public bool readInput = true;
+        // 지나온 방을 해제한 뒤 카메라가 닫힌 문 뒤로 넘어가지 않게 합니다.
+        [System.NonSerialized] public float minimumWorldX = float.NegativeInfinity;
         void Start() { CaptureCursor(true); }
         public void CaptureCursor(bool capture) {
             Cursor.lockState = capture ? CursorLockMode.Locked : CursorLockMode.None; Cursor.visible = !capture;
@@ -29,7 +31,9 @@ namespace DogLife
             var pivot = target.position + Vector3.up * height + rotation * Vector3.right * shoulderOffset;
             var back = rotation * Vector3.back; var length = distance;
             if (Physics.SphereCast(pivot, .22f, back, out var hit, distance, obstructionMask, QueryTriggerInteraction.Ignore)) length = Mathf.Max(.3f, hit.distance - .15f);
-            transform.SetPositionAndRotation(pivot + back * length, rotation);
+            var position = pivot + back * length;
+            position.x = Mathf.Max(position.x, minimumWorldX);
+            transform.SetPositionAndRotation(position, rotation);
         }
         void OnDisable() { CaptureCursor(false); }
     }

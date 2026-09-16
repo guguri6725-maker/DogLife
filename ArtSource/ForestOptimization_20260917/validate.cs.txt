@@ -1,0 +1,15 @@
+var dir="ArtSource/ForestOptimization_20260917/";
+var baseline=Newtonsoft.Json.Linq.JArray.Parse(System.IO.File.ReadAllText(dir+"baseline_assets.json"));
+var expected=Newtonsoft.Json.Linq.JArray.Parse(System.IO.File.ReadAllText(dir+"reduction_metrics.json"));
+var rows=new System.Collections.Generic.List<object>();
+foreach(var b in baseline) {
+ var p=(string)b["path"];if(!System.IO.File.Exists(p))continue;
+ var prefab=UnityEditor.AssetDatabase.LoadAssetAtPath<UnityEngine.GameObject>(p);var m=prefab.GetComponentInChildren<UnityEngine.MeshFilter>().sharedMesh;
+ string guid;long id;UnityEditor.AssetDatabase.TryGetGUIDAndLocalFileIdentifier(m,out guid,out id);
+ var expectedRow=expected.First(e=>(string)e["name"]==m.name);
+ rows.Add(new {path=p,identityMatches=guid==(string)b["guid"]&&id==(long)b["id"],name=m.name,triangles=m.triangles.Length/3,expectedTriangles=(int)expectedRow["after"],vertices=m.vertexCount,uvValid=((int)b["uv"]==0?m.uv.Length==0:m.uv.Length==m.vertexCount),submeshesMatch=m.subMeshCount==(int)b["submeshes"],unitScaleValid=UnityEngine.Vector3.Distance(prefab.transform.localScale,UnityEngine.Vector3.one)<.001f,center=new float[]{m.bounds.center.x,m.bounds.center.y,m.bounds.center.z},size=new float[]{m.bounds.size.x,m.bounds.size.y,m.bounds.size.z}});
+}
+var root=UnityEngine.GameObject.Find("Stage1_3D_Forest");var fs=root.GetComponentsInChildren<UnityEngine.MeshFilter>(true);
+var result=new {assets=rows,instances=fs.Length,triangles=fs.Where(f=>f.sharedMesh!=null).Sum(f=>f.sharedMesh.triangles.Length/3),missingMeshes=fs.Count(f=>f.sharedMesh==null),missingColliderMeshes=root.GetComponentsInChildren<UnityEngine.MeshCollider>(true).Count(c=>c.sharedMesh==null),badMaterials=root.GetComponentsInChildren<UnityEngine.MeshRenderer>(true).Count(r=>r.sharedMaterials.Any(m=>m==null||m.shader==null)),missingScripts=root.GetComponentsInChildren<UnityEngine.Transform>(true).Sum(t=>UnityEditor.GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(t.gameObject))};
+System.IO.File.WriteAllText(dir+"after_validation.json",Newtonsoft.Json.JsonConvert.SerializeObject(result,Newtonsoft.Json.Formatting.Indented));
+return new {result.instances,result.triangles,result.missingMeshes,result.missingColliderMeshes,result.badMaterials,result.missingScripts};
