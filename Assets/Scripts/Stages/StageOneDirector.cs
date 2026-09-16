@@ -29,17 +29,19 @@ namespace DogLife
         // 플레이어 사망이나 클리어 시 모든 전투 동작을 정지합니다.
         void EndRun()
         {
-            hud.motor.MoveInput = 0; hud.motor.readInput = false; hud.weapons.readInput = false;
+            hud.motor.MoveInput = Vector2.zero; hud.motor.readInput = false; hud.weapons.readInput = false;
             hud.motor.enabled = false; hud.weapons.enabled = false;
             var body = hud.motor.GetComponent<Rigidbody>(); body.linearVelocity = Vector3.zero; body.isKinematic = true;
             foreach (var enemy in FindObjectsByType<StageEnemy>(FindObjectsSortMode.None))
             {
                 enemy.enabled = false;
-                enemy.GetComponent<Rigidbody>().linearVelocity = Vector3.zero;
+                // NavMesh가 이동하는 적은 Kinematic이므로 물리 속도를 쓰지 않습니다.
+                var enemyBody = enemy.GetComponent<Rigidbody>();
+                if (!enemyBody.isKinematic) enemyBody.linearVelocity = Vector3.zero;
             }
             foreach (var boss in FindObjectsByType<SeaBoss>(FindObjectsSortMode.None)) boss.enabled = false;
             foreach (var hazard in FindObjectsByType<SeaHazard>(FindObjectsSortMode.None)) Destroy(hazard.gameObject);
-            foreach (var projectile in FindObjectsByType<SideViewProjectile>(FindObjectsSortMode.None)) Destroy(projectile.gameObject);
+            foreach (var projectile in FindObjectsByType<CombatProjectile>(FindObjectsSortMode.None)) Destroy(projectile.gameObject);
         }
         // 현재 방의 적 수를 확인해 다음 방과 출구를 순서대로 엽니다.
         void Update()
@@ -60,13 +62,13 @@ namespace DogLife
             else
             {
                 hud.objective = bossLabel + " DEFEATED  /  Reach the green exit";
-                if (Mathf.Abs(hud.motor.transform.position.x - exit.position.x) < 1.5f)
+                if (Vector3.Distance(hud.motor.transform.position, exit.position) < 2f)
                 {
                     hud.completed = true; EndRun();
                 }
             }
             for (int i = 0; i < recoveryStations.Length; i++)
-                if (!usedStations[i] && Mathf.Abs(hud.motor.transform.position.x - recoveryStations[i].position.x) < 1.5f)
+                if (!usedStations[i] && Vector3.Distance(hud.motor.transform.position, recoveryStations[i].position) < 2f)
                 {
                     usedStations[i] = true; hud.health.Restore(); recoveryStations[i].gameObject.SetActive(false);
                 }

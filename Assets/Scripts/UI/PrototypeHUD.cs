@@ -5,16 +5,19 @@ namespace DogLife
     // 플레이어 상태와 현재 목표, 클리어 화면을 표시합니다.
     public sealed class PrototypeHUD : MonoBehaviour
     {
-        public SideViewMotor motor;
-        public SideViewWeapons weapons;
+        public PlayerMotor motor;
+        public PlayerWeapons weapons;
         public CombatHealth health;
         public string objective = "TRAINING  /  Test movement and all four weapons";
         public bool completed;
         public string completionTitle = "STAGE 1 CLEAR";
         public string nextScene;
+        public GameObject crosshair;
         GUIStyle title, body;
         void Update()
         {
+            // Hierarchy에 배치한 조준점은 전투 중에만 표시합니다.
+            if (crosshair) crosshair.SetActive(!completed && !health.Dead && Cursor.lockState == CursorLockMode.Locked);
             if (Input.GetKeyDown(KeyCode.F5)) SceneManager.LoadScene(SceneManager.GetActiveScene().path);
             if (Input.GetKeyDown(KeyCode.E)) ContinueToNextStage();
         }
@@ -27,12 +30,14 @@ namespace DogLife
         // 프로토타입용 즉시 모드 GUI를 화면에 그립니다.
         void OnGUI()
         {
+            // 스킬창 위로 기존 즉시 모드 HUD가 겹치지 않게 합니다.
+            if (SkillWindow.IsOpen) return;
             if (title == null) { title = new GUIStyle(GUI.skin.label) { fontSize = 24, fontStyle = FontStyle.Bold }; body = new GUIStyle(GUI.skin.label) { fontSize = 16 }; }
             GUI.Box(new Rect(18, 18, 680, 150), GUIContent.none);
-            GUI.Label(new Rect(34, 28, 650, 35), "DOG LIFE  /  SIDE VIEW PROTOTYPE", title);
+            GUI.Label(new Rect(34, 28, 650, 35), "DOG LIFE  /  FOREST DUNGEON", title);
             GUI.Label(new Rect(34, 67, 650, 25), objective, body);
             GUI.Label(new Rect(34, 95, 650, 25), $"HP {health.Current:0}/{health.maxHealth:0}   |   {weapons.Current.displayName}   |   Dash {motor.DashRemaining:0.0}s   |   Charge {weapons.Charge:P0}", body);
-            GUI.Label(new Rect(34, 127, 650, 25), "A/D Move   SPACE Jump   SHIFT Dash   Mouse Aim / Fire", body);
+            GUI.Label(new Rect(34, 127, 650, 25), "WASD Move  SPACE Jump  SHIFT Dash  CTRL Crouch  ESC Cursor", body);
             GUI.Label(new Rect(24, Screen.height - 42, 900, 30), "1 Rifle   2 Shotgun   3 Sword   4 Charge sword (hold/release)   R Ammo color   F5 Restart", body);
             if (health.Dead || completed)
             {

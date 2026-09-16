@@ -20,7 +20,7 @@ namespace DogLife
             if (!safeMarker && age >= warning && !Fired)
             {
                 Fired = true;
-                var player = FindFirstObjectByType<SideViewMotor>();
+                var player = FindFirstObjectByType<PlayerMotor>();
                 foreach (var collider in Physics.OverlapBox(transform.position, halfExtents, Quaternion.identity, ~0, QueryTriggerInteraction.Ignore))
                     if (player && collider.transform.IsChildOf(player.transform)) { player.GetComponent<CombatHealth>().Damage(damage); break; }
             }
