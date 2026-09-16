@@ -10,6 +10,8 @@ namespace DogLife
         public GameObject boneFishPrefab, miniPianusPrefab;
         public Material hazardMaterial;
         public float arenaLeft = 139, arenaRight = 160;
+        // 바다 보스도 폭과 깊이가 있는 3D 전장을 사용합니다.
+        public float arenaBack = -8, arenaFront = 8;
         public string State { get; private set; } = "Waiting";
         public int Phase { get; private set; }
         public int Lasers { get; private set; }
@@ -25,10 +27,12 @@ namespace DogLife
         // 플레이어가 입장하면 체력 구간에 맞춰 일반 패턴과 페이즈 패턴을 반복합니다.
         IEnumerator Start()
         {
-            player = FindFirstObjectByType<SideViewMotor>().GetComponent<CombatHealth>();
+            var motor = FindFirstObjectByType<PlayerMotor>();
+            if (!motor) yield break;
+            player = motor.GetComponent<CombatHealth>();
             while (player && !player.Dead && !health.Dead)
             {
-                if (player.transform.position.x < arenaLeft) { State = "Enter the arena"; yield return null; continue; }
+                if (!InsideArena()) { State = "Enter the arena"; yield return null; continue; }
                 if (Phase < 5 && health.Current <= health.minimumHealth + .01f)
                 {
                     health.invulnerable = true;
@@ -48,14 +52,15 @@ namespace DogLife
         IEnumerator Laser()
         {
             State = "LASER / Jump above the yellow beam"; Lasers++;
-            SeaHazard.Create(health, new Vector3((arenaLeft + arenaRight) / 2, .7f, 0), new Vector3(arenaRight - arenaLeft, .65f, 1), 1.2f, 25, hazardMaterial);
+            SeaHazard.Create(health, new Vector3((arenaLeft + arenaRight) / 2, .7f, player.transform.position.z), new Vector3(arenaRight - arenaLeft, .65f, 1.5f), 1.2f, 25, hazardMaterial);
             yield return new WaitForSeconds(1.6f);
         }
         IEnumerator Bomb()
         {
             State = "WATER BOMB / Move away from the marker"; Bombs++;
             float x = Mathf.Clamp(player.transform.position.x, arenaLeft + 1, arenaRight - 1);
-            SeaHazard.Create(health, new Vector3(x, 1.8f, 0), new Vector3(3, 3.6f, 1), 3, 20, hazardMaterial);
+            float z = Mathf.Clamp(player.transform.position.z, arenaBack + 1, arenaFront - 1);
+            SeaHazard.Create(health, new Vector3(x, 1.8f, z), new Vector3(3, 3.6f, 3), 3, 20, hazardMaterial);
             yield return new WaitForSeconds(3.4f);
         }
         IEnumerator Surge()
@@ -63,9 +68,10 @@ namespace DogLife
             State = "TIDAL SURGE / Stand inside GREEN"; Surges++;
             float safeX = arenaLeft + 6, halfSafe = 2;
             float leftWidth = safeX - halfSafe - arenaLeft, rightWidth = arenaRight - safeX - halfSafe;
-            SeaHazard.Create(health, new Vector3(arenaLeft + leftWidth / 2, 3, 0), new Vector3(leftWidth, 6, 1), 5, 60, hazardMaterial);
-            SeaHazard.Create(health, new Vector3(safeX + halfSafe + rightWidth / 2, 3, 0), new Vector3(rightWidth, 6, 1), 5, 60, hazardMaterial);
-            SeaHazard.Create(health, new Vector3(safeX, .08f, 0), new Vector3(halfSafe * 2, .12f, 2), 5, 0, hazardMaterial, true);
+            float centerZ = (arenaBack + arenaFront) / 2, depth = arenaFront - arenaBack;
+            SeaHazard.Create(health, new Vector3(arenaLeft + leftWidth / 2, 3, centerZ), new Vector3(leftWidth, 6, depth), 5, 60, hazardMaterial);
+            SeaHazard.Create(health, new Vector3(safeX + halfSafe + rightWidth / 2, 3, centerZ), new Vector3(rightWidth, 6, depth), 5, 60, hazardMaterial);
+            SeaHazard.Create(health, new Vector3(safeX, .08f, centerZ), new Vector3(halfSafe * 2, .12f, depth), 5, 0, hazardMaterial, true);
             yield return new WaitForSeconds(5.5f);
         }
         // 소환된 적을 모두 처치할 때까지 보스의 다음 페이즈 진행을 막습니다.
@@ -76,7 +82,7 @@ namespace DogLife
             summons.Clear();
             for (int i = 0; i < 3; i++)
             {
-                var go = Instantiate(final ? miniPianusPrefab : boneFishPrefab, new Vector3(arenaLeft + 4 + i * 5, 1.1f, 0), Quaternion.identity, transform.parent);
+                var go = Instantiate(final ? miniPianusPrefab : boneFishPrefab, new Vector3(arenaLeft + 4 + i * 5, 1.1f, Mathf.Lerp(arenaBack + 2, arenaFront - 2, i / 2f)), Quaternion.identity, transform.parent);
                 summons.Add(go.GetComponent<CombatHealth>());
             }
             float deadline = Time.time + 20;
@@ -101,10 +107,17 @@ namespace DogLife
         }
         void OnGUI()
         {
-            if (!health || health.Dead || !player || player.transform.position.x < arenaLeft) return;
+            // 메뉴가 열려 있을 때 보스 정보가 UI를 가리지 않게 합니다.
+            if (SkillWindow.IsOpen) return;
+            if (!health || health.Dead || !player || !InsideArena()) return;
             GUI.Box(new Rect(Screen.width / 2 - 300, 185, 600, 64), GUIContent.none);
             GUI.Label(new Rect(Screen.width / 2 - 285, 190, 580, 25), $"PIANUS   {health.Current:0}/{health.maxHealth:0}   {(health.invulnerable ? "SHIELDED" : "VULNERABLE")}");
             GUI.Label(new Rect(Screen.width / 2 - 285, 216, 580, 25), State + (FinalRemaining > 0 ? $"  {FinalRemaining:0.0}s" : ""));
+        }
+        bool InsideArena()
+        {
+            var p = player.transform.position;
+            return p.x >= arenaLeft && p.x <= arenaRight && p.z >= arenaBack && p.z <= arenaFront;
         }
     }
 }

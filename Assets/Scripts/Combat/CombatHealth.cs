@@ -22,7 +22,7 @@ namespace DogLife
         public void Damage(float amount)
         {
             if (Dead || invulnerable || Time.time < invulnerableUntil || amount <= 0) return;
-            var motor = GetComponent<SideViewMotor>();
+            var motor = GetComponent<PlayerMotor>();
             if (motor && motor.IsDashing) return;
             Current = Mathf.Max(Mathf.Min(minimumHealth, Current), Current - amount);
             flashUntil = Time.time + .12f;
