@@ -1,0 +1,47 @@
+{
+  "clear": {
+    "stage": "Stage3_Summer",
+    "Ready": true,
+    "Busy": false,
+    "LoadError": null,
+    "CurrentRoom": 0,
+    "complete": false,
+    "playerPosition": "(5.00, 0.82, 0.01)",
+    "grounded": true,
+    "rooms": [
+      "Summer_Room01",
+      "Summer_Room02"
+    ],
+    "current": {
+      "alive": 0,
+      "exitProgress": 1,
+      "rearProgress": 0
+    },
+    "monsters": []
+  },
+  "entered": {
+    "stage": "Stage3_Summer",
+    "Ready": true,
+    "Busy": false,
+    "LoadError": null,
+    "CurrentRoom": 1,
+    "complete": false,
+    "playerPosition": "(48.40, 0.82, 0.01)",
+    "grounded": true,
+    "rooms": [
+      "Summer_Room02"
+    ],
+    "current": {
+      "alive": 1,
+      "exitProgress": 0,
+      "rearProgress": 0
+    },
+    "monsters": [
+      {
+        "name": "RoomMonster",
+        "onNav": true,
+        "pos": "(58.71, 0.85, 0.00)"
+      }
+    ]
+  }
+}

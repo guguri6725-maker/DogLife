@@ -1,0 +1,120 @@
+{
+  "samples": 9204,
+  "missing": 0,
+  "minTopHeight": -0.07465196,
+  "maxTopHeight": 0.107932329,
+  "triangles": 683195,
+  "waterObjects": [
+    {
+      "name": "CoastalCave_Riverbank",
+      "material": "Assets/MapDesigne/Summer/Materials/WaterRevision/CoastalCave_Ground.mat",
+      "shaderError": false
+    },
+    {
+      "name": "CoastalCave_ContinuousWater",
+      "material": "Assets/MapDesigne/Summer/Materials/WaterRevision/FlowingWater.mat",
+      "shaderError": false
+    },
+    {
+      "name": "TropicalForest_Riverbank",
+      "material": "Assets/MapDesigne/Summer/Materials/WaterRevision/TropicalForest_Ground.mat",
+      "shaderError": false
+    },
+    {
+      "name": "TropicalForest_ContinuousWater",
+      "material": "Assets/MapDesigne/Summer/Materials/WaterRevision/FlowingWater.mat",
+      "shaderError": false
+    },
+    {
+      "name": "Waterfall_Riverbank",
+      "material": "Assets/MapDesigne/Summer/Materials/WaterRevision/Waterfall_Ground.mat",
+      "shaderError": false
+    },
+    {
+      "name": "Waterfall_ContinuousWater",
+      "material": "Assets/MapDesigne/Summer/Materials/WaterRevision/FlowingWater.mat",
+      "shaderError": false
+    },
+    {
+      "name": "CoastalCliff_Riverbank",
+      "material": "Assets/MapDesigne/Summer/Materials/WaterRevision/CoastalCliff_Ground.mat",
+      "shaderError": false
+    },
+    {
+      "name": "CoastalCliff_ContinuousWater",
+      "material": "Assets/MapDesigne/Summer/Materials/WaterRevision/FlowingWater.mat",
+      "shaderError": false
+    },
+    {
+      "name": "Cave_FallingWater_A",
+      "material": "Assets/MapDesigne/Summer/Materials/WaterRevision/FallingWater.mat",
+      "shaderError": false
+    },
+    {
+      "name": "Cave_FallingWater_B",
+      "material": "Assets/MapDesigne/Summer/Materials/WaterRevision/FallingWater.mat",
+      "shaderError": false
+    },
+    {
+      "name": "Room3_FallingWater_A",
+      "material": "Assets/MapDesigne/Summer/Materials/WaterRevision/FallingWater.mat",
+      "shaderError": false
+    },
+    {
+      "name": "Room3_FallingWater_B",
+      "material": "Assets/MapDesigne/Summer/Materials/WaterRevision/FallingWater.mat",
+      "shaderError": false
+    }
+  ],
+  "wallMesh": "Assets/MapDesigne/Summer/Models/WaterRevision/Waterfall_Wall_Closed.fbx",
+  "wallColliderMatches": true,
+  "layout": {
+    "counts": [
+      {
+        "room": "Room_01_CoastalCave",
+        "activeDecor": 33
+      },
+      {
+        "room": "Room_02_TropicalForest",
+        "activeDecor": 42
+      },
+      {
+        "room": "Room_03_Waterfall",
+        "activeDecor": 26
+      },
+      {
+        "room": "Room_04_CoastalCliff_Boss",
+        "activeDecor": 29
+      }
+    ],
+    "outOfRoomDecor": [],
+    "centralDecorObstacles": 0,
+    "room3WetWalls": 5,
+    "room3DryWalls": 13
+  },
+  "groundSamples": 31512,
+  "groundMisses": 0,
+  "timeComparison": {
+    "previewTimes": [
+      0,
+      2
+    ],
+    "sampledPixels": 90000,
+    "changedPixels": 18946
+  },
+  "disabledIsolatedWater": [
+    "Summer_Rooms/Room_01_CoastalCave/Decor/CascadePool_01",
+    "Summer_Rooms/Room_01_CoastalCave/Decor/CascadePool_02",
+    "Summer_Rooms/Room_01_CoastalCave/Decor/StonePool_01",
+    "Summer_Rooms/Room_01_CoastalCave/Decor/StonePool_02",
+    "Summer_Rooms/Room_03_Waterfall/Decor/WaterTile_01",
+    "Summer_Rooms/Room_03_Waterfall/Decor/WaterTile_02",
+    "Summer_Rooms/Room_03_Waterfall/Decor/WaterTile_03",
+    "Summer_Rooms/Room_03_Waterfall/Decor/WaterTile_04",
+    "Summer_Rooms/Room_04_CoastalCliff_Boss/Decor/TidePool_01",
+    "Summer_Rooms/Room_04_CoastalCliff_Boss/Decor/TidePool_02",
+    "Summer_Rooms/Room_04_CoastalCliff_Boss/Decor/TidePool_03",
+    "Summer_Rooms/Room_04_CoastalCliff_Boss/Decor/WaterChannel_01",
+    "Summer_Rooms/Room_04_CoastalCliff_Boss/Decor/WaterChannel_02"
+  ]
+}

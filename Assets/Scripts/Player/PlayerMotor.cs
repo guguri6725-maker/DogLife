@@ -7,6 +7,8 @@ namespace DogLife
     {
         public float moveSpeed = 4, jumpSpeed = 8, dashSpeed = 12;
         public float dashDuration = .22f, dashCooldown = 5;
+        // 상승 중 점프 키를 놓으면 남은 상승 속도를 줄입니다. 작을수록 짧은 점프가 낮아집니다.
+        [Range(.1f, 1f)] public float jumpReleaseMultiplier = .45f;
         public LayerMask groundMask = 1 << 8;
         public Transform visualRoot, movementCamera;
         public float visualYawOffset = -90;
@@ -28,6 +30,7 @@ namespace DogLife
         const float GroundNormalY = .55f;
         readonly System.Collections.Generic.List<Vector3> wallNormals = new System.Collections.Generic.List<Vector3>();
         float dashUntil, nextDash, jumpBuffer, lastGrounded = -10, standingHeight;
+        bool jumpHeld, jumping, jumpReleased;
         Vector3 dashDirection, spawn, standingCenter, visualScale, visualPosition;
         void Awake() {
             body = GetComponent<Rigidbody>(); capsule = GetComponent<CapsuleCollider>();
@@ -38,15 +41,21 @@ namespace DogLife
             if (visualRoot) { visualScale = visualRoot.localScale; visualPosition = visualRoot.localPosition; }
         }
         void Update() {
-            if (SkillWindow.BlocksGameplayInput) { MoveInput = Vector2.zero; return; }
+            if (SkillWindow.BlocksGameplayInput) { MoveInput = Vector2.zero; ReleaseJump(); return; }
             if (!readInput) return;
-            if (Cursor.lockState != CursorLockMode.Locked) { MoveInput = Vector2.zero; return; }
+            if (Cursor.lockState != CursorLockMode.Locked) { MoveInput = Vector2.zero; ReleaseJump(); return; }
             MoveInput = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
             SetCrouching(Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.C));
             if (Input.GetKeyDown(KeyCode.Space)) RequestJump();
+            if (!Input.GetKey(KeyCode.Space)) ReleaseJump();
             if (Input.GetKeyDown(KeyCode.LeftShift)) RequestDash();
         }
-        public void RequestJump() { if (!Crouching) jumpBuffer = Time.time + .12f; }
+        public void RequestJump() {
+            if (Crouching) return;
+            jumpHeld = true; jumpBuffer = Time.time + .12f;
+        }
+        // 물리 프레임 전에 짧게 눌렀다 놓아도 점프 예약은 유지합니다.
+        public void ReleaseJump() { jumpHeld = false; }
         public bool RequestDash() {
             if (Time.time < nextDash || Crouching) return false;
             dashDirection = MoveDirection.sqrMagnitude > .01f ? MoveDirection.normalized : Facing;
@@ -113,19 +122,27 @@ namespace DogLife
             var b = capsule.bounds;
             var origin = new Vector3(b.center.x, b.min.y + capsule.radius + .08f, b.center.z);
             Grounded = Physics.SphereCast(origin, capsule.radius * .85f, Vector3.down, out var hit, .22f, groundMask, QueryTriggerInteraction.Ignore) && hit.normal.y > GroundNormalY && body.linearVelocity.y <= .5f;
-            if (Grounded) lastGrounded = Time.time;
+            if (Grounded) { lastGrounded = Time.time; jumping = false; }
             var horizontal = IsDashing ? dashDirection * dashSpeed : MoveDirection * moveSpeed * (Crouching ? .5f : 1);
             horizontal = LimitWallMovement(horizontal);
             var velocity = new Vector3(horizontal.x, body.linearVelocity.y, horizontal.z);
-            if (jumpBuffer > Time.time && Time.time - lastGrounded < .1f) {
+            if (!Crouching && jumpBuffer > Time.time && Time.time - lastGrounded < .1f) {
                 velocity.y = jumpSpeed; jumpBuffer = 0; lastGrounded = -10; Grounded = false;
+                jumping = true; jumpReleased = false;
             }
+            // 직접 시작한 점프의 상승 중에 한 번만 감속합니다. 재입력으로 공중에서 높이를 늘릴 수 없습니다.
+            if (jumping && !jumpHeld && !jumpReleased) {
+                if (velocity.y > 0) velocity.y *= Mathf.Clamp(jumpReleaseMultiplier, .1f, 1f);
+                jumpReleased = true;
+            }
+            if (velocity.y <= 0) jumping = false;
             body.linearVelocity = velocity;
             if (horizontal.sqrMagnitude > .01f) Face(horizontal);
             if (body.position.y < -12) Respawn();
         }
-        public void Respawn() { wallNormals.Clear(); body.position = spawn; body.linearVelocity = Vector3.zero; }
+        public void Respawn() { wallNormals.Clear(); ClearJumpInput(); body.position = spawn; body.linearVelocity = Vector3.zero; }
         public void SetRespawnPoint(Vector3 point) { spawn = point; }
-        void OnDisable() { wallNormals.Clear(); MoveInput = Vector2.zero; }
+        void ClearJumpInput() { jumpHeld = jumping = jumpReleased = false; jumpBuffer = 0; lastGrounded = -10; }
+        void OnDisable() { wallNormals.Clear(); MoveInput = Vector2.zero; ClearJumpInput(); }
     }
 }

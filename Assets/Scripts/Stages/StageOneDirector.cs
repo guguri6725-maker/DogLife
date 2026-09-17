@@ -57,7 +57,8 @@ namespace DogLife
                 hud.objective = Cleared == encounters.Length - 1 ? $"{bossLabel}  /  Defeat the boss  /  HP {enemies[Cleared][0].Current:0}" : $"{stageLabel}  /  Encounter {Cleared + 1}/{encounters.Length - 1}  /  Enemies left: {remaining}";
                 if (remaining == 0)
                 {
-                    gates[Cleared].SetActive(false);
+                    var vines = gates[Cleared].GetComponentInChildren<VineGate>();
+                    if (vines) vines.Open(); else gates[Cleared].SetActive(false);
                     Cleared++;
                     if (Cleared < encounters.Length) encounters[Cleared].SetActive(true);
                 }

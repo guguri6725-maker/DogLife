@@ -1,0 +1,89 @@
+{
+  "closed": [
+    {
+      "name": "Room01_Entrance_RootDoor",
+      "position": "(0.00, -0.12, 0.00)",
+      "duration": 3.2,
+      "clipLength": 3.20000029,
+      "localAnimationRoot": true,
+      "localBlocker": true,
+      "closedBlockerHit": true,
+      "missingMaterials": 0,
+      "shapeWeights": [
+        0,
+        0
+      ]
+    },
+    {
+      "name": "Room01_Exit_RootDoor",
+      "position": "(38.40, -0.12, 0.00)",
+      "duration": 3.2,
+      "clipLength": 3.20000029,
+      "localAnimationRoot": true,
+      "localBlocker": true,
+      "closedBlockerHit": true,
+      "missingMaterials": 0,
+      "shapeWeights": [
+        0,
+        0
+      ]
+    },
+    {
+      "name": "Room02_Entrance_RootDoor",
+      "position": "(44.40, -0.12, 0.00)",
+      "duration": 3.2,
+      "clipLength": 3.20000029,
+      "localAnimationRoot": true,
+      "localBlocker": true,
+      "closedBlockerHit": true,
+      "missingMaterials": 0,
+      "shapeWeights": [
+        0,
+        0
+      ]
+    },
+    {
+      "name": "Room02_Exit_RootDoor",
+      "position": "(90.48, -0.12, 0.00)",
+      "duration": 3.2,
+      "clipLength": 3.20000029,
+      "localAnimationRoot": true,
+      "localBlocker": true,
+      "closedBlockerHit": true,
+      "missingMaterials": 0,
+      "shapeWeights": [
+        0,
+        0
+      ]
+    }
+  ],
+  "openPoseRaycast": [
+    {
+      "x": 0,
+      "hits": [
+        "FlowerForest_Floor_Mesh",
+        "FlowerForest_Floor_Mesh",
+        "FlowerForest_Floor_Mesh"
+      ]
+    },
+    {
+      "x": 38.4,
+      "hits": []
+    },
+    {
+      "x": 44.4,
+      "hits": []
+    },
+    {
+      "x": 90.48,
+      "hits": [
+        "FullBloom_Floor_Mesh"
+      ]
+    }
+  ],
+  "notes": [
+    "Open-pose checks used Inspector blend shape values and disabled PassageBlocker; final values restored to closed.",
+    "Room connectors x=38.4 and x=44.4 had no ray hits. End portals encountered existing floor geometry at some fixed test heights.",
+    "No room-clear gameplay integration or automatic trigger was added, per user selection."
+  ]
+}

@@ -31,8 +31,8 @@ namespace DogLife.Verification
             }
             finished = true;
             var result = new { passed = string.IsNullOrEmpty(failure), failure, maximumRooms, physicalLimitChecks, observations };
-            System.IO.Directory.CreateDirectory("ArtSource/ForestStreaming");
-            System.IO.File.WriteAllText("ArtSource/ForestStreaming/PlayModeVerification.json", Newtonsoft.Json.JsonConvert.SerializeObject(result, Newtonsoft.Json.Formatting.Indented));
+            System.IO.Directory.CreateDirectory("ArtSource/ForestVineGates");
+            System.IO.File.WriteAllText("ArtSource/ForestVineGates/PlayModeVerification.json", Newtonsoft.Json.JsonConvert.SerializeObject(result, Newtonsoft.Json.Formatting.Indented));
             Debug.Log("Forest streaming verification: " + (result.passed ? "PASS" : failure));
         }
         IEnumerator Run()
@@ -62,6 +62,7 @@ namespace DogLife.Verification
                 var room=streaming.Current;
                 Check(room.encounter.activeSelf,"Current encounter inactive");
                 Check(room.forwardGate.activeSelf,"Gate opened before combat clear");
+                Check(room.forwardVines && room.forwardVines.IsClosed,"Vines must start closed");
                 if(i<6)
                 {
                     var next=SceneManager.GetSceneByPath(streaming.roomScenePaths[i+1]).GetRootGameObjects().SelectMany(g=>g.GetComponentsInChildren<ForestRoom>()).Single();
@@ -70,6 +71,7 @@ namespace DogLife.Verification
                 if(i>0)
                 {
                     Check(room.rearSeal.activeSelf,"Rear seal not closed");
+                    Check(room.rearVines && room.rearVines.IsClosed,"Rear vines not fully closed");
                     Check(!SceneManager.GetSceneByPath(streaming.roomScenePaths[i-1]).isLoaded,"Previous room still loaded");
                     foreach(float z in new[]{-23f,0,23f})
                     {
@@ -104,7 +106,15 @@ namespace DogLife.Verification
                 observations.Add(new {room=i+1,residentRooms=LoadedRooms(),floorSamples,sideRays,agentsOnNavMesh=agents,rearClosed=room.rearSeal.activeSelf});
                 foreach(var hp in room.Enemies) hp.Damage(100000);
                 yield return null;yield return null;
-                Check(!room.forwardGate.activeSelf,"Gate did not open after clear");
+                // 개방 중에는 충돌이 유지되고, Blender 클립 재생이 끝나야 통과할 수 있습니다.
+                Check(!room.forwardVines.IsOpen,"Vines opened without animation");
+                Check(room.forwardVines.blockers.All(c=>c.enabled),"Collision released before animation ended");
+                deadline=Time.realtimeSinceStartup+6;
+                while(!room.forwardVines.IsOpen && Time.realtimeSinceStartup<deadline)yield return null;
+                Check(room.forwardVines.IsOpen,"Vine opening timed out");
+                Check(room.forwardVines.blockers.All(c=>!c.enabled),"Open vines still block passage");
+                var animatedVine=room.forwardVines.animationRoot.transform.Find("Left_Vine_00");
+                Check(animatedVine && Mathf.Abs(animatedVine.localPosition.x)>2,"Blender animation did not move vines");
                 Check(streaming.CurrentRoom==i,"Advanced before crossing portal");
                 if(i<6)
                 {

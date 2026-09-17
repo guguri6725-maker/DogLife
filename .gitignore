@@ -73,3 +73,7 @@ crashlytics-build.properties
 # Temporary auto-generated Android Assets
 /[Aa]ssets/[Ss]treamingAssets/aa.meta
 /[Aa]ssets/[Ss]treamingAssets/aa/*
+
+# Large Blender source files: kept locally only, GitHub rejects anything over 100MB
+ArtSource/**/*.blend
+ArtSource/**/*.blend1
