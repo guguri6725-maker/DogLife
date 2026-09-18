@@ -77,6 +77,7 @@ GameObject:
   - component: {fileID: 8931590732651941937}
   - component: {fileID: 8268262574708146055}
   - component: {fileID: 5450094878211740535}
+  - component: {fileID: 56225952523771661}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -213,6 +214,20 @@ MonoBehaviour:
   maxHealth: 100
   player: 1
   practiceTarget: 0
+--- !u!114 &56225952523771661
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8835608600054156240}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b7f464a69c4b27469f324616edc6b82, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DogLife.PlayerDirectionalAnimation
+  animator: {fileID: 5867457151114486680}
+  blendDamping: 0.1
 --- !u!1001 &948871581028634769
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -282,6 +297,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: e4e9c71c0f877d242bdbb92f068bb1a1, type: 3}
+--- !u!95 &5867457151114486680 stripped
+Animator:
+  m_CorrespondingSourceObject: {fileID: 6649130121538958089, guid: e4e9c71c0f877d242bdbb92f068bb1a1, type: 3}
+  m_PrefabInstance: {fileID: 948871581028634769}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &8413521724869014899 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 8784768887485212130, guid: e4e9c71c0f877d242bdbb92f068bb1a1, type: 3}

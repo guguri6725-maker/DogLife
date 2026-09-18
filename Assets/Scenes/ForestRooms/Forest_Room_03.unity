@@ -6000,9 +6000,12 @@ MonoBehaviour:
   rearSeal: {fileID: 2107058123}
   forwardVines: {fileID: 575656761}
   rearVines: {fileID: 1180845768}
+  sideVines: []
   recoveryStations:
   - {fileID: 313778526}
   exit: {fileID: 0}
+  prepareOnLoad: 0
+  navigation: {fileID: 0}
 --- !u!4 &1781268804
 Transform:
   m_ObjectHideFlags: 0

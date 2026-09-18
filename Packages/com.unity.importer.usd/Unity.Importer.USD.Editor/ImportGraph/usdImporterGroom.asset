@@ -127,12 +127,12 @@ MonoBehaviour:
   - rid: 4350238729554100335
   - rid: 4350238729554100336
   - rid: 4350238729554100337
-  - rid: 4350238729554100338
+  - rid: -2
   - rid: 4350238729554100339
   - rid: 4350238729554100340
   - rid: 4350238729554100341
   - rid: 4350238729554100342
-  - rid: 4350238729554100343
+  - rid: -2
   - rid: 4350238729554100344
   - rid: 4350238729554100345
   - rid: 4350238729554100346
@@ -1794,7 +1794,7 @@ MonoBehaviour:
       targetedPortSet: 0
       fieldName: curveData
       node:
-        rid: 4350238729554100338
+        rid: -2
   - origin:
       targetedPortSet: 1
       fieldName: primList
@@ -1859,12 +1859,12 @@ MonoBehaviour:
       targetedPortSet: 1
       fieldName: hairAssets
       node:
-        rid: 4350238729554100338
+        rid: -2
     destination:
       targetedPortSet: 0
       fieldName: hairAssets
       node:
-        rid: 4350238729554100343
+        rid: -2
   - origin:
       targetedPortSet: 1
       fieldName: gameObjects
@@ -1874,7 +1874,7 @@ MonoBehaviour:
       targetedPortSet: 0
       fieldName: gameObjects
       node:
-        rid: 4350238729554100343
+        rid: -2
   - origin:
       targetedPortSet: 1
       fieldName: objsToRefs
@@ -1884,7 +1884,7 @@ MonoBehaviour:
       targetedPortSet: 0
       fieldName: objsToRefs
       node:
-        rid: 4350238729554100343
+        rid: -2
   - origin:
       targetedPortSet: 1
       fieldName: gameObjects
@@ -1969,7 +1969,7 @@ MonoBehaviour:
       targetedPortSet: 1
       fieldName: gameObjects
       node:
-        rid: 4350238729554100343
+        rid: -2
     destination:
       targetedPortSet: 0
       fieldName: inputs_8
@@ -2437,25 +2437,25 @@ MonoBehaviour:
       targetedPortSet: 1
       fieldName: hairAssets
       node:
-        rid: 4350238729554100338
+        rid: -2
   - id: hairMeshAssetRoots
     origin:
       targetedPortSet: 1
       fieldName: hairMeshAssetRoots
       node:
-        rid: 4350238729554100338
+        rid: -2
   - id: hairMeshAssetLines
     origin:
       targetedPortSet: 1
       fieldName: hairMeshAssetLines
       node:
-        rid: 4350238729554100338
+        rid: -2
   - id: hairMeshAssetStrips
     origin:
       targetedPortSet: 1
       fieldName: hairMeshAssetStrips
       node:
-        rid: 4350238729554100338
+        rid: -2
   m_SettingEdges:
   - id: Recalculate mesh normals
     destination:
@@ -3524,7 +3524,7 @@ MonoBehaviour:
       targetedPortSet: 0
       fieldName: samplesPerStrand
       node:
-        rid: 4350238729554100338
+        rid: -2
   - id: Preserve scene root
     destination:
       targetedPortSet: 0
@@ -3629,6 +3629,8 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
     - rid: 4350238729554100224
       type: {class: UsdStageOpenNode, ns: Unity.Importer.USD, asm: Unity.Importer.USD}
       data:
@@ -4085,10 +4087,6 @@ MonoBehaviour:
       type: {class: 'IDictionaryAggregatorNode`1[[System.Collections.Generic.Dictionary`2[[System.String, mscorlib],[Unity.Importer.USD.CurvesDescription, Unity.Importer.USD]], mscorlib]]', ns: Unity.Importer.USD, asm: Unity.Importer.USD}
       data:
         temporaryField: 0
-    - rid: 4350238729554100338
-      type: {class: CreateHairNode, ns: UnityEditor.Importer.USD, asm: Unity.Importer.USD.Editor}
-      data:
-        temporaryField: 0
     - rid: 4350238729554100339
       type: {class: 'IListAggregatorNode`1[[System.Collections.Generic.List`1[[pxr.UsdPrim, USD.NET]], mscorlib]]', ns: Unity.Importer.USD, asm: Unity.Importer.USD}
       data:
@@ -4103,10 +4101,6 @@ MonoBehaviour:
         temporaryField: 0
     - rid: 4350238729554100342
       type: {class: CreateXFormNode, ns: Unity.Importer.USD, asm: Unity.Importer.USD}
-      data:
-        temporaryField: 0
-    - rid: 4350238729554100343
-      type: {class: AddHairInstanceToGameObjectsNode, ns: UnityEditor.Importer.USD, asm: Unity.Importer.USD.Editor}
       data:
         temporaryField: 0
     - rid: 4350238729554100344

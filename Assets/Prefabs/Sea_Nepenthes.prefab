@@ -209,7 +209,13 @@ MonoBehaviour:
   damage: 5
   detectionRange: 13
   visualRoot: {fileID: 6702927331758073730}
+  modelAnimator: {fileID: 0}
   projectileMaterial: {fileID: 2100000, guid: a30bf047b3cc519498caa2b1e417eb25, type: 2}
+  projectilePrefab: {fileID: 0}
+  obstacleMask:
+    serializedVersion: 2
+    m_Bits: 256
+  visualYawOffset: -90
 --- !u!1 &3911959439394558701
 GameObject:
   m_ObjectHideFlags: 0

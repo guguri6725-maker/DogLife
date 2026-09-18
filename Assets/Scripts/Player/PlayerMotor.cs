@@ -13,6 +13,7 @@ namespace DogLife
         public Transform visualRoot, movementCamera;
         public float visualYawOffset = -90;
         public bool readInput = true;
+        [System.NonSerialized] public bool directionalLocomotion;
         public Vector2 MoveInput { get; set; }
         public bool Grounded { get; private set; }
         public bool Crouching { get; private set; }
@@ -137,7 +138,8 @@ namespace DogLife
             }
             if (velocity.y <= 0) jumping = false;
             body.linearVelocity = velocity;
-            if (horizontal.sqrMagnitude > .01f) Face(horizontal);
+            // 방향별 걷기는 조준 방향을 유지해야 옆걸음과 뒷걸음이 선택됩니다.
+            if (horizontal.sqrMagnitude > .01f && !directionalLocomotion) Face(horizontal);
             if (body.position.y < -12) Respawn();
         }
         public void Respawn() { wallNormals.Clear(); ClearJumpInput(); body.position = spawn; body.linearVelocity = Vector3.zero; }
