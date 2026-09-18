@@ -667,63 +667,6 @@ Transform:
   - {fileID: 201334190}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1001 &1965691149
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 0}
-    m_Modifications:
-    - target: {fileID: 691674299709288164, guid: d7512e886003ab3408ef816890b08017, type: 3}
-      propertyPath: m_Name
-      value: 0d549855-e2be-45ab-929f-379e7e20b9d6
-      objectReference: {fileID: 0}
-    - target: {fileID: 1812497409201261623, guid: d7512e886003ab3408ef816890b08017, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 1812497409201261623, guid: d7512e886003ab3408ef816890b08017, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 1812497409201261623, guid: d7512e886003ab3408ef816890b08017, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 1812497409201261623, guid: d7512e886003ab3408ef816890b08017, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 1812497409201261623, guid: d7512e886003ab3408ef816890b08017, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 1812497409201261623, guid: d7512e886003ab3408ef816890b08017, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 1812497409201261623, guid: d7512e886003ab3408ef816890b08017, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 1812497409201261623, guid: d7512e886003ab3408ef816890b08017, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 1812497409201261623, guid: d7512e886003ab3408ef816890b08017, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 1812497409201261623, guid: d7512e886003ab3408ef816890b08017, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: -9137962142385034750, guid: d7512e886003ab3408ef816890b08017, type: 3}
 --- !u!1001 &1991709704
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -802,7 +745,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6827229823430372724, guid: c0712bdf52c4eef45b3194241bddb677, type: 3}
       propertyPath: roomScenePaths.Array.size
-      value: 4
+      value: 13
       objectReference: {fileID: 0}
     - target: {fileID: 6827229823430372724, guid: c0712bdf52c4eef45b3194241bddb677, type: 3}
       propertyPath: 'roomScenePaths.Array.data[0]'
@@ -818,6 +761,42 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6827229823430372724, guid: c0712bdf52c4eef45b3194241bddb677, type: 3}
       propertyPath: 'roomScenePaths.Array.data[3]'
+      value: Assets/Scenes/SeasonRooms/Winter/Winter_Room05_SnowGarden.unity
+      objectReference: {fileID: 0}
+    - target: {fileID: 6827229823430372724, guid: c0712bdf52c4eef45b3194241bddb677, type: 3}
+      propertyPath: 'roomScenePaths.Array.data[4]'
+      value: Assets/Scenes/SeasonRooms/Winter/Winter_Room06_Synthesis.unity
+      objectReference: {fileID: 0}
+    - target: {fileID: 6827229823430372724, guid: c0712bdf52c4eef45b3194241bddb677, type: 3}
+      propertyPath: 'roomScenePaths.Array.data[5]'
+      value: Assets/Scenes/SeasonRooms/Winter/Winter_Room07_FrozenCourt.unity
+      objectReference: {fileID: 0}
+    - target: {fileID: 6827229823430372724, guid: c0712bdf52c4eef45b3194241bddb677, type: 3}
+      propertyPath: 'roomScenePaths.Array.data[6]'
+      value: Assets/Scenes/SeasonRooms/Winter/Winter_Room08_CrystalPass.unity
+      objectReference: {fileID: 0}
+    - target: {fileID: 6827229823430372724, guid: c0712bdf52c4eef45b3194241bddb677, type: 3}
+      propertyPath: 'roomScenePaths.Array.data[7]'
+      value: Assets/Scenes/SeasonRooms/Winter/Winter_Room09_Shop.unity
+      objectReference: {fileID: 0}
+    - target: {fileID: 6827229823430372724, guid: c0712bdf52c4eef45b3194241bddb677, type: 3}
+      propertyPath: 'roomScenePaths.Array.data[8]'
+      value: Assets/Scenes/SeasonRooms/Winter/Winter_Room10_PineIslands.unity
+      objectReference: {fileID: 0}
+    - target: {fileID: 6827229823430372724, guid: c0712bdf52c4eef45b3194241bddb677, type: 3}
+      propertyPath: 'roomScenePaths.Array.data[9]'
+      value: Assets/Scenes/SeasonRooms/Winter/Winter_Room11_GlacierRing.unity
+      objectReference: {fileID: 0}
+    - target: {fileID: 6827229823430372724, guid: c0712bdf52c4eef45b3194241bddb677, type: 3}
+      propertyPath: 'roomScenePaths.Array.data[10]'
+      value: Assets/Scenes/SeasonRooms/Winter/Winter_Room12_FrostRuins.unity
+      objectReference: {fileID: 0}
+    - target: {fileID: 6827229823430372724, guid: c0712bdf52c4eef45b3194241bddb677, type: 3}
+      propertyPath: 'roomScenePaths.Array.data[11]'
+      value: Assets/Scenes/SeasonRooms/Winter/Winter_Room13_IceApproach.unity
+      objectReference: {fileID: 0}
+    - target: {fileID: 6827229823430372724, guid: c0712bdf52c4eef45b3194241bddb677, type: 3}
+      propertyPath: 'roomScenePaths.Array.data[12]'
       value: Assets/Scenes/SeasonRooms/Winter/Winter_Room04.unity
       objectReference: {fileID: 0}
     - target: {fileID: 6939448271202654588, guid: c0712bdf52c4eef45b3194241bddb677, type: 3}
@@ -873,4 +852,3 @@ SceneRoots:
   - {fileID: 1581534470}
   - {fileID: 2077746709}
   - {fileID: 1991709704}
-  - {fileID: 1965691149}

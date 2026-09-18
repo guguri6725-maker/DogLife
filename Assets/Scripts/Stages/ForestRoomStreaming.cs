@@ -94,6 +94,8 @@ namespace DogLife
                 {
                     if (room.forwardVines) room.forwardVines.Open();
                     else room.forwardGate.SetActive(false);
+                    // 옆 공간은 현재 방 씬에 포함되어 메인 진행 순서를 바꾸지 않습니다.
+                    foreach (var gate in room.sideVines) if (gate) gate.Open();
                     Hud.objective = CurrentRoom == rooms.Length - 1 ? "GUARDIAN DEFEATED / Reach the green exit" : "ROOM CLEAR / Enter the next room";
                     bool passageOpen = !room.forwardVines || room.forwardVines.IsOpen;
                     // 계절 맵은 통로 중간이 아니라 다음 방 안으로 들어온 뒤 이전 방을 해제합니다.
@@ -126,7 +128,8 @@ namespace DogLife
             // 뒤쪽 덩굴이 완전히 닫힌 후 이전 방을 해제하여 전환 순간을 가립니다.
             if (room.rearVines) room.rearVines.Close();
             Physics.SyncTransforms();
-            Hud.motor.SetRespawnPoint(new Vector3(room.entryX + 4f, 2.5f, 0));
+            // 계절 방은 최초 스폰과 같은 5m 안쪽을 사용해 문턱의 거친 바닥을 피합니다.
+            Hud.motor.SetRespawnPoint(new Vector3(room.entryX + (loadNextOnClear ? 5f : 4f), 2.5f, 0));
             var camera = Camera.main ? Camera.main.GetComponent<PlayerCamera>() : null;
             if (camera) camera.minimumWorldX = room.entryX + 1f;
             foreach (var projectile in FindObjectsByType<CombatProjectile>(FindObjectsSortMode.None)) Destroy(projectile.gameObject);
