@@ -17,6 +17,7 @@ namespace DogLife
         Renderer[] renderers;
         MaterialPropertyBlock block;
         float flashUntil;
+        bool flashApplied;
         void Awake() { Current = maxHealth; renderers = GetComponentsInChildren<Renderer>(); block = new MaterialPropertyBlock(); }
         // 피해를 적용하고 사망 대상의 후처리를 실행합니다.
         public void Damage(float amount)
@@ -44,10 +45,14 @@ namespace DogLife
         void Update()
         {
             if (practiceTarget && Dead && Time.time >= restoreAt) Restore();
+            bool flashing=Time.time<flashUntil;
+            if(flashing==flashApplied)return;
+            flashApplied=flashing;
+            if(flashing)block.SetColor("_Color",Color.white);
             foreach (var r in renderers)
             {
                 if (!r) continue;
-                if (Time.time < flashUntil) { block.SetColor("_Color", Color.white); r.SetPropertyBlock(block); }
+                if (flashing) r.SetPropertyBlock(block);
                 else r.SetPropertyBlock(null);
             }
         }

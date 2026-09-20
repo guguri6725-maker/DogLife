@@ -1,5 +1,7 @@
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.Animations;
+using UnityEngine.Playables;
 
 namespace DogLife
 {
@@ -16,6 +18,8 @@ namespace DogLife
         public bool IsOpen => Progress >= 1f;
         public bool IsClosed => Progress <= 0f;
         float target;
+        PlayableGraph poseGraph;
+        AnimationClipPlayable poseClip;
 
         void Start()
         {
@@ -40,9 +44,30 @@ namespace DogLife
         }
         void ApplyPose()
         {
-            if (openingClip && animationRoot) openingClip.SampleAnimation(animationRoot, Progress * openingClip.length);
+            if (openingClip && animationRoot)
+            {
+                if(openingClip.legacy)openingClip.SampleAnimation(animationRoot,Progress*openingClip.length);
+                else
+                {
+                    if(!poseGraph.IsValid())
+                    {
+                        var animator=animationRoot.GetComponent<Animator>();
+                        if(!animator)animator=animationRoot.AddComponent<Animator>();
+                        animator.applyRootMotion=false;animator.cullingMode=AnimatorCullingMode.AlwaysAnimate;
+                        poseGraph=PlayableGraph.Create("Vine gate pose");
+                        poseGraph.SetTimeUpdateMode(DirectorUpdateMode.Manual);
+                        poseClip=AnimationClipPlayable.Create(poseGraph,openingClip);
+                        poseClip.SetSpeed(0);
+                        AnimationPlayableOutput.Create(poseGraph,"Gate",animator).SetSourcePlayable(poseClip);
+                        poseGraph.Play();
+                    }
+                    poseClip.SetTime(Progress*openingClip.length);
+                    poseGraph.Evaluate(0);
+                }
+            }
             ApplyBlockers();
         }
+        void OnDestroy(){if(poseGraph.IsValid())poseGraph.Destroy();}
         void ApplyBlockers()
         {
             // 완전히 열린 뒤에 통과시키고, 닫기 시작하면 즉시 역주행을 막습니다.

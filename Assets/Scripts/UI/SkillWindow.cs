@@ -24,7 +24,7 @@ namespace DogLife
         public PlayerWeapons weapons;
         public PlayerCamera playerCamera;
         public static bool IsOpen { get; private set; }
-        public static bool BlocksGameplayInput => IsOpen || Time.frameCount == inputConsumedFrame;
+        public static bool BlocksGameplayInput => IsOpen || Time.frameCount == inputConsumedFrame || GameSettingsWindow.BlocksGameplayInput;
         static int inputConsumedFrame = -1;
         public SkillCard Selected { get; private set; }
         public SkillCard Dragged { get; private set; }
@@ -69,6 +69,7 @@ namespace DogLife
         }
         void Update()
         {
+            if(GameSettingsWindow.BlocksGameplayInput)return;
             if (Input.GetKeyDown(KeyCode.K)) SetOpen(!opened);
             else if (opened && Input.GetKeyDown(KeyCode.Escape)) SetOpen(false);
         }

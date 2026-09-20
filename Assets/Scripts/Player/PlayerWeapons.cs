@@ -14,6 +14,7 @@ namespace DogLife
         public Vector3 AimPoint { get; private set; }
         [SerializeField] private float aimDistance=100f;
         bool hasAimPoint;
+        readonly RaycastHit[] aimHits=new RaycastHit[64];
         public event System.Action Attacked;
         PlayerMotor motor;
         BasicWeaponCombat attackCombo;
@@ -36,9 +37,17 @@ namespace DogLife
             {
                 var ray=aimCamera.ViewportPointToRay(new Vector3(.5f,.5f,0));
                 var target=ray.GetPoint(aimDistance);
-                var hits=Physics.RaycastAll(ray,aimDistance,~0,QueryTriggerInteraction.Ignore);
-                System.Array.Sort(hits,(a,b)=>a.distance.CompareTo(b.distance));
-                foreach(var hit in hits){if(IgnoreAimCollider(hit.collider))continue;target=hit.point;break;}
+                int count=Physics.RaycastNonAlloc(ray,aimHits,aimDistance,~0,QueryTriggerInteraction.Ignore);
+                // 포화 시에는 전체 결과를 사용해 가까운 벽/적을 놓치지 않습니다.
+                var hits=count==aimHits.Length?Physics.RaycastAll(ray,aimDistance,~0,QueryTriggerInteraction.Ignore):aimHits;
+                if(hits!=aimHits)count=hits.Length;
+                float nearest=float.PositiveInfinity;
+                for(int i=0;i<count;i++)
+                {
+                    var hit=hits[i];
+                    if(hit.distance>=nearest||IgnoreAimCollider(hit.collider))continue;
+                    nearest=hit.distance;target=hit.point;
+                }
                 AimAt(target);
             }
         }

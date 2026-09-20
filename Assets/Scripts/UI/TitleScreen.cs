@@ -21,7 +21,7 @@ namespace DogLife
 
         public void StartGame()
         {
-            if (loading) return;
+            if (loading || GameSettingsWindow.BlocksGameplayInput) return;
             if (!Application.CanStreamedLevelBeLoaded(springScene))
             {
                 status.text = "봄 스테이지를 불러올 수 없습니다.";
