@@ -18,7 +18,7 @@ namespace DogLife
         {
             icon.enabled = Equipped != null; emptyMark.SetActive(!Equipped);
             skillLabel.text = Equipped ? Equipped.skillName : "빈 슬롯";
-            if (Equipped) { icon.sprite = Equipped.icon.sprite; icon.color = Equipped.icon.color; }
+            if (Equipped) { icon.sprite = Equipped.icon.sprite; icon.color = Equipped.icon.color;icon.preserveAspect=true; }
         }
         public void SetHover(bool value) { hoverMark.SetActive(value); }
         public void OnDrop(PointerEventData e) { window.DropOn(this); }

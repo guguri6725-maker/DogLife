@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c4ab112f76b15634f8541947b378d5fd, type: 3}
+  m_Name: Boomerang
+  m_EditorClassIdentifier: Assembly-CSharp::DogLife.BasicWeaponMoveset
+  category: 5
+  attacks:
+  - {fileID: 7400000, guid: 8daa975ae8fcf264b8facd4e66aec467, type: 2}
+  strikeTimes:
+  - 0.3
+  secondaryStrikeTimes:
+  - 0
+  comboLinkNormalized: 0.8
+  reach: 7
+  projectileSpeed: 10
+  projectileHitRadius: 0.25
+  inputBuffer: 0.28
+  effectMaterial: {fileID: 2100000, guid: 45c443755e5791b47a27030dcb8f3d15, type: 2}

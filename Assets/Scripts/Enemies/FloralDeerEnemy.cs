@@ -1,0 +1,165 @@
+using UnityEngine;
+using UnityEngine.AI;
+
+namespace DogLife
+{
+    [RequireComponent(typeof(CombatHealth),typeof(Rigidbody),typeof(NavMeshAgent))]
+    public sealed class FloralDeerEnemy : MonoBehaviour
+    {
+        public Animator modelAnimator;
+        public Transform visualRoot;
+        public LineRenderer warning;
+        public ParticleSystem scrapeEffect,chargeEffect,impactEffect;
+        public float speed=2.3f,detectionRange=14,attackRange=9;
+        public float windupTime=1.35f,chargeSpeed=9,chargeDistance=7,recoveryTime=1,cooldown=1.1f;
+        public float damage=7,hitRadius=.38f,bodyFront=.42f;
+        [SerializeField,Min(0),Tooltip("회복 종료 후 다음 돌진까지의 최소 대기 시간(초)")] private float skillDelay=3.5f;
+        [SerializeField,Min(0)] private float knockbackSpeed=9;
+        [SerializeField,Min(0)] private float knockbackLift=4.5f;
+        public bool IsCharging=>phase==Phase.Charge;
+        public Vector3 ImpactDirection(Vector3 victimPosition,Vector3 contactOrigin)
+        {
+            var right=Vector3.Cross(Vector3.up,lockedDirection).normalized;
+            float side=Vector3.Dot(victimPosition-contactOrigin,right);
+            return Mathf.Abs(side)<HornRadius*.25f?lockedDirection:(lockedDirection*.65f+right*Mathf.Sign(side)*.9f).normalized;
+        }
+        enum Phase{Track,Windup,Charge,Recover}
+        Phase phase;
+        CombatHealth health,targetHealth;
+        Transform target;
+        NavMeshAgent agent;
+        Vector3 lockedDirection;
+        float phaseStarted,travelled,nextAttack,nextPath;
+        bool hitApplied;
+        int scrapeCount;
+        string animationName;
+        public bool Windup=>phase==Phase.Windup;
+        bool Navigable=>agent&&agent.isActiveAndEnabled&&agent.isOnNavMesh;
+        float WorldScale=>Mathf.Max(.01f,transform.lossyScale.y);
+        float GroundOffset=>(agent?agent.baseOffset:1)*WorldScale;
+        float HornReach=>bodyFront*WorldScale;
+        float HornRadius=>hitRadius*WorldScale;
+        void Awake()
+        {
+            health=GetComponent<CombatHealth>();agent=GetComponent<NavMeshAgent>();agent.updateRotation=false;
+            var body=GetComponent<Rigidbody>();body.isKinematic=true;body.constraints=RigidbodyConstraints.FreezeRotation;
+        }
+        void Start()
+        {
+            var player=FindFirstObjectByType<PlayerMotor>();
+            if(player){target=player.transform;targetHealth=player.GetComponent<CombatHealth>();var own=GetComponent<Collider>();var other=player.GetComponent<Collider>();if(own&&other)Physics.IgnoreCollision(own,other);}
+            nextAttack=Time.time+1;
+        }
+        void Animate(string name)
+        {
+            if(animationName==name)return;animationName=name;
+            if(modelAnimator&&modelAnimator.isActiveAndEnabled)modelAnimator.CrossFadeInFixedTime(name,.06f,0);
+        }
+        void Stop(){if(Navigable){agent.isStopped=true;agent.ResetPath();}}
+        void StopEffects()
+        {
+            if(warning)warning.enabled=false;
+            if(scrapeEffect)scrapeEffect.Stop(true,ParticleSystemStopBehavior.StopEmittingAndClear);
+            if(chargeEffect)chargeEffect.Stop(true,ParticleSystemStopBehavior.StopEmittingAndClear);
+            if(impactEffect)impactEffect.Stop(true,ParticleSystemStopBehavior.StopEmittingAndClear);
+        }
+        // 몸 앞쪽의 실제 이동 구간을 검사하여 얇은 벽도 통과하지 않습니다.
+        public float ObstacleDistance(Vector3 position,Vector3 direction,float distance)
+        {
+            float allowed=distance;Vector3 origin=position+direction*HornReach;
+            foreach(var hit in Physics.SphereCastAll(origin,HornRadius,direction,distance,~0,QueryTriggerInteraction.Ignore))
+            {
+                if(hit.transform.IsChildOf(transform)||hit.collider.GetComponentInParent<CombatHealth>())continue;
+                allowed=Mathf.Min(allowed,Mathf.Max(0,hit.distance-.04f));
+            }
+            foreach(var hit in Physics.OverlapSphere(origin,HornRadius,~0,QueryTriggerInteraction.Ignore))
+                if(!hit.transform.IsChildOf(transform)&&!hit.GetComponentInParent<CombatHealth>())return 0;
+            return allowed;
+        }
+        void DrawWarning()
+        {
+            if(!warning)return;
+            float length=ObstacleDistance(transform.position,lockedDirection,chargeDistance);
+            Vector3 start=transform.position-Vector3.up*GroundOffset+Vector3.up*.035f;
+            Vector3 end=start+lockedDirection*(length+HornReach),side=Vector3.Cross(Vector3.up,lockedDirection)*HornRadius;
+            warning.positionCount=5;warning.SetPositions(new[]{start-side,end-side,end+side,start+side,start-side});warning.enabled=true;
+        }
+        void BeginWindup(Vector3 direction)
+        {
+            Stop();phase=Phase.Windup;phaseStarted=Time.time;scrapeCount=0;hitApplied=false;
+            lockedDirection=Vector3.ProjectOnPlane(direction,Vector3.up).normalized;
+            if(lockedDirection.sqrMagnitude<.001f)lockedDirection=transform.forward;
+            transform.rotation=Quaternion.LookRotation(lockedDirection);DrawWarning();Animate("Windup");
+        }
+        void BeginRecovery()
+        {
+            Stop();phase=Phase.Recover;phaseStarted=Time.time;StopEffects();Animate("Recover");
+        }
+        void DamageSweep(Vector3 from,Vector3 to)
+        {
+            if(hitApplied||!targetHealth||targetHealth.Dead)return;
+            foreach(var collider in Physics.OverlapCapsule(from+lockedDirection*HornReach,to+lockedDirection*HornReach,HornRadius,~0,QueryTriggerInteraction.Ignore))
+            {
+                if(collider.GetComponentInParent<CombatHealth>()!=targetHealth)continue;
+                hitApplied=true;float before=targetHealth.Current;targetHealth.Damage(damage);
+                var motor=target.GetComponent<PlayerMotor>();
+                if(motor&&!targetHealth.Dead&&targetHealth.Current<before)motor.ApplyKnockback(ImpactDirection(target.position,from),knockbackSpeed,knockbackLift,.65f);
+                Animate("Impact");if(impactEffect){impactEffect.transform.position=to+lockedDirection*HornReach;impactEffect.Play();}break;
+            }
+        }
+        void TickCharge()
+        {
+            if(!Navigable){BeginRecovery();return;}
+            float requested=Mathf.Min(chargeSpeed*Time.fixedDeltaTime,chargeDistance-travelled);
+            Vector3 from=transform.position;float step=ObstacleDistance(from,lockedDirection,requested);
+            var filter=new NavMeshQueryFilter{agentTypeID=agent.agentTypeID,areaMask=agent.areaMask};
+            NavMeshHit startHit,edge;
+            if(!NavMesh.SamplePosition(from-Vector3.up*GroundOffset,out startHit,.8f,filter)){BeginRecovery();return;}
+            if(NavMesh.Raycast(startHit.position,startHit.position+lockedDirection*step,out edge,filter))step=Mathf.Min(step,Mathf.Max(0,edge.distance-.05f));
+            if(step<=.001f){BeginRecovery();return;}
+            Vector3 to=from+lockedDirection*step;DamageSweep(from,to);agent.Move(lockedDirection*step);travelled+=step;
+            if(step<requested-.001f||travelled>=chargeDistance-.01f||Time.time-phaseStarted>=chargeDistance/Mathf.Max(.1f,chargeSpeed)+.3f)BeginRecovery();
+        }
+        void FixedUpdate()
+        {
+            if(!health||health.Dead||!target||!targetHealth||targetHealth.Dead){Cancel();return;}
+            if(phase==Phase.Windup)
+            {
+                Stop();float elapsed=Time.time-phaseStarted;
+                if(scrapeCount<2&&elapsed>=.25f+scrapeCount*.45f){scrapeCount++;if(scrapeEffect){scrapeEffect.Stop(true,ParticleSystemStopBehavior.StopEmittingAndClear);scrapeEffect.Play();}}
+                if(elapsed>=windupTime){phase=Phase.Charge;phaseStarted=Time.time;travelled=0;if(warning)warning.enabled=false;if(chargeEffect)chargeEffect.Play();Animate("Charge");}
+                return;
+            }
+            if(phase==Phase.Charge){TickCharge();return;}
+            if(phase==Phase.Recover)
+            {
+                Stop();if(Time.time-phaseStarted>=recoveryTime){phase=Phase.Track;nextAttack=Time.time+Mathf.Max(cooldown,skillDelay);Animate("Idle");}return;
+            }
+            var delta=Vector3.ProjectOnPlane(target.position-transform.position,Vector3.up);float distance=delta.magnitude;
+            if(distance>detectionRange){Stop();Animate("Idle");return;}
+            if(delta.sqrMagnitude>.001f)transform.rotation=Quaternion.LookRotation(delta);
+            bool clear=ObstacleDistance(transform.position,delta.normalized,Mathf.Max(0,distance-bodyFront))>=distance-bodyFront-.1f;
+            if(Time.time>=nextAttack&&distance<=attackRange&&clear){BeginWindup(delta);return;}
+            if(distance>attackRange*.8f||!clear)
+            {
+                if(Navigable&&Time.time>=nextPath)
+                {
+                    nextPath=Time.time+.3f;agent.isStopped=false;agent.speed=speed;agent.stoppingDistance=clear?attackRange*.7f:.1f;
+                    var filter=new NavMeshQueryFilter{agentTypeID=agent.agentTypeID,areaMask=agent.areaMask};NavMeshHit hit;
+                    if(NavMesh.SamplePosition(target.position-Vector3.up,out hit,2,filter))agent.SetDestination(hit.position);
+                }
+                Animate(Navigable&&agent.velocity.sqrMagnitude>.02f?"Walk":"Idle");
+            }
+            else{Stop();Animate("Idle");}
+        }
+        void Cancel(){Stop();StopEffects();phase=Phase.Track;hitApplied=false;scrapeCount=0;Animate("Idle");}
+        void OnDisable(){Cancel();animationName=null;nextAttack=Time.time+1;nextPath=0;}
+        void OnGUI()
+        {
+            if(SkillWindow.IsOpen||!health||health.Dead||!Camera.main)return;
+            var p=Camera.main.WorldToScreenPoint(transform.position+Vector3.up*1.3f);if(p.z<=0)return;
+            var old=GUI.color;float y=Screen.height-p.y;GUI.color=Color.black;GUI.DrawTexture(new Rect(p.x-27,y,54,6),Texture2D.whiteTexture);
+            GUI.color=Windup?new Color(1,.6f,.75f):new Color(.9f,.3f,.4f);GUI.DrawTexture(new Rect(p.x-27,y,54*Mathf.Clamp01(health.Current/Mathf.Max(1,health.maxHealth)),6),Texture2D.whiteTexture);GUI.color=old;
+        }
+    }
+}

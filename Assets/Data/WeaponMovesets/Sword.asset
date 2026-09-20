@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c4ab112f76b15634f8541947b378d5fd, type: 3}
+  m_Name: Sword
+  m_EditorClassIdentifier: Assembly-CSharp::DogLife.BasicWeaponMoveset
+  category: 0
+  attacks:
+  - {fileID: 7400000, guid: e89ae6d0d62ed1245aff090739e5c5af, type: 2}
+  - {fileID: 7400000, guid: 13d51747bae2e1841bd4f5df1aac526e, type: 2}
+  - {fileID: 7400000, guid: 713cf304175d02d48b7ab895b720cfbe, type: 2}
+  strikeTimes:
+  - 0.285
+  - 0.266
+  - 0.55999994
+  secondaryStrikeTimes:
+  - 0
+  - 0.532
+  - 0
+  comboLinkNormalized: 0.76
+  reach: 2
+  projectileSpeed: 10
+  inputBuffer: 0.32
+  effectMaterial: {fileID: 2100000, guid: 45c443755e5791b47a27030dcb8f3d15, type: 2}

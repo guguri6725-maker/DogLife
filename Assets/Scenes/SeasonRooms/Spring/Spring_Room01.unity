@@ -5769,6 +5769,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Spring_CombinedWallVisual
       objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: ad512955f37546d46b2b5312912e72b3, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -5777,6 +5781,11 @@ PrefabInstance:
 --- !u!4 &320371347 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: ad512955f37546d46b2b5312912e72b3, type: 3}
+  m_PrefabInstance: {fileID: 320371346}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &320371348 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: ad512955f37546d46b2b5312912e72b3, type: 3}
   m_PrefabInstance: {fileID: 320371346}
   m_PrefabAsset: {fileID: 0}
 --- !u!1 &320484113
@@ -6353,7 +6362,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &336100435
 Transform:
   m_ObjectHideFlags: 0
@@ -8797,6 +8806,7 @@ GameObject:
   - component: {fileID: 486782881}
   - component: {fileID: 486782880}
   - component: {fileID: 486782879}
+  - component: {fileID: 486782882}
   m_Layer: 0
   m_Name: Spring_Room01
   m_TagString: Untagged
@@ -8861,6 +8871,18 @@ MonoBehaviour:
   exit: {fileID: 196094727}
   prepareOnLoad: 1
   navigation: {fileID: 486782879}
+  streamedGeometry:
+  - {fileID: 1448411574}
+  - {fileID: 2079256781}
+  - {fileID: 336100434}
+  - {fileID: 1577251331}
+  - {fileID: 1529865196}
+  - {fileID: 810536284}
+  - {fileID: 320371348}
+  - {fileID: 2081116506}
+  - {fileID: 1338674676}
+  - {fileID: 1314132837}
+  activationBudgetMs: 2
 --- !u!4 &486782881
 Transform:
   m_ObjectHideFlags: 0
@@ -8890,6 +8912,25 @@ Transform:
   - {fileID: 1314132838}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &486782882
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 486782878}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 927b2fa7a560da2479e063d1a9b5d442, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DogLife.RoomMonsterSpawner
+  monsterPrefabs:
+  - {fileID: 5969629334037219549, guid: 8c9a5c622fc39db4490f6dde8beb0953, type: 3}
+  - {fileID: 5511638507228795931, guid: e2bbd6e304dea814790ca3d6e3ee2b49, type: 3}
+  - {fileID: 6588122346830710352, guid: 5ff97e86e34cc8f47b58c1d9de881c11, type: 3}
+  - {fileID: 8719923838393488895, guid: 976ed8413b247d84880b366cd5bfe74e, type: 3}
+  spawnCenter: {x: 16, y: 2, z: 0}
+  spawnArea: {x: 14, y: 8}
 --- !u!1 &487361960
 GameObject:
   m_ObjectHideFlags: 0
@@ -12769,7 +12810,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &810536285
 Transform:
   m_ObjectHideFlags: 0
@@ -21262,7 +21303,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1314132838
 Transform:
   m_ObjectHideFlags: 0
@@ -21708,7 +21749,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1338674677
 Transform:
   m_ObjectHideFlags: 0
@@ -22010,68 +22051,6 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1376321129}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
---- !u!1001 &1384636916
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 2116788495}
-    m_Modifications:
-    - target: {fileID: 2805933232033089360, guid: f93467a4a50b5c34e9f54e118ecaa8e2, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 16
-      objectReference: {fileID: 0}
-    - target: {fileID: 2805933232033089360, guid: f93467a4a50b5c34e9f54e118ecaa8e2, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 2
-      objectReference: {fileID: 0}
-    - target: {fileID: 2805933232033089360, guid: f93467a4a50b5c34e9f54e118ecaa8e2, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2805933232033089360, guid: f93467a4a50b5c34e9f54e118ecaa8e2, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 2805933232033089360, guid: f93467a4a50b5c34e9f54e118ecaa8e2, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2805933232033089360, guid: f93467a4a50b5c34e9f54e118ecaa8e2, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2805933232033089360, guid: f93467a4a50b5c34e9f54e118ecaa8e2, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2805933232033089360, guid: f93467a4a50b5c34e9f54e118ecaa8e2, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2805933232033089360, guid: f93467a4a50b5c34e9f54e118ecaa8e2, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2805933232033089360, guid: f93467a4a50b5c34e9f54e118ecaa8e2, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3645651330051432014, guid: f93467a4a50b5c34e9f54e118ecaa8e2, type: 3}
-      propertyPath: m_Name
-      value: RoomMonster
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: f93467a4a50b5c34e9f54e118ecaa8e2, type: 3}
---- !u!4 &1384636917 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 2805933232033089360, guid: f93467a4a50b5c34e9f54e118ecaa8e2, type: 3}
-  m_PrefabInstance: {fileID: 1384636916}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &1391663805
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -23487,6 +23466,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Room01_Entrance_RootDoor
       objectReference: {fileID: 0}
+    - target: {fileID: 9047612975899495930, guid: 44a7587a3074fb346a5df51ee6925dd8, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects:
     - {fileID: 1297969339830660259, guid: 44a7587a3074fb346a5df51ee6925dd8, type: 3}
@@ -23506,7 +23489,7 @@ MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 8246969682616080146, guid: 44a7587a3074fb346a5df51ee6925dd8, type: 3}
   m_PrefabInstance: {fileID: 1448411570}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
+  m_GameObject: {fileID: 1448411574}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 144b4fe044c49994084e6ea6974957ec, type: 3}
@@ -23515,6 +23498,11 @@ MonoBehaviour:
 --- !u!1 &1448411573 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1883990022582842302, guid: 44a7587a3074fb346a5df51ee6925dd8, type: 3}
+  m_PrefabInstance: {fileID: 1448411570}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &1448411574 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 9047612975899495930, guid: 44a7587a3074fb346a5df51ee6925dd8, type: 3}
   m_PrefabInstance: {fileID: 1448411570}
   m_PrefabAsset: {fileID: 0}
 --- !u!1 &1453512784
@@ -24724,7 +24712,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1529865197
 Transform:
   m_ObjectHideFlags: 0
@@ -25240,7 +25228,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1577251332
 Transform:
   m_ObjectHideFlags: 0
@@ -33699,6 +33687,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Room01_Exit_RootDoor
       objectReference: {fileID: 0}
+    - target: {fileID: 9047612975899495930, guid: 44a7587a3074fb346a5df51ee6925dd8, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects:
     - {fileID: 1297969339830660259, guid: 44a7587a3074fb346a5df51ee6925dd8, type: 3}
@@ -33747,7 +33739,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &2081116507
 Transform:
   m_ObjectHideFlags: 0
@@ -34381,8 +34373,7 @@ Transform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 1384636917}
+  m_Children: []
   m_Father: {fileID: 486782881}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2124470111

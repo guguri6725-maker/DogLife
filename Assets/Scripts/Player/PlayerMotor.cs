@@ -27,13 +27,28 @@ namespace DogLife
             }
         }
         Rigidbody body;
+        BasicWeaponCombat attackCombo;
+        public bool AttackLocked => attackCombo && attackCombo.IsAttacking;
+        public bool AttackMovementLocked => attackCombo && attackCombo.LocksMovement;
         CapsuleCollider capsule;
         const float GroundNormalY = .55f;
         readonly System.Collections.Generic.List<Vector3> wallNormals = new System.Collections.Generic.List<Vector3>();
         float dashUntil, nextDash, jumpBuffer, lastGrounded = -10, standingHeight;
         bool jumpHeld, jumping, jumpReleased;
+        Vector3 knockbackVelocity;
+        float knockbackUntil, knockbackDuration;
+        public bool IsKnockedBack => Time.time < knockbackUntil;
+        public void ApplyKnockback(Vector3 direction,float speed,float lift,float duration)
+        {
+            if(!isActiveAndEnabled||body.isKinematic)return;
+            direction=Vector3.ProjectOnPlane(direction,Vector3.up).normalized;
+            knockbackVelocity=direction*Mathf.Max(0,speed);knockbackDuration=Mathf.Max(.02f,duration);
+            knockbackUntil=Time.time+knockbackDuration;dashUntil=0;ClearJumpInput();
+            var v=body.linearVelocity;v.y=Mathf.Max(v.y,lift);body.linearVelocity=v;
+        }
         Vector3 dashDirection, spawn, standingCenter, visualScale, visualPosition;
         void Awake() {
+            attackCombo = GetComponent<BasicWeaponCombat>();
             body = GetComponent<Rigidbody>(); capsule = GetComponent<CapsuleCollider>();
             body.constraints = RigidbodyConstraints.FreezeRotation;
             body.interpolation = RigidbodyInterpolation.Interpolate;
@@ -42,6 +57,7 @@ namespace DogLife
             if (visualRoot) { visualScale = visualRoot.localScale; visualPosition = visualRoot.localPosition; }
         }
         void Update() {
+            if (AttackMovementLocked) { MoveInput = Vector2.zero; ClearJumpInput(); return; }
             if (SkillWindow.BlocksGameplayInput) { MoveInput = Vector2.zero; ReleaseJump(); return; }
             if (!readInput) return;
             if (Cursor.lockState != CursorLockMode.Locked) { MoveInput = Vector2.zero; ReleaseJump(); return; }
@@ -52,22 +68,28 @@ namespace DogLife
             if (Input.GetKeyDown(KeyCode.LeftShift)) RequestDash();
         }
         public void RequestJump() {
-            if (Crouching) return;
+            if (Crouching || IsKnockedBack || AttackLocked) return;
             jumpHeld = true; jumpBuffer = Time.time + .12f;
         }
         // 물리 프레임 전에 짧게 눌렀다 놓아도 점프 예약은 유지합니다.
         public void ReleaseJump() { jumpHeld = false; }
         public bool RequestDash() {
-            if (Time.time < nextDash || Crouching) return false;
+            if (Time.time < nextDash || Crouching || IsKnockedBack || AttackLocked) return false;
             dashDirection = MoveDirection.sqrMagnitude > .01f ? MoveDirection.normalized : Facing;
             dashUntil = Time.time + dashDuration; nextDash = Time.time + dashCooldown; return true;
         }
         public void Face(Vector3 direction) {
+            if (AttackLocked) return;
+            FaceForAttack(direction);
+        }
+        // Combat may change facing only when starting the next combo step.
+        internal void FaceForAttack(Vector3 direction) {
             direction.y = 0; if (direction.sqrMagnitude < .001f) return;
             Facing = direction.normalized;
             if (visualRoot) visualRoot.rotation = Quaternion.LookRotation(Facing) * Quaternion.Euler(0, visualYawOffset, 0);
         }
         public bool SetCrouching(bool value) {
+            if (AttackLocked) return false;
             if (value == Crouching) return true;
             // 머리 위가 막혀 있으면 일어나지 않습니다.
             if (!value) {
@@ -125,9 +147,11 @@ namespace DogLife
             Grounded = Physics.SphereCast(origin, capsule.radius * .85f, Vector3.down, out var hit, .22f, groundMask, QueryTriggerInteraction.Ignore) && hit.normal.y > GroundNormalY && body.linearVelocity.y <= .5f;
             if (Grounded) { lastGrounded = Time.time; jumping = false; }
             var horizontal = IsDashing ? dashDirection * dashSpeed : MoveDirection * moveSpeed * (Crouching ? .5f : 1);
+            if (AttackMovementLocked) horizontal = Vector3.zero;
+            if(IsKnockedBack)horizontal=knockbackVelocity*Mathf.Clamp01((knockbackUntil-Time.time)/knockbackDuration);
             horizontal = LimitWallMovement(horizontal);
             var velocity = new Vector3(horizontal.x, body.linearVelocity.y, horizontal.z);
-            if (!Crouching && jumpBuffer > Time.time && Time.time - lastGrounded < .1f) {
+            if (!AttackLocked && !Crouching && jumpBuffer > Time.time && Time.time - lastGrounded < .1f) {
                 velocity.y = jumpSpeed; jumpBuffer = 0; lastGrounded = -10; Grounded = false;
                 jumping = true; jumpReleased = false;
             }
@@ -142,9 +166,15 @@ namespace DogLife
             if (horizontal.sqrMagnitude > .01f && !directionalLocomotion) Face(horizontal);
             if (body.position.y < -12) Respawn();
         }
-        public void Respawn() { wallNormals.Clear(); ClearJumpInput(); body.position = spawn; body.linearVelocity = Vector3.zero; }
+        public void Respawn() { knockbackUntil=0;wallNormals.Clear(); ClearJumpInput(); body.position = spawn; body.linearVelocity = Vector3.zero; }
         public void SetRespawnPoint(Vector3 point) { spawn = point; }
+        public void StopForAttack()
+        {
+            dashUntil = 0; MoveInput = Vector2.zero; ClearJumpInput();
+            if (body && !body.isKinematic) body.linearVelocity = new Vector3(0, body.linearVelocity.y, 0);
+        }
         void ClearJumpInput() { jumpHeld = jumping = jumpReleased = false; jumpBuffer = 0; lastGrounded = -10; }
-        void OnDisable() { wallNormals.Clear(); MoveInput = Vector2.zero; ClearJumpInput(); }
+        void OnDisable() { knockbackUntil=0;wallNormals.Clear(); MoveInput = Vector2.zero; ClearJumpInput(); }
     }
 }
+

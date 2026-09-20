@@ -77,3 +77,10 @@ crashlytics-build.properties
 # Large Blender source files: kept locally only, GitHub rejects anything over 100MB
 ArtSource/**/*.blend
 ArtSource/**/*.blend1
+
+# WebGL/Burst build output accidentally emitted at project root
+/Data/
+
+# Python tool cache
+Tools/__pycache__/
+*.pyc

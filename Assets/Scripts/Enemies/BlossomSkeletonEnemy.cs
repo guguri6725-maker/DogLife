@@ -10,6 +10,8 @@ namespace DogLife
         public float speed=2, damage=5, detectionRange=13, attackRange=1.7f;
         public float hitRange=2, attackAngle=100, hitHeight=1.4f;
         public float hitTime=.61f, attackDuration=1.05f, recovery=.2f;
+        [SerializeField,Min(0),Tooltip("공격 종료 후 다음 공격까지의 최소 대기 시간(초)")] private float skillDelay=2.5f;
+        [SerializeField,Min(0)] private float knockbackSpeed=3;
         public Transform visualRoot;
         public Animator modelAnimator;
         public LayerMask obstacleMask=1<<8;
@@ -21,6 +23,7 @@ namespace DogLife
         bool attacking, hitApplied;
         float attackStarted, nextAttack, nextPathUpdate;
         Vector3 lockedAim;
+        float Size=>Mathf.Max(.01f,transform.lossyScale.x);
         static readonly int Moving=Animator.StringToHash("Moving"), Attacking=Animator.StringToHash("Attacking");
 
         void Awake()
@@ -46,13 +49,13 @@ namespace DogLife
         public bool CanHit(Vector3 position)
         {
             var delta=position-transform.position;
-            if(Mathf.Abs(delta.y)>hitHeight)return false;
+            if(Mathf.Abs(delta.y)>hitHeight*Size)return false;
             var flat=Vector3.ProjectOnPlane(delta,Vector3.up);
-            return flat.magnitude<=hitRange && Vector3.Angle(lockedAim,flat)<=attackAngle*.5f && ClearSight(delta);
+            return flat.magnitude<=hitRange*Size && Vector3.Angle(lockedAim,flat)<=attackAngle*.5f && ClearSight(delta);
         }
         void StopNavigation()
         {
-            if(agent&&agent.isActiveAndEnabled&&agent.isOnNavMesh)agent.isStopped=true;
+            if(agent&&agent.isActiveAndEnabled&&agent.isOnNavMesh){agent.isStopped=true;agent.ResetPath();agent.velocity=Vector3.zero;}
         }
         void FixedUpdate()
         {
@@ -63,21 +66,26 @@ namespace DogLife
                 if(!hitApplied&&elapsed>=hitTime)
                 {
                     hitApplied=true;
-                    if(CanHit(target.position))targetHealth.Damage(damage);
+                    if(CanHit(target.position))
+                    {
+                        float before=targetHealth.Current;targetHealth.Damage(damage);
+                        var motor=target.GetComponent<PlayerMotor>();
+                        if(motor&&!targetHealth.Dead&&targetHealth.Current<before)motor.ApplyKnockback(target.position-transform.position,knockbackSpeed,.6f,.22f);
+                    }
                 }
                 bool animationFinished=!modelAnimator||!modelAnimator.isActiveAndEnabled||
                     (modelAnimator.GetCurrentAnimatorStateInfo(0).IsName("Attack")&&modelAnimator.GetCurrentAnimatorStateInfo(0).normalizedTime>=1);
                 if(elapsed>=attackDuration&&animationFinished)
-                {attacking=false;nextAttack=Time.time+recovery;if(modelAnimator)modelAnimator.SetBool(Attacking,false);}
+                {attacking=false;nextAttack=Time.time+Mathf.Max(recovery,skillDelay);if(modelAnimator)modelAnimator.SetBool(Attacking,false);}
                 return;
             }
             if(Time.time<nextAttack&&Time.time-attackStarted<attackDuration+recovery){StopNavigation();return;}
-            var delta=target.position-transform.position;float distance=delta.magnitude;bool clear=ClearSight(delta);
-            bool walking=distance<detectionRange&&(distance>1.3f||!clear);
+            var delta=target.position-transform.position;float distance=Vector3.ProjectOnPlane(delta,Vector3.up).magnitude;bool clear=ClearSight(delta);
+            bool walking=distance<detectionRange&&(distance>1.3f*Size||!clear);
             var heading=Vector3.ProjectOnPlane(delta,Vector3.up).normalized;
             if(agent.isActiveAndEnabled&&agent.isOnNavMesh)
             {
-                agent.isStopped=!walking;agent.speed=speed;agent.stoppingDistance=clear?1.3f:.1f;
+                agent.isStopped=!walking;agent.speed=speed;agent.stoppingDistance=clear?1.3f*Size:.1f;
                 if(walking&&Time.time>=nextPathUpdate)
                 {
                     nextPathUpdate=Time.time+.25f;
@@ -88,7 +96,7 @@ namespace DogLife
                 if(walking&&agent.desiredVelocity.sqrMagnitude>.001f)heading=agent.desiredVelocity.normalized;
             }
             if(visualRoot&&heading.sqrMagnitude>.001f)visualRoot.rotation=Quaternion.LookRotation(heading);
-            if(distance<=attackRange&&clear&&Time.time>=nextAttack)
+            if(distance<=attackRange*Size&&clear&&Time.time>=nextAttack)
             {
                 lockedAim=Vector3.ProjectOnPlane(delta,Vector3.up).normalized;
                 if(lockedAim.sqrMagnitude<.001f)lockedAim=visualRoot?visualRoot.forward:transform.forward;

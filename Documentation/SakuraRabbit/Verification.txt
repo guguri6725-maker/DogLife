@@ -1,0 +1,17 @@
+case0 began=True
+case1 began=True
+case2 began=False
+case0 Crouch health=30 pos=(0.000, 0.000, 0.000) marker=True
+case1 Crouch health=30 pos=(0.000, 0.000, 0.000) marker=True
+case0 Air health=30 pos=(0.000, 0.000, 0.000) marker=True
+case1 Air health=30 pos=(0.000, 0.000, 0.000) marker=True
+case0 Land health=25 pos=(0.000, 0.000, 3.000) marker=True
+case0 repeatedHitHealth=25 apex=1.5 endpointError=0
+case1 Land health=30 pos=(0.000, 0.000, 3.000) marker=True
+case1 repeatedHitHealth=30 apex=1.5 endpointError=0
+case0 Retreat health=25 pos=(0.000, 0.000, 3.000) marker=False
+case1 Retreat health=30 pos=(0.000, 0.000, 3.000) marker=False
+case0 Orbit health=25 pos=(0.000, 0.000, 1.000) marker=False
+case0 done marker=False particles=0
+case1 Orbit health=30 pos=(0.000, 0.000, 1.000) marker=False
+case1 done marker=False particles=0

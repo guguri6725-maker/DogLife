@@ -13,6 +13,7 @@ namespace DogLife
         public string completionTitle = "STAGE 1 CLEAR";
         public string nextScene;
         public GameObject crosshair;
+        public PlayerHeartHUD heartHUD;
         GUIStyle title, body;
         void Update()
         {
@@ -33,12 +34,14 @@ namespace DogLife
             // 스킬창 위로 기존 즉시 모드 HUD가 겹치지 않게 합니다.
             if (SkillWindow.IsOpen) return;
             if (title == null) { title = new GUIStyle(GUI.skin.label) { fontSize = 24, fontStyle = FontStyle.Bold }; body = new GUIStyle(GUI.skin.label) { fontSize = 16 }; }
+            GUI.BeginGroup(new Rect(0, heartHUD ? 78 : 0, Screen.width, 175));
             GUI.Box(new Rect(18, 18, 680, 150), GUIContent.none);
             GUI.Label(new Rect(34, 28, 650, 35), "DOG LIFE  /  FOREST DUNGEON", title);
             GUI.Label(new Rect(34, 67, 650, 25), objective, body);
-            GUI.Label(new Rect(34, 95, 650, 25), $"HP {health.Current:0}/{health.maxHealth:0}   |   {weapons.Current.displayName}   |   Dash {motor.DashRemaining:0.0}s   |   Charge {weapons.Charge:P0}", body);
+            GUI.Label(new Rect(34, 95, 650, 25), (heartHUD ? "" : $"HP {health.Current:0}/{health.maxHealth:0}   |   ") + $"Basic combo   |   Dash {motor.DashRemaining:0.0}s", body);
             GUI.Label(new Rect(34, 127, 650, 25), "WASD Move  SPACE Jump  SHIFT Dash  CTRL Crouch  ESC Cursor", body);
-            GUI.Label(new Rect(24, Screen.height - 42, 900, 30), "1 Rifle   2 Shotgun   3 Sword   4 Charge sword (hold/release)   R Ammo color   F5 Restart", body);
+            GUI.EndGroup();
+            GUI.Label(new Rect(24, Screen.height - 42, 900, 30), "Left click: Attack / Timed clicks: Weapon combo   F5 Restart", body);
             if (health.Dead || completed)
             {
                 GUI.Box(new Rect(Screen.width / 2 - 200, Screen.height / 2 - 55, 400, 110), GUIContent.none);
@@ -48,3 +51,4 @@ namespace DogLife
         }
     }
 }
+

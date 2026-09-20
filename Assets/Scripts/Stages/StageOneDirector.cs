@@ -42,6 +42,10 @@ namespace DogLife
                 if (!enemyBody.isKinematic) enemyBody.linearVelocity = Vector3.zero;
             }
             foreach (var boss in FindObjectsByType<SeaBoss>(FindObjectsSortMode.None)) boss.enabled = false;
+            foreach (var enemy in FindObjectsByType<BlossomSkeletonEnemy>(FindObjectsSortMode.None)) enemy.enabled=false;
+            foreach (var enemy in FindObjectsByType<BlossomSpiritEnemy>(FindObjectsSortMode.None)) enemy.enabled=false;
+            foreach (var enemy in FindObjectsByType<FloralDeerEnemy>(FindObjectsSortMode.None)) enemy.enabled=false;
+            foreach (var enemy in FindObjectsByType<SakuraRabbitEnemy>(FindObjectsSortMode.None)) enemy.enabled=false;
             foreach (var hazard in FindObjectsByType<SeaHazard>(FindObjectsSortMode.None)) Destroy(hazard.gameObject);
             foreach (var projectile in FindObjectsByType<CombatProjectile>(FindObjectsSortMode.None)) Destroy(projectile.gameObject);
         }

@@ -24,6 +24,8 @@ namespace DogLife
             if (Dead || invulnerable || Time.time < invulnerableUntil || amount <= 0) return;
             var motor = GetComponent<PlayerMotor>();
             if (motor && motor.IsDashing) return;
+            // 플레이어는 공격 종류와 관계없이 유효한 피격 한 번에 하트 한 칸을 잃습니다.
+            if (player) amount = 1;
             Current = Mathf.Max(Mathf.Min(minimumHealth, Current), Current - amount);
             flashUntil = Time.time + .12f;
             if (player) invulnerableUntil = Time.time + .7f;

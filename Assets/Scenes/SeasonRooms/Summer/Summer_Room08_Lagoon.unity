@@ -2721,6 +2721,7 @@ GameObject:
   - component: {fileID: 779039045}
   - component: {fileID: 779039044}
   - component: {fileID: 779039043}
+  - component: {fileID: 779039046}
   m_Layer: 0
   m_Name: Summer_Room08_Lagoon
   m_TagString: Untagged
@@ -2817,6 +2818,25 @@ Transform:
   - {fileID: 1666941392}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &779039046
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 779039042}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 927b2fa7a560da2479e063d1a9b5d442, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DogLife.RoomMonsterSpawner
+  monsterPrefabs:
+  - {fileID: 5969629334037219549, guid: 8c9a5c622fc39db4490f6dde8beb0953, type: 3}
+  - {fileID: 5511638507228795931, guid: e2bbd6e304dea814790ca3d6e3ee2b49, type: 3}
+  - {fileID: 6588122346830710352, guid: 5ff97e86e34cc8f47b58c1d9de881c11, type: 3}
+  - {fileID: 8719923838393488895, guid: 976ed8413b247d84880b366cd5bfe74e, type: 3}
+  spawnCenter: {x: 283.4, y: 2, z: 0}
+  spawnArea: {x: 14, y: 8}
 --- !u!1001 &782127554
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -6771,68 +6791,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 3552004818999657403, guid: 78f822640d3a80f4c9fcbb8a16a5bd74, type: 3}
   m_PrefabInstance: {fileID: 1839644474}
   m_PrefabAsset: {fileID: 0}
---- !u!1001 &1845764590
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 1991541493}
-    m_Modifications:
-    - target: {fileID: 2805933232033089360, guid: f93467a4a50b5c34e9f54e118ecaa8e2, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 17
-      objectReference: {fileID: 0}
-    - target: {fileID: 2805933232033089360, guid: f93467a4a50b5c34e9f54e118ecaa8e2, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 2
-      objectReference: {fileID: 0}
-    - target: {fileID: 2805933232033089360, guid: f93467a4a50b5c34e9f54e118ecaa8e2, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2805933232033089360, guid: f93467a4a50b5c34e9f54e118ecaa8e2, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 2805933232033089360, guid: f93467a4a50b5c34e9f54e118ecaa8e2, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2805933232033089360, guid: f93467a4a50b5c34e9f54e118ecaa8e2, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2805933232033089360, guid: f93467a4a50b5c34e9f54e118ecaa8e2, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2805933232033089360, guid: f93467a4a50b5c34e9f54e118ecaa8e2, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2805933232033089360, guid: f93467a4a50b5c34e9f54e118ecaa8e2, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2805933232033089360, guid: f93467a4a50b5c34e9f54e118ecaa8e2, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3645651330051432014, guid: f93467a4a50b5c34e9f54e118ecaa8e2, type: 3}
-      propertyPath: m_Name
-      value: RoomMonster
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: f93467a4a50b5c34e9f54e118ecaa8e2, type: 3}
---- !u!4 &1845764591 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 2805933232033089360, guid: f93467a4a50b5c34e9f54e118ecaa8e2, type: 3}
-  m_PrefabInstance: {fileID: 1845764590}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &1850190070
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -7364,8 +7322,7 @@ Transform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 1845764591}
+  m_Children: []
   m_Father: {fileID: 779039045}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &2028078469

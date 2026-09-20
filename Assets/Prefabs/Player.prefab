@@ -25,11 +25,42 @@ Transform:
   m_GameObject: {fileID: 3450409240658599166}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.25, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 0.0052631553, y: 0.0052631535, z: 0.0052631553}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 7777132819060416908}
+  m_Father: {fileID: 6745277636844630646}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &3836822623065495386
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4841719368310003390}
+  m_Layer: 0
+  m_Name: LeftWeaponSocket
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4841719368310003390
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3836822623065495386}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 0.005263159, y: 0.005263158, z: 0.0052631567}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3592759538507421833}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &6316532077904770373
 GameObject:
@@ -78,6 +109,8 @@ GameObject:
   - component: {fileID: 8268262574708146055}
   - component: {fileID: 5450094878211740535}
   - component: {fileID: 56225952523771661}
+  - component: {fileID: 8292879017961314970}
+  - component: {fileID: 1499668022933752621}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -99,7 +132,6 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 7869998074099062538}
-  - {fileID: 8659214585635063999}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!136 &193281046742803544
@@ -189,16 +221,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8f318e65e7f5de94e91c05b92bdb35bc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DogLife.SideViewWeapons
-  loadout:
-  - {fileID: 11400000, guid: b8b34f45e3f30974d957c31bd17b8d56, type: 2}
-  - {fileID: 11400000, guid: ef2d7cc9e87c43943b54aff36d4318be, type: 2}
-  - {fileID: 11400000, guid: 20ef29e4b7361774180563c08b54bb2b, type: 2}
-  - {fileID: 11400000, guid: 30fa38e2a7bcef74bb8dc19abd8df367, type: 2}
   weaponSocket: {fileID: 8659214585635063999}
+  leftWeaponSocket: {fileID: 4841719368310003390}
   aimCamera: {fileID: 0}
-  projectileMaterial: {fileID: 2100000, guid: a30bf047b3cc519498caa2b1e417eb25, type: 2}
-  projectilePrefab: {fileID: 1627663602841787715, guid: 7ab31fb992898bf40bbd99d181ff76ae, type: 3}
   readInput: 1
+  aimDistance: 100
 --- !u!114 &5450094878211740535
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -211,7 +238,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7ec31b56d4fa0324ab9d3b38b177327c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DogLife.CombatHealth
-  maxHealth: 100
+  maxHealth: 5
   player: 1
   practiceTarget: 0
 --- !u!114 &56225952523771661
@@ -228,6 +255,46 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::DogLife.PlayerDirectionalAnimation
   animator: {fileID: 5867457151114486680}
   blendDamping: 0.1
+--- !u!114 &8292879017961314970
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8835608600054156240}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d8ebc8a4e4609744daa7431696d97984, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DogLife.PlayerInventory
+  ownedWeapons:
+  - {fileID: 11400000, guid: aa931a53607ef6b41bf299301b521af7, type: 2}
+  equippedWeapon: {fileID: 11400000, guid: aa931a53607ef6b41bf299301b521af7, type: 2}
+  instanceIds: []
+  equippedInstanceId: 
+--- !u!114 &1499668022933752621
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8835608600054156240}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 598a349351eb0ea40a20d3576ebd0798, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DogLife.BasicWeaponCombat
+  movesets:
+  - {fileID: 11400000, guid: 094f11e263e56384ca768488149c70eb, type: 2}
+  - {fileID: 11400000, guid: fa6826730f29e52429964258427521e1, type: 2}
+  - {fileID: 11400000, guid: 1ec33a3f7ebd4e44f9cbb9542913f8fe, type: 2}
+  - {fileID: 11400000, guid: 1ab6259198e686d4eb3521067725796e, type: 2}
+  - {fileID: 11400000, guid: b4ae4196c01b34a45b6ff40535a59e25, type: 2}
+  - {fileID: 11400000, guid: b1565fa39a0d8e04ebecb2b75e1918e3, type: 2}
+  animator: {fileID: 5867457151114486680}
+  continuationGrace: 0.15
+  bowChargeSeconds: 1.2
+  spearThrustInterval: 0.08
 --- !u!1001 &948871581028634769
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -294,12 +361,28 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
-    m_AddedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: 4393009026314356760, guid: e4e9c71c0f877d242bdbb92f068bb1a1, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4841719368310003390}
+    - targetCorrespondingSourceObject: {fileID: 5816148132306510567, guid: e4e9c71c0f877d242bdbb92f068bb1a1, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8659214585635063999}
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: e4e9c71c0f877d242bdbb92f068bb1a1, type: 3}
+--- !u!4 &3592759538507421833 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 4393009026314356760, guid: e4e9c71c0f877d242bdbb92f068bb1a1, type: 3}
+  m_PrefabInstance: {fileID: 948871581028634769}
+  m_PrefabAsset: {fileID: 0}
 --- !u!95 &5867457151114486680 stripped
 Animator:
   m_CorrespondingSourceObject: {fileID: 6649130121538958089, guid: e4e9c71c0f877d242bdbb92f068bb1a1, type: 3}
+  m_PrefabInstance: {fileID: 948871581028634769}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &6745277636844630646 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 5816148132306510567, guid: e4e9c71c0f877d242bdbb92f068bb1a1, type: 3}
   m_PrefabInstance: {fileID: 948871581028634769}
   m_PrefabAsset: {fileID: 0}
 --- !u!4 &8413521724869014899 stripped

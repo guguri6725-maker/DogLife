@@ -12,6 +12,14 @@ namespace DogLife
         public StageOneDirector director;
         // 계절 맵: 전투 중 현재 방만 유지하고, 클리어한 뒤에 다음 방을 준비합니다.
         public bool loadNextOnClear;
+        [SerializeField, Tooltip("플레이 중 다음 방 로딩의 프레임당 처리량을 낮춥니다. 로딩 완료까지는 조금 더 걸릴 수 있습니다.")]
+        private bool smoothRoomLoading = true;
+        [SerializeField, Tooltip("방 인스턴스는 만들지 않고 시작 로딩에서 에셋 데이터만 준비합니다.")]
+        private string[] geometryWarmupPaths = new string[0];
+        // 스테이지가 끝날 때까지 데이터를 유지해 첫 로드의 큰 등록 비용을 전투 중 반복하지 않습니다.
+        GameObject[] geometryAssets;
+        ThreadPriority previousLoadingPriority;
+        bool changedLoadingPriority;
         public int CurrentRoom { get; private set; }
         public bool Ready { get; private set; }
         public bool Busy { get; private set; }
@@ -30,6 +38,19 @@ namespace DogLife
             Hud.motor.enabled = false; Hud.weapons.enabled = false;
             body.linearVelocity = Vector3.zero; body.isKinematic = true;
             Hud.objective = "Loading forest rooms...";
+            geometryAssets = new GameObject[geometryWarmupPaths.Length];
+            for(int i=0;i<geometryWarmupPaths.Length;i++)
+            {
+                var request=Resources.LoadAsync<GameObject>(geometryWarmupPaths[i]);
+                yield return request;
+                geometryAssets[i]=request.asset as GameObject;
+                if(!geometryAssets[i])
+                {
+                    Fail("Room geometry asset is missing: "+geometryWarmupPaths[i]);
+                    yield break;
+                }
+                yield return null;
+            }
             yield return LoadRoom(0);
             if (!loadNextOnClear && string.IsNullOrEmpty(LoadError) && rooms.Length > 1) yield return LoadRoom(1);
             if (!string.IsNullOrEmpty(LoadError)) yield break; // 바닥 없는 상태에서 입력을 풀지 않습니다.
@@ -41,6 +62,28 @@ namespace DogLife
         }
 
         IEnumerator LoadRoom(int index)
+        {
+            if(Ready&&smoothRoomLoading)
+            {
+                previousLoadingPriority=Application.backgroundLoadingPriority;
+                Application.backgroundLoadingPriority=ThreadPriority.Low;
+                changedLoadingPriority=true;
+            }
+            try { yield return LoadRoomContent(index); }
+            finally { RestoreLoadingPriority(); }
+        }
+
+        void RestoreLoadingPriority()
+        {
+            if(!changedLoadingPriority)return;
+            if(Application.backgroundLoadingPriority==ThreadPriority.Low)
+                Application.backgroundLoadingPriority=previousLoadingPriority;
+            changedLoadingPriority=false;
+        }
+
+        void OnDestroy() { RestoreLoadingPriority(); }
+
+        IEnumerator LoadRoomContent(int index)
         {
             string path = roomScenePaths[index];
             if (!Application.CanStreamedLevelBeLoaded(path))
@@ -60,6 +103,24 @@ namespace DogLife
             // Inspector에서 미리 베이크한 방별 경로를 사용해 로딩 비용과 메시 읽기 메모리를 줄입니다.
             else if (rooms[index].navigation && !rooms[index].navigation.navMeshData)
                 Fail("Room navigation has not been baked: " + path);
+            else
+            {
+                yield return rooms[index].PrepareGeometry();
+                if(!rooms[index].GeometryReady)
+                {
+                    Fail(rooms[index].GeometryError ?? "Room geometry preparation failed: " + path);
+                    yield break;
+                }
+                // 씬 활성화/물리 등록과 몬스터 생성을 같은 프레임에 겹치지 않습니다.
+                yield return null;
+                var spawner=rooms[index].GetComponent<RoomMonsterSpawner>();
+                if(spawner)
+                {
+                    yield return spawner.PrepareAsync();
+                    if(!spawner.Prepared)Fail("Room monster spawn failed: "+path);
+                    else rooms[index].BeginEncounter();
+                }
+            }
         }
 
         void Fail(string message)

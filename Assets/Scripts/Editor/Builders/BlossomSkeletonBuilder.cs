@@ -39,7 +39,7 @@ namespace DogLife.EditorTools
             transition=walk.AddTransition(idle);transition.hasExitTime=false;transition.duration=.12f;transition.AddCondition(AnimatorConditionMode.IfNot,0,"Moving");transition.AddCondition(AnimatorConditionMode.IfNot,0,"Attacking");
             transition=sm.AddAnyStateTransition(attack);transition.hasExitTime=false;transition.duration=0;transition.canTransitionToSelf=false;transition.AddCondition(AnimatorConditionMode.If,0,"Attacking");
             transition=attack.AddTransition(idle);transition.hasExitTime=false;transition.duration=.08f;transition.AddCondition(AnimatorConditionMode.IfNot,0,"Attacking");
-            var root=PrefabUtility.LoadPrefabContents("Assets/Prefabs/Mushroom.prefab");
+            var root=MonsterRootFactory.Create();
             try
             {
                 root.name="BlossomSkeleton";
@@ -50,13 +50,25 @@ namespace DogLife.EditorTools
                 var model=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(Folder+"/BlossomSkeleton.fbx"));
                 model.transform.SetParent(visual.transform,false);model.transform.localScale=Vector3.one*2;
                 var animator=model.GetComponent<Animator>();if(!animator)animator=model.AddComponent<Animator>();animator.runtimeAnimatorController=controller;animator.applyRootMotion=false;
+                var head=model.GetComponentsInChildren<Transform>().First(t=>t.name=="Head");
+                var idleClip=AssetDatabase.LoadAssetAtPath<AnimationClip>(Folder+"/Idle.anim");
+                var headPath=AnimationUtility.CalculateTransformPath(head,model.transform);
+                var values=new float[4];int axisIndex=0;
+                foreach(var axis in new[]{"x","y","z","w"})
+                {
+                    var binding=AnimationUtility.GetCurveBindings(idleClip).First(b=>b.path==headPath&&b.propertyName=="m_LocalRotation."+axis);
+                    values[axisIndex++]=AnimationUtility.GetEditorCurve(idleClip,binding).Evaluate(0);
+                }
+                head.localRotation=new Quaternion(values[0],values[1],values[2],values[3]);
+                PrefabUtility.RecordPrefabInstancePropertyModifications(head);
                 foreach(var renderer in model.GetComponentsInChildren<SkinnedMeshRenderer>())renderer.sharedMaterial=material;
                 enemy.visualRoot=visual.transform;enemy.modelAnimator=animator;enemy.speed=2;enemy.detectionRange=13;
+                enemy.hitTime=1.25f;enemy.attackDuration=1.65f;
                 var agent=root.GetComponent<NavMeshAgent>();if(!agent)agent=root.AddComponent<NavMeshAgent>();agent.speed=2;agent.radius=.4f;agent.height=2;agent.baseOffset=1;agent.stoppingDistance=1.3f;agent.updateRotation=false;
                 root.GetComponent<Rigidbody>().isKinematic=true;
                 PrefabUtility.SaveAsPrefabAsset(root,prefabPath);
             }
-            finally{PrefabUtility.UnloadPrefabContents(root);}
+            finally{Object.DestroyImmediate(root);}
             AssetDatabase.SaveAssets();return prefabPath;
         }
     }
