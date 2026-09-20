@@ -26,9 +26,14 @@ namespace DogLife
         // 클리어 상태일 때 설정된 다음 씬으로 이동합니다.
         public bool ContinueToNextStage()
         {
-            if (!completed || string.IsNullOrEmpty(nextScene)) return false;
-            SceneManager.LoadScene(nextScene); return true;
+            if (!completed) return false;
+            string destination = NextDestination;
+            if (string.IsNullOrEmpty(destination)) return false;
+            SceneManager.LoadScene(destination); return true;
         }
+        // A season-only distribution returns to its title instead of loading an omitted scene.
+        string NextDestination => !string.IsNullOrEmpty(nextScene) && Application.CanStreamedLevelBeLoaded(nextScene)
+            ? nextScene : Application.CanStreamedLevelBeLoaded("Assets/Scenes/Title.unity") ? "Assets/Scenes/Title.unity" : null;
         // 프로토타입용 즉시 모드 GUI를 화면에 그립니다.
         void OnGUI()
         {
@@ -47,7 +52,7 @@ namespace DogLife
             {
                 GUI.Box(new Rect(Screen.width / 2 - 200, Screen.height / 2 - 55, 400, 110), GUIContent.none);
                 GUI.Label(new Rect(Screen.width / 2 - 180, Screen.height / 2 - 40, 370, 40), completed ? completionTitle : "TRY AGAIN", title);
-                GUI.Label(new Rect(Screen.width / 2 - 180, Screen.height / 2, 370, 35), completed && !string.IsNullOrEmpty(nextScene) ? "E: Next stage   /   F5: Restart" : "Press F5 to restart", body);
+                GUI.Label(new Rect(Screen.width / 2 - 180, Screen.height / 2, 370, 35), completed && !string.IsNullOrEmpty(NextDestination) ? (NextDestination == nextScene ? "E: Next stage   /   F5: Restart" : "E: Title   /   F5: Restart") : "Press F5 to restart", body);
             }
         }
     }
