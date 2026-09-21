@@ -14,13 +14,13 @@ OcclusionCullingSettings:
 RenderSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 10
-  m_Fog: 1
+  m_Fog: 0
   m_FogColor: {r: 0.57, g: 0.72, b: 0.78, a: 1}
   m_FogMode: 1
   m_FogDensity: 0.01
   m_LinearFogStart: 55
   m_LinearFogEnd: 145
-  m_AmbientSkyColor: {r: 0.49, g: 0.64, b: 0.8, a: 1}
+  m_AmbientSkyColor: {r: 0.48, g: 0.59, b: 0.64, a: 1}
   m_AmbientEquatorColor: {r: 0.5, g: 0.57, b: 0.6, a: 1}
   m_AmbientGroundColor: {r: 0.23, g: 0.3, b: 0.3, a: 1}
   m_AmbientIntensity: 1
@@ -189,6 +189,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 748841521305316930, guid: c0712bdf52c4eef45b3194241bddb677, type: 3}
+      propertyPath: m_Size.z
+      value: 162
+      objectReference: {fileID: 0}
+    - target: {fileID: 940132304165690845, guid: c0712bdf52c4eef45b3194241bddb677, type: 3}
+      propertyPath: m_Size.x
+      value: 328
+      objectReference: {fileID: 0}
     - target: {fileID: 1048785172303481067, guid: c0712bdf52c4eef45b3194241bddb677, type: 3}
       propertyPath: completionTitle
       value: SUMMER CLEAR
@@ -249,6 +257,22 @@ PrefabInstance:
       propertyPath: stageLabel
       value: SUMMER
       objectReference: {fileID: 0}
+    - target: {fileID: 3856833664492512910, guid: c0712bdf52c4eef45b3194241bddb677, type: 3}
+      propertyPath: m_Size.x
+      value: 328
+      objectReference: {fileID: 0}
+    - target: {fileID: 5492474817145742130, guid: c0712bdf52c4eef45b3194241bddb677, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 151
+      objectReference: {fileID: 0}
+    - target: {fileID: 5492474817145742130, guid: c0712bdf52c4eef45b3194241bddb677, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 60
+      objectReference: {fileID: 0}
+    - target: {fileID: 6217968428793165995, guid: c0712bdf52c4eef45b3194241bddb677, type: 3}
+      propertyPath: m_Size.z
+      value: 162
+      objectReference: {fileID: 0}
     - target: {fileID: 6586747939179937714, guid: c0712bdf52c4eef45b3194241bddb677, type: 3}
       propertyPath: m_Name
       value: SeasonGameplay
@@ -259,35 +283,35 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6827229823430372724, guid: c0712bdf52c4eef45b3194241bddb677, type: 3}
       propertyPath: roomScenePaths.Array.size
-      value: 9
+      value: 7
       objectReference: {fileID: 0}
     - target: {fileID: 6827229823430372724, guid: c0712bdf52c4eef45b3194241bddb677, type: 3}
       propertyPath: 'roomScenePaths.Array.data[0]'
-      value: Assets/Scenes/SeasonRooms/Summer/Summer_Room01.unity
+      value: Assets/Scenes/SeasonRooms/SummerJourney7/Summer_Room01.unity
       objectReference: {fileID: 0}
     - target: {fileID: 6827229823430372724, guid: c0712bdf52c4eef45b3194241bddb677, type: 3}
       propertyPath: 'roomScenePaths.Array.data[1]'
-      value: Assets/Scenes/SeasonRooms/Summer/Summer_Room02.unity
+      value: Assets/Scenes/SeasonRooms/SummerJourney7/Summer_Room02.unity
       objectReference: {fileID: 0}
     - target: {fileID: 6827229823430372724, guid: c0712bdf52c4eef45b3194241bddb677, type: 3}
       propertyPath: 'roomScenePaths.Array.data[2]'
-      value: Assets/Scenes/SeasonRooms/Summer/Summer_Room03.unity
+      value: Assets/Scenes/SeasonRooms/SummerJourney7/Summer_Room03.unity
       objectReference: {fileID: 0}
     - target: {fileID: 6827229823430372724, guid: c0712bdf52c4eef45b3194241bddb677, type: 3}
       propertyPath: 'roomScenePaths.Array.data[3]'
-      value: Assets/Scenes/SeasonRooms/Summer/Summer_Room05_Synthesis.unity
+      value: Assets/Scenes/SeasonRooms/SummerJourney7/Summer_Room04.unity
       objectReference: {fileID: 0}
     - target: {fileID: 6827229823430372724, guid: c0712bdf52c4eef45b3194241bddb677, type: 3}
       propertyPath: 'roomScenePaths.Array.data[4]'
-      value: Assets/Scenes/SeasonRooms/Summer/Summer_Room06_TidalGrove.unity
+      value: Assets/Scenes/SeasonRooms/SummerJourney7/Summer_Room05.unity
       objectReference: {fileID: 0}
     - target: {fileID: 6827229823430372724, guid: c0712bdf52c4eef45b3194241bddb677, type: 3}
       propertyPath: 'roomScenePaths.Array.data[5]'
-      value: Assets/Scenes/SeasonRooms/Summer/Summer_Room07_Shop.unity
+      value: Assets/Scenes/SeasonRooms/SummerJourney7/Summer_Room06.unity
       objectReference: {fileID: 0}
     - target: {fileID: 6827229823430372724, guid: c0712bdf52c4eef45b3194241bddb677, type: 3}
       propertyPath: 'roomScenePaths.Array.data[6]'
-      value: Assets/Scenes/SeasonRooms/Summer/Summer_Room08_Lagoon.unity
+      value: Assets/Scenes/SeasonRooms/SummerJourney7/Summer_Room07.unity
       objectReference: {fileID: 0}
     - target: {fileID: 6827229823430372724, guid: c0712bdf52c4eef45b3194241bddb677, type: 3}
       propertyPath: 'roomScenePaths.Array.data[7]'
@@ -299,13 +323,90 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6939448271202654588, guid: c0712bdf52c4eef45b3194241bddb677, type: 3}
       propertyPath: m_ClearFlags
-      value: 1
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 6939448271202654588, guid: c0712bdf52c4eef45b3194241bddb677, type: 3}
+      propertyPath: m_BackGroundColor.b
+      value: 0.8
+      objectReference: {fileID: 0}
+    - target: {fileID: 6939448271202654588, guid: c0712bdf52c4eef45b3194241bddb677, type: 3}
+      propertyPath: m_BackGroundColor.g
+      value: 0.69
+      objectReference: {fileID: 0}
+    - target: {fileID: 6939448271202654588, guid: c0712bdf52c4eef45b3194241bddb677, type: 3}
+      propertyPath: m_BackGroundColor.r
+      value: 0.4
+      objectReference: {fileID: 0}
+    - target: {fileID: 8606313214228263024, guid: c0712bdf52c4eef45b3194241bddb677, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -12
+      objectReference: {fileID: 0}
+    - target: {fileID: 8606313214228263024, guid: c0712bdf52c4eef45b3194241bddb677, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -20
+      objectReference: {fileID: 0}
+    - target: {fileID: 8811583073680456811, guid: c0712bdf52c4eef45b3194241bddb677, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 315
+      objectReference: {fileID: 0}
+    - target: {fileID: 8811583073680456811, guid: c0712bdf52c4eef45b3194241bddb677, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -20
+      objectReference: {fileID: 0}
+    - target: {fileID: 8893961401895509184, guid: c0712bdf52c4eef45b3194241bddb677, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 151
+      objectReference: {fileID: 0}
+    - target: {fileID: 8893961401895509184, guid: c0712bdf52c4eef45b3194241bddb677, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -100
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: c0712bdf52c4eef45b3194241bddb677, type: 3}
+--- !u!21 &1248807802
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: KarmaOrb
+  m_Shader: {fileID: 4800000, guid: 25c99128f9e832c4092b5e9574de1dd1, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _MainTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _ColorMask: 15
+    - _DarkFill: 0.5
+    - _LightFill: 0.5
+    - _Stencil: 0
+    - _StencilComp: 8
+    - _StencilOp: 0
+    - _StencilReadMask: 255
+    - _StencilWriteMask: 255
+    - _WaveTime: 0
+    m_Colors: []
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1
 --- !u!1 &1604436376
 GameObject:
   m_ObjectHideFlags: 0
@@ -406,8 +507,8 @@ Camera:
   m_GameObject: {fileID: 1834475771}
   m_Enabled: 1
   serializedVersion: 2
-  m_ClearFlags: 1
-  m_BackGroundColor: {r: 0.1, g: 0.16, b: 0.18, a: 1}
+  m_ClearFlags: 2
+  m_BackGroundColor: {r: 0.4, g: 0.69, b: 0.8, a: 1}
   m_projectionMatrixMode: 1
   m_GateFitMode: 2
   m_FOVAxisMode: 0
@@ -490,8 +591,8 @@ Light:
   m_Enabled: 1
   serializedVersion: 13
   m_Type: 1
-  m_Color: {r: 1, g: 0.97, b: 0.88, a: 1}
-  m_Intensity: 1.2
+  m_Color: {r: 1, g: 0.96, b: 0.86, a: 1}
+  m_Intensity: 1.1
   m_Range: 10
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208

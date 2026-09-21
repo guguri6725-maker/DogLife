@@ -111,6 +111,8 @@ GameObject:
   - component: {fileID: 56225952523771661}
   - component: {fileID: 8292879017961314970}
   - component: {fileID: 1499668022933752621}
+  - component: {fileID: 6610545758423212493}
+  - component: {fileID: 3809714266145273905}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -241,6 +243,8 @@ MonoBehaviour:
   maxHealth: 5
   player: 1
   practiceTarget: 0
+  playerHitInvulnerability: 0.7
+  playerBlinkInterval: 0.08
 --- !u!114 &56225952523771661
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -293,8 +297,39 @@ MonoBehaviour:
   - {fileID: 11400000, guid: b1565fa39a0d8e04ebecb2b75e1918e3, type: 2}
   animator: {fileID: 5867457151114486680}
   continuationGrace: 0.15
+  strikeFacingLock: 0.045
   bowChargeSeconds: 1.2
   spearThrustInterval: 0.08
+--- !u!114 &6610545758423212493
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8835608600054156240}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b819cd4c1ed1a07498da3f3e0c6853a9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DogLife.CombatFeedback
+  normalStop: 0.04
+  heavyStop: 0.08
+  recoilAngle: 13
+  recoilDuration: 0.22
+--- !u!114 &3809714266145273905
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8835608600054156240}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 682a32f451ff8034f972c51425d705e5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DogLife.PlayerKarma
+  maximum: 100
+  value: 0
 --- !u!1001 &948871581028634769
 PrefabInstance:
   m_ObjectHideFlags: 0

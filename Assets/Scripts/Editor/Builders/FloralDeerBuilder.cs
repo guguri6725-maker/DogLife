@@ -80,6 +80,7 @@ namespace DogLife.EditorTools
                 var warn=new GameObject("ChargeWarning");warn.transform.SetParent(root.transform,false);enemy.warning=warn.AddComponent<LineRenderer>();enemy.warning.sharedMaterial=energy;enemy.warning.useWorldSpace=true;enemy.warning.startWidth=.035f;enemy.warning.endWidth=.035f;enemy.warning.enabled=false;enemy.warning.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;
                 enemy.scrapeEffect=Effect(root.transform,"HoofScrape",energy,false,new Vector3(.12f,-.95f,.4f));enemy.chargeEffect=Effect(root.transform,"ChargePetals",energy,true,new Vector3(0,-.45f,-.35f));
                 UpdateEffects(root);
+                DeerLegHitboxBuilder.Apply(root);
                 Directory.CreateDirectory("Assets/Prefabs/monster");PrefabUtility.SaveAsPrefabAsset(root,path);
             }finally{Object.DestroyImmediate(root);}
             AssetDatabase.SaveAssets();return path;

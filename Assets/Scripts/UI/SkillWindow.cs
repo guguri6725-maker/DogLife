@@ -70,7 +70,7 @@ namespace DogLife
         void Update()
         {
             if(GameSettingsWindow.BlocksGameplayInput)return;
-            if (Input.GetKeyDown(KeyCode.K)) SetOpen(!opened);
+            if (Input.GetKeyDown(KeyCode.E)) SetOpen(!opened);
             else if (opened && Input.GetKeyDown(KeyCode.Escape)) SetOpen(false);
         }
         public void Close() { SetOpen(false); }

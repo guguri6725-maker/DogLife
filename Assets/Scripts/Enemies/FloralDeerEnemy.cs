@@ -47,7 +47,13 @@ namespace DogLife
         void Start()
         {
             var player=FindFirstObjectByType<PlayerMotor>();
-            if(player){target=player.transform;targetHealth=player.GetComponent<CombatHealth>();var own=GetComponent<Collider>();var other=player.GetComponent<Collider>();if(own&&other)Physics.IgnoreCollision(own,other);}
+            if(player)
+            {
+                target=player.transform;targetHealth=player.GetComponent<CombatHealth>();
+                // 머리/목 피격 판정이 플레이어 이동을 막지 않도록 모두 제외합니다.
+                foreach(var own in GetComponentsInChildren<Collider>())
+                    foreach(var other in player.GetComponentsInChildren<Collider>())Physics.IgnoreCollision(own,other);
+            }
             nextAttack=Time.time+1;
         }
         void Animate(string name)
@@ -81,8 +87,17 @@ namespace DogLife
             if(!warning)return;
             float length=ObstacleDistance(transform.position,lockedDirection,chargeDistance);
             Vector3 start=transform.position-Vector3.up*GroundOffset+Vector3.up*.035f;
-            Vector3 end=start+lockedDirection*(length+HornReach),side=Vector3.Cross(Vector3.up,lockedDirection)*HornRadius;
-            warning.positionCount=5;warning.SetPositions(new[]{start-side,end-side,end+side,start+side,start-side});warning.enabled=true;
+            start+=lockedDirection*HornReach;
+            Vector3 end=start+lockedDirection*length,side=Vector3.Cross(Vector3.up,lockedDirection);
+            warning.positionCount=35;
+            for(int i=0;i<=16;i++)
+            {
+                float angle=Mathf.Lerp(-Mathf.PI*.5f,Mathf.PI*.5f,i/16f);
+                warning.SetPosition(i,end+(lockedDirection*Mathf.Cos(angle)+side*Mathf.Sin(angle))*HornRadius);
+                angle+=Mathf.PI;
+                warning.SetPosition(i+17,start+(lockedDirection*Mathf.Cos(angle)+side*Mathf.Sin(angle))*HornRadius);
+            }
+            warning.SetPosition(34,warning.GetPosition(0));warning.enabled=true;
         }
         void BeginWindup(Vector3 direction)
         {
@@ -101,7 +116,8 @@ namespace DogLife
             foreach(var collider in Physics.OverlapCapsule(from+lockedDirection*HornReach,to+lockedDirection*HornReach,HornRadius,~0,QueryTriggerInteraction.Ignore))
             {
                 if(collider.GetComponentInParent<CombatHealth>()!=targetHealth)continue;
-                hitApplied=true;float before=targetHealth.Current;targetHealth.Damage(damage);
+                hitApplied=true;float before=targetHealth.Current;
+                CombatFeedback.DealDamage(targetHealth,damage,collider.ClosestPoint(to+lockedDirection*HornReach),lockedDirection,1.6f,transform,new Color(1,.7f,.8f,1));
                 var motor=target.GetComponent<PlayerMotor>();
                 if(motor&&!targetHealth.Dead&&targetHealth.Current<before)motor.ApplyKnockback(ImpactDirection(target.position,from),knockbackSpeed,knockbackLift,.65f);
                 Animate("Impact");if(impactEffect){impactEffect.transform.position=to+lockedDirection*HornReach;impactEffect.Play();}break;
@@ -122,6 +138,7 @@ namespace DogLife
         }
         void FixedUpdate()
         {
+            if(CombatFeedback.Paused(this)){phaseStarted+=Time.fixedDeltaTime;nextAttack+=Time.fixedDeltaTime;return;}
             if(!health||health.Dead||!target||!targetHealth||targetHealth.Dead){Cancel();return;}
             if(phase==Phase.Windup)
             {
@@ -154,12 +171,6 @@ namespace DogLife
         }
         void Cancel(){Stop();StopEffects();phase=Phase.Track;hitApplied=false;scrapeCount=0;Animate("Idle");}
         void OnDisable(){Cancel();animationName=null;nextAttack=Time.time+1;nextPath=0;}
-        void OnGUI()
-        {
-            if(SkillWindow.IsOpen||!health||health.Dead||!Camera.main)return;
-            var p=Camera.main.WorldToScreenPoint(transform.position+Vector3.up*1.3f);if(p.z<=0)return;
-            var old=GUI.color;float y=Screen.height-p.y;GUI.color=Color.black;GUI.DrawTexture(new Rect(p.x-27,y,54,6),Texture2D.whiteTexture);
-            GUI.color=Windup?new Color(1,.6f,.75f):new Color(.9f,.3f,.4f);GUI.DrawTexture(new Rect(p.x-27,y,54*Mathf.Clamp01(health.Current/Mathf.Max(1,health.maxHealth)),6),Texture2D.whiteTexture);GUI.color=old;
-        }
     }
 }
+

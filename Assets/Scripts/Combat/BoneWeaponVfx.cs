@@ -7,6 +7,8 @@ namespace DogLife
         Color tint;
         float birth,lifetime=.28f,width;
         bool crescent;
+        public LineRenderer HitShape=>line;
+        public LineRenderer ImpactShape { get; private set; }
         public static BoneWeaponVfx Line(Vector3[] points,Color color,Material material,float size=.09f,float life=.28f)
         {
             var go=new GameObject("Bone weapon effect");var fx=go.AddComponent<BoneWeaponVfx>();
@@ -14,11 +16,11 @@ namespace DogLife
             fx.tint=color;fx.birth=Time.time;fx.width=size;fx.lifetime=life;fx.line.startWidth=size;fx.line.endWidth=size*.15f;fx.line.startColor=fx.line.endColor=color;return fx;
         }
         public static float SizeFor(InventoryWeapon item)=>item.boneOrigin==InventoryWeapon.BoneOrigin.Humanoid?1.4f:1f;
-        public static void Strike(Vector3 center,Vector3 forward,float reach,InventoryWeapon.WeaponCategory category,int step,Color color,Material material,float scale=1f,bool secondStrike=false)
+        public static BoneWeaponVfx Strike(Vector3 center,Vector3 forward,float reach,InventoryWeapon.WeaponCategory category,int step,Color color,Material material,float scale=1f,bool secondStrike=false)
         {
             if(category==InventoryWeapon.WeaponCategory.Spear&&step<2)
             {
-                Strike(center,forward,reach,InventoryWeapon.WeaponCategory.Sword,step,color,material,scale,secondStrike);return;
+                return Strike(center,forward,reach,InventoryWeapon.WeaponCategory.Sword,step,color,material,scale,secondStrike);
             }
             reach*=scale;
             var right=Vector3.Cross(Vector3.up,forward);
@@ -31,18 +33,18 @@ namespace DogLife
                 slash.line.widthCurve=new AnimationCurve(new Keyframe(0,0),new Keyframe(.4f,1),new Keyframe(.7f,1),new Keyframe(1,0));slash.line.widthMultiplier=slash.width;
                 Vector3 impact=center+forward*reach*.65f;RaycastHit hit;
                 if(Physics.Raycast(impact+Vector3.up*2,Vector3.down,out hit,8,1<<8))impact=hit.point+Vector3.up*.04f;else impact.y=center.y-.7f;
-                Ring(impact,right,forward,.65f*scale*power,color,material,4*scale);
-                if(step==2)Ring(impact,right,forward,1.4f*scale,color,material,3*scale);
+                slash.ImpactShape=Ring(impact,right,forward,.65f*scale*power,color,material,4*scale).HitShape;
+                if(step==2)slash.ImpactShape=Ring(impact,right,forward,1.4f*scale,color,material,3*scale).HitShape;
                 int rays=step==2?16:8;
                 for(int i=0;i<rays;i++){float a=i*Mathf.PI*2/rays;var dir=right*Mathf.Cos(a)+forward*Mathf.Sin(a);Line(new[]{impact+dir*.18f,impact+dir*.65f*power*scale+Vector3.up*.25f,impact+dir*power*scale+Vector3.up*(step==2?.7f:.25f)},color,material,.13f*scale,.38f);}
-                return;
+                return slash;
             }
             if(category==InventoryWeapon.WeaponCategory.Dagger)
             {
                 bool finisher=step==2;
-                var start=center+right*(step==1?-.2f:.12f)*scale+Vector3.up*(step==1?.32f:-.12f);
+                var start=center+right*(step==1?-.08f:.06f)*scale+Vector3.up*(step==1?.06f:-.04f);
                 var tip=start+forward*reach*(finisher?1.35f:1f);
-                Line(new[]{start,tip},color,material,(finisher?.65f:.345f)*scale,finisher?.38f:.22f);
+                var thrust=Line(new[]{start,tip},color,material,(finisher?.65f:.345f)*scale,finisher?.38f:.22f);
                 Line(new[]{tip-forward*.3f*scale+right*.14f*scale,tip,tip-forward*.3f*scale-right*.14f*scale},color,material,.18f*scale,.22f);
                 Ring(tip,right,Vector3.up,(finisher?.55f:.15f)*scale,color,material,scale*2.55f);
                 if(finisher)
@@ -56,7 +58,7 @@ namespace DogLife
                         Line(new[]{tip+ray*.22f*scale,tip+ray*.85f*scale-forward*.2f*scale},color,material,.12f*scale,.32f);
                     }
                 }
-                return;
+                return thrust;
             }
             if(category==InventoryWeapon.WeaponCategory.Sword)
             {
@@ -74,12 +76,12 @@ namespace DogLife
                 slash.line.numCapVertices=0;
                 slash.line.widthCurve=new AnimationCurve(new Keyframe(0,0),new Keyframe(.2f,.65f),new Keyframe(.5f,1),new Keyframe(.8f,.65f),new Keyframe(1,0));
                 slash.line.widthMultiplier=slash.width;
-                return;
+                return slash;
             }
             if(category==InventoryWeapon.WeaponCategory.Spear)
             {
-                Line(new[]{center,center+forward*reach},color,material,.38f*scale,.13f);
-                Ring(center+forward*reach,right,Vector3.up,.3f*scale,color,material,2*scale);return;
+                var thrust=Line(new[]{center,center+forward*reach},color,material,.38f*scale,.13f);
+                Ring(center+forward*reach,right,Vector3.up,.3f*scale,color,material,2*scale);return thrust;
             }
             bool vertical=category==InventoryWeapon.WeaponCategory.Axe||step==2;
             var points=new Vector3[30];
@@ -88,13 +90,14 @@ namespace DogLife
                 float a=Mathf.Lerp(-1.1f,1.1f,i/(float)(points.Length-1));
                 points[i]=center+forward*(Mathf.Cos(a)*reach)+(vertical?Vector3.up:right)*(Mathf.Sin(a)*reach*.65f*(step==1?-1:1));
             }
-            Line(points,color,material,(category==InventoryWeapon.WeaponCategory.Axe?.18f:.09f)*scale);
+            var effect=Line(points,color,material,(category==InventoryWeapon.WeaponCategory.Axe?.18f:.09f)*scale);
             if(category==InventoryWeapon.WeaponCategory.Axe)Ring(center+forward*reach-Vector3.up*.6f*scale,right,forward,.55f*scale,color,material,scale);
             if(category==InventoryWeapon.WeaponCategory.Dagger)Line(new[]{center+right*.35f*scale,center+forward*reach-right*.35f*scale},color,material,.055f*scale,.18f);
+            return effect;
         }
-        public static void Ring(Vector3 center,Vector3 x,Vector3 y,float radius,Color tint,Material mat,float widthScale=1f)
+        public static BoneWeaponVfx Ring(Vector3 center,Vector3 x,Vector3 y,float radius,Color tint,Material mat,float widthScale=1f)
         {
-            var p=new Vector3[33];for(int i=0;i<p.Length;i++){float a=i*Mathf.PI/16;p[i]=center+(x*Mathf.Cos(a)+y*Mathf.Sin(a))*radius;}Line(p,tint,mat,.045f*widthScale,.24f);
+            var p=new Vector3[33];for(int i=0;i<p.Length;i++){float a=i*Mathf.PI/16;p[i]=center+(x*Mathf.Cos(a)+y*Mathf.Sin(a))*radius;}return Line(p,tint,mat,.045f*widthScale,.24f);
         }
         void Update()
         {

@@ -179,7 +179,7 @@ ParticleSystem:
     startSize:
       serializedVersion: 3
       minMaxState: 3
-      scalar: 0.18
+      scalar: 0.29700002
       minScalar: 0.09
       maxCurve:
         serializedVersion: 2
@@ -402,7 +402,7 @@ ParticleSystem:
     rateOverTime:
       serializedVersion: 3
       minMaxState: 0
-      scalar: 100
+      scalar: 115
       minScalar: 10
       maxCurve:
         serializedVersion: 2
@@ -2312,6 +2312,9 @@ GameObject:
   - component: {fileID: 5761731417003788427}
   - component: {fileID: 2016981046895385690}
   - component: {fileID: 229961124507635921}
+  - component: {fileID: 2725864761194557441}
+  - component: {fileID: 7638559692301010472}
+  - component: {fileID: 1995740921420429587}
   m_Layer: 0
   m_Name: BlossomSpirit
   m_TagString: Untagged
@@ -2398,9 +2401,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7ec31b56d4fa0324ab9d3b38b177327c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DogLife.CombatHealth
-  maxHealth: 22
+  maxHealth: 33
   player: 0
   practiceTarget: 0
+  playerHitInvulnerability: 0.7
+  playerBlinkInterval: 0.08
 --- !u!195 &2016981046895385690
 NavMeshAgent:
   m_ObjectHideFlags: 0
@@ -2454,14 +2459,56 @@ MonoBehaviour:
   retreatDistance: 4
   preferredDistance: 6
   projectileSpeed: 5
-  aimLockTime: 0.9
-  fireTime: 1.22
-  attackDuration: 1.8
+  aimLockTime: 1.7
+  fireTime: 2.02
+  attackDuration: 2.6
   cooldown: 1.3
   skillDelay: 3
   obstacleMask:
     serializedVersion: 2
     m_Bits: 256
+--- !u!114 &2725864761194557441
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5511638507228795931}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3cc6af33c315ab14fa7afb843372effc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DogLife.BlossomSpiritChargeVfx
+  petalMesh: {fileID: 4300000, guid: bddbb47f3ed5714489491d53c1776ce9, type: 2}
+  material: {fileID: 2100000, guid: 04352087d096a7b4e9b4ce91d32ebe04, type: 2}
+--- !u!114 &7638559692301010472
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5511638507228795931}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b819cd4c1ed1a07498da3f3e0c6853a9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DogLife.CombatFeedback
+  normalStop: 0.04
+  heavyStop: 0.08
+  recoilAngle: 13
+  recoilDuration: 0.22
+--- !u!114 &1995740921420429587
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5511638507228795931}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 65107a6142017774cbdaf4d306258e7d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DogLife.SeasonEnemyHealthBar
 --- !u!1 &6298825408454602029
 GameObject:
   m_ObjectHideFlags: 0
@@ -2591,7 +2638,7 @@ ParticleSystem:
     startSpeed:
       serializedVersion: 3
       minMaxState: 3
-      scalar: 0.35
+      scalar: 0.7
       minScalar: 0.08
       maxCurve:
         serializedVersion: 2
@@ -2673,7 +2720,7 @@ ParticleSystem:
     startSize:
       serializedVersion: 3
       minMaxState: 3
-      scalar: 0.105
+      scalar: 0.34649998
       minScalar: 0.035
       maxCurve:
         serializedVersion: 2
@@ -2774,7 +2821,7 @@ ParticleSystem:
         m_RotationOrder: 4
     randomizeRotationDirection: 0
     gravitySource: 0
-    maxNumParticles: 65
+    maxNumParticles: 80
     customEmitterVelocity: {x: 0, y: 0, z: 0}
     size3D: 0
     rotation3D: 0
@@ -2849,7 +2896,7 @@ ParticleSystem:
     sphericalDirectionAmount: 0
     randomPositionAmount: 0
     radius:
-      value: 0.14
+      value: 0.28
       mode: 0
       spread: 0
       speed:
@@ -2896,7 +2943,7 @@ ParticleSystem:
     rateOverTime:
       serializedVersion: 3
       minMaxState: 0
-      scalar: 55
+      scalar: 63.25
       minScalar: 10
       maxCurve:
         serializedVersion: 2
@@ -4925,7 +4972,7 @@ ParticleSystem:
     startSpeed:
       serializedVersion: 3
       minMaxState: 3
-      scalar: 0.35
+      scalar: 0.7
       minScalar: 0.08
       maxCurve:
         serializedVersion: 2
@@ -5007,7 +5054,7 @@ ParticleSystem:
     startSize:
       serializedVersion: 3
       minMaxState: 3
-      scalar: 0.105
+      scalar: 0.34649998
       minScalar: 0.035
       maxCurve:
         serializedVersion: 2
@@ -5108,7 +5155,7 @@ ParticleSystem:
         m_RotationOrder: 4
     randomizeRotationDirection: 0
     gravitySource: 0
-    maxNumParticles: 65
+    maxNumParticles: 80
     customEmitterVelocity: {x: 0, y: 0, z: 0}
     size3D: 0
     rotation3D: 0
@@ -5183,7 +5230,7 @@ ParticleSystem:
     sphericalDirectionAmount: 0
     randomPositionAmount: 0
     radius:
-      value: 0.14
+      value: 0.28
       mode: 0
       spread: 0
       speed:
@@ -5230,7 +5277,7 @@ ParticleSystem:
     rateOverTime:
       serializedVersion: 3
       minMaxState: 0
-      scalar: 55
+      scalar: 63.25
       minScalar: 10
       maxCurve:
         serializedVersion: 2

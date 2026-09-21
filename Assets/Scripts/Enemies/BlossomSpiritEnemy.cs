@@ -67,6 +67,7 @@ namespace DogLife
         }
         static readonly int Moving=Animator.StringToHash("Moving"),Attacking=Animator.StringToHash("Attacking");
         public bool Windup=>casting&&!fired;
+        public float ChargeProgress=>Windup?Mathf.Clamp01((Time.time-castStarted-.35f)/Mathf.Max(.1f,fireTime-.35f)):0;
         void Awake()
         {
             health=GetComponent<CombatHealth>();agent=GetComponent<NavMeshAgent>();agent.updateRotation=false;
@@ -107,6 +108,7 @@ namespace DogLife
         }
         void FixedUpdate()
         {
+            if(CombatFeedback.Paused(this)){castStarted+=Time.fixedDeltaTime;dashStarted+=Time.fixedDeltaTime;nextAttack+=Time.fixedDeltaTime;return;}
             if(!target||!targetHealth||!health||health.Dead||targetHealth.Dead){Cancel();return;}
             float distance=Vector3.ProjectOnPlane(target.position-transform.position,Vector3.up).magnitude;
             if(dashing){TickDash();return;}
@@ -155,12 +157,16 @@ namespace DogLife
         {
             if(!projectilePrefab||!leftHand||!rightHand)return;
             Vector3 origin=(leftHand.position+rightHand.position)*.5f;
+            var definition=projectilePrefab.GetComponent<CombatProjectile>();
+            RaycastHit floor;
+            if(definition&&Physics.Raycast(origin,Vector3.down,out floor,3,1<<8,QueryTriggerInteraction.Ignore))
+                origin+=Vector3.up*Mathf.Max(0,definition.radius+.05f-floor.distance);
             Vector3 direction=(aimedPoint-origin).normalized;
             if(direction.sqrMagnitude<.001f||!Clear(origin,aimedPoint))return;
             var shot=Instantiate(projectilePrefab,origin,Quaternion.LookRotation(direction));
             var projectile=shot.GetComponent<CombatProjectile>();
             projectile.owner=transform;projectile.hostile=true;projectile.direction=direction;
-            projectile.speed=projectileSpeed;projectile.damage=damage;projectile.range=12;projectile.radius=.13f;
+            projectile.speed=projectileSpeed;projectile.damage=damage;projectile.range=12;
         }
         void Update(){if(modelAnimator)modelAnimator.SetBool(Moving,!dashing&&!casting&&Navigable&&!agent.isStopped&&agent.velocity.sqrMagnitude>.02f);}
         void Cancel()
@@ -169,14 +175,6 @@ namespace DogLife
             if(modelAnimator){modelAnimator.SetBool(Moving,false);modelAnimator.SetBool(Attacking,false);}
         }
         void OnDisable(){Cancel();nextAttack=Time.time+.8f;nextPath=0;}
-        void OnGUI()
-        {
-            if(SkillWindow.IsOpen||!health||health.Dead||!Camera.main)return;
-            var p=Camera.main.WorldToScreenPoint(transform.position+Vector3.up*1.15f);if(p.z<=0)return;
-            var previous=GUI.color;float y=Screen.height-p.y;
-            GUI.color=Color.black;GUI.DrawTexture(new Rect(p.x-27,y,54,6),Texture2D.whiteTexture);
-            GUI.color=Windup?new Color(1,.65f,.8f):new Color(.9f,.28f,.48f);
-            GUI.DrawTexture(new Rect(p.x-27,y,54*Mathf.Clamp01(health.Current/Mathf.Max(1,health.maxHealth)),6),Texture2D.whiteTexture);GUI.color=previous;
-        }
     }
 }
+

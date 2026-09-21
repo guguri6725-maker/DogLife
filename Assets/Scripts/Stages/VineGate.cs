@@ -38,7 +38,9 @@ namespace DogLife
         }
         void Update()
         {
-            if (Mathf.Approximately(Progress, target)) return;
+            // MoveTowards must reach the exact endpoint: an approximate early exit can
+            // leave Progress just below 1 while IsOpen and collision still stay closed.
+            if (Progress == target) return;
             Progress = Mathf.MoveTowards(Progress, target, Time.deltaTime / Mathf.Max(.1f, duration));
             ApplyPose();
         }

@@ -14,8 +14,9 @@ namespace DogLife
         public float crouchTime=.7f,jumpTime=.72f,jumpHeight=1.5f,landingRadius=.85f;
         public float damage=5,landingPause=.3f,retreatTime=.75f,retreatDistance=2,cooldown=1.5f;
         [SerializeField,Min(0),Tooltip("후퇴 종료 후 다음 점프까지의 최소 대기 시간(초)")] private float skillDelay=3;
+        [SerializeField,Min(.3f),Tooltip("덮치기 명중 후 매달려 무는 연출 시간")] private float biteDuration=.85f;
         public LayerMask obstacleMask=~0;
-        enum Phase{Orbit,Crouch,Air,Land,Retreat}
+        enum Phase{Orbit,Crouch,Air,Land,Retreat,Bite}
         Phase phase;
         NavMeshAgent agent;
         CombatHealth health,targetHealth;
@@ -25,6 +26,10 @@ namespace DogLife
         bool hitApplied,aborted;
         int orbitSign;
         string animationName;
+        Vector3 visualRestPosition,biteSide;
+        Quaternion visualRestRotation,headRestRotation;
+        Transform biteHead;
+        bool biteVisualActive;
         bool Navigable=>agent&&agent.isActiveAndEnabled&&agent.isOnNavMesh;
         float Offset=>agent?agent.baseOffset:.35f;
         void Awake()
@@ -32,6 +37,8 @@ namespace DogLife
             health=GetComponent<CombatHealth>();agent=GetComponent<NavMeshAgent>();agent.updateRotation=false;
             var body=GetComponent<Rigidbody>();body.isKinematic=true;body.constraints=RigidbodyConstraints.FreezeRotation;
             orbitSign=Random.value<.5f?1:-1;lastSafePosition=transform.position;
+            if(visualRoot){visualRestPosition=visualRoot.localPosition;visualRestRotation=visualRoot.localRotation;}
+            foreach(var bone in GetComponentsInChildren<Transform>())if(bone.name=="Head"){biteHead=bone;break;}
         }
         void Start()
         {
@@ -96,8 +103,21 @@ namespace DogLife
             if(hitApplied)return;hitApplied=true;
             if(aborted||!targetHealth||targetHealth.Dead||!target)return;
             Vector3 delta=target.position-landingPoint;
-            if(Mathf.Abs(delta.y)>1.5f||Vector3.ProjectOnPlane(delta,Vector3.up).magnitude>landingRadius)return;
-            if(!Blocked(landingPoint,target.position,.04f))targetHealth.Damage(damage);
+            var targetCollider=target.GetComponent<Collider>();
+            Vector3 contact=targetCollider?targetCollider.ClosestPoint(landingPoint+Vector3.up*.5f):target.position;
+            if(Mathf.Abs(delta.y)>1.5f||Vector3.ProjectOnPlane(contact-landingPoint,Vector3.up).magnitude>landingRadius)return;
+            if(!Blocked(landingPoint,target.position,.04f))
+            {
+                float before=targetHealth.Current;
+                CombatFeedback.DealDamage(targetHealth,damage,contact,target.position-transform.position,.8f,transform,new Color(1,.65f,.8f,1));
+                if(targetHealth.Current<before&&!targetHealth.Dead&&visualRoot)
+                {
+                    phase=Phase.Bite;phaseStarted=Time.time;biteVisualActive=true;
+                    biteSide=Vector3.ProjectOnPlane(transform.position-target.position,Vector3.up).normalized;
+                    if(biteSide.sqrMagnitude<.01f)biteSide=-target.forward;
+                    if(biteHead)headRestRotation=biteHead.localRotation;
+                }
+            }
         }
         void RestoreNavigation(Vector3 point)
         {
@@ -108,7 +128,7 @@ namespace DogLife
         {
             RestoreNavigation(landingPoint);lastSafePosition=transform.position;Stop();phase=Phase.Land;phaseStarted=Time.time;
             ApplyLandingHit();Animate("Land");if(jumpPetals)jumpPetals.Stop(true,ParticleSystemStopBehavior.StopEmitting);
-            if(landPetals)landPetals.Play();DrawMarker(landingRadius);
+            if(landPetals)landPetals.Play();if(landingMarker)landingMarker.enabled=false;
         }
         bool SetDestination(Vector3 point)
         {
@@ -127,6 +147,7 @@ namespace DogLife
         }
         void FixedUpdate()
         {
+            if(CombatFeedback.Paused(this)){phaseStarted+=Time.fixedDeltaTime;nextAttack+=Time.fixedDeltaTime;return;}
             if(!health||health.Dead||!target||!targetHealth||targetHealth.Dead){Cancel();return;}
             float elapsed=Time.time-phaseStarted;
             if(phase==Phase.Crouch)
@@ -144,7 +165,12 @@ namespace DogLife
                 transform.position=next;if(t>=1)Land();return;
             }
             if(phase==Phase.Land)
-            {Stop();DrawMarker(landingRadius+elapsed*.8f);if(elapsed>=landingPause)BeginRetreat();return;}
+            {Stop();if(elapsed>=landingPause)BeginRetreat();return;}
+            if(phase==Phase.Bite)
+            {
+                Stop();if(landingMarker)landingMarker.enabled=false;
+                if(elapsed>=biteDuration){RestoreBiteVisual();BeginRetreat();}return;
+            }
             if(phase==Phase.Retreat)
             {
                 if(elapsed>=retreatTime){Stop();phase=Phase.Orbit;nextAttack=Time.time+Mathf.Max(cooldown,skillDelay);orbitSign=-orbitSign;Animate("Idle");}return;
@@ -164,18 +190,33 @@ namespace DogLife
         }
         void Cancel()
         {
+            RestoreBiteVisual();
             if(phase==Phase.Air){transform.position=lastSafePosition;if(agent){agent.updatePosition=true;if(agent.isActiveAndEnabled)agent.Warp(lastSafePosition);}}
             Stop();phase=Phase.Orbit;if(landingMarker)landingMarker.enabled=false;
             if(jumpPetals)jumpPetals.Stop(true,ParticleSystemStopBehavior.StopEmittingAndClear);
             if(landPetals)landPetals.Stop(true,ParticleSystemStopBehavior.StopEmittingAndClear);Animate("Idle");
         }
         void OnDisable(){Cancel();animationName=null;nextAttack=Time.time+1;nextPath=0;}
-        void OnGUI()
+        void LateUpdate()
         {
-            if(SkillWindow.IsOpen||!health||health.Dead||!Camera.main)return;
-            var p=Camera.main.WorldToScreenPoint(transform.position+Vector3.up*.8f);if(p.z<=0)return;
-            var old=GUI.color;float y=Screen.height-p.y;GUI.color=Color.black;GUI.DrawTexture(new Rect(p.x-22,y,44,5),Texture2D.whiteTexture);
-            GUI.color=phase==Phase.Crouch?new Color(1,.6f,.8f):new Color(1,.35f,.55f);GUI.DrawTexture(new Rect(p.x-22,y,44*Mathf.Clamp01(health.Current/Mathf.Max(1,health.maxHealth)),5),Texture2D.whiteTexture);GUI.color=old;
+            if(!biteVisualActive||!visualRoot)return;
+            if(!target||!targetHealth||targetHealth.Dead||!health||health.Dead){RestoreBiteVisual();return;}
+            float t=Mathf.Clamp01((Time.time-phaseStarted)/Mathf.Max(.3f,biteDuration));
+            float blend=Mathf.SmoothStep(0,1,t/.2f)*(1-Mathf.SmoothStep(0,1,(t-.75f)/.25f));
+            Vector3 rest=visualRoot.parent.TransformPoint(visualRestPosition);
+            Vector3 mount=target.position+biteSide*.38f+Vector3.up*.30f;
+            float chew=Mathf.Sin(Mathf.Clamp01((t-.2f)/.55f)*Mathf.PI*4);
+            visualRoot.position=Vector3.Lerp(rest,mount+Vector3.up*(chew*.055f),blend);
+            Quaternion restRotation=visualRoot.parent.rotation*visualRestRotation;
+            visualRoot.rotation=Quaternion.Slerp(restRotation,Quaternion.LookRotation(-biteSide)*Quaternion.Euler(-28,0,0),blend);
+            if(biteHead)biteHead.localRotation=headRestRotation*Quaternion.Euler(chew*16*blend,0,0);
+        }
+        void RestoreBiteVisual()
+        {
+            if(!biteVisualActive)return;biteVisualActive=false;
+            if(visualRoot){visualRoot.localPosition=visualRestPosition;visualRoot.localRotation=visualRestRotation;}
+            if(biteHead)biteHead.localRotation=headRestRotation;
         }
     }
 }
+

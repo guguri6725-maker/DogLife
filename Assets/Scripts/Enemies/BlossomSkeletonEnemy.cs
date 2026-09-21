@@ -23,12 +23,14 @@ namespace DogLife
         bool attacking, hitApplied;
         float attackStarted, nextAttack, nextPathUpdate;
         Vector3 lockedAim;
+        BlossomSkeletonAttackVfx attackVfx;
         float Size=>Mathf.Max(.01f,transform.lossyScale.x);
         static readonly int Moving=Animator.StringToHash("Moving"), Attacking=Animator.StringToHash("Attacking");
 
         void Awake()
         {
             health=GetComponent<CombatHealth>();agent=GetComponent<NavMeshAgent>();
+            attackVfx=GetComponentInChildren<BlossomSkeletonAttackVfx>(true);
             var body=GetComponent<Rigidbody>();body.isKinematic=true;body.constraints=RigidbodyConstraints.FreezeRotation;
             agent.updateRotation=false;
             visualRenderers=(visualRoot?visualRoot:transform).GetComponentsInChildren<Renderer>(true);
@@ -59,6 +61,7 @@ namespace DogLife
         }
         void FixedUpdate()
         {
+            if(CombatFeedback.Paused(this)){attackStarted+=Time.fixedDeltaTime;nextAttack+=Time.fixedDeltaTime;return;}
             if(!target||!targetHealth||health.Dead||targetHealth.Dead){CancelAttack();return;}
             if(attacking)
             {
@@ -66,9 +69,11 @@ namespace DogLife
                 if(!hitApplied&&elapsed>=hitTime)
                 {
                     hitApplied=true;
-                    if(CanHit(target.position))
+                    if(attackVfx?attackVfx.HitsTarget(targetHealth)&&ClearSight(target.position-transform.position):CanHit(target.position))
                     {
-                        float before=targetHealth.Current;targetHealth.Damage(damage);
+                        float before=targetHealth.Current;
+                        var collider=target.GetComponent<Collider>();
+                        CombatFeedback.DealDamage(targetHealth,damage,collider?collider.ClosestPoint(transform.position):target.position,lockedAim,1.4f,transform,new Color(1,.55f,.72f,1));
                         var motor=target.GetComponent<PlayerMotor>();
                         if(motor&&!targetHealth.Dead&&targetHealth.Current<before)motor.ApplyKnockback(target.position-transform.position,knockbackSpeed,.6f,.22f);
                     }
@@ -116,18 +121,6 @@ namespace DogLife
             if(modelAnimator&&modelAnimator.isActiveAndEnabled){modelAnimator.SetBool(Moving,false);modelAnimator.SetBool(Attacking,false);}
         }
         void OnDisable(){CancelAttack();nextPathUpdate=0;nextAttack=Time.time+.5f;}
-        void OnGUI()
-        {
-            if(SkillWindow.IsOpen||!health||health.Dead||!Camera.main)return;
-            var bounds=new Bounds(transform.position,Vector3.zero);
-            foreach(var r in visualRenderers)if(r&&r.enabled&&r.gameObject.activeInHierarchy)bounds.Encapsulate(r.bounds);
-            var point=Camera.main.WorldToViewportPoint(new Vector3(bounds.center.x,bounds.max.y,bounds.center.z));
-            if(point.z<=0||point.x<0||point.x>1||point.y<0||point.y>1)return;
-            var viewport=Camera.main.rect;float x=(viewport.x+point.x*viewport.width)*Screen.width;
-            float y=Screen.height-(viewport.y+point.y*viewport.height)*Screen.height-17;
-            var previous=GUI.color;GUI.color=Color.black;GUI.DrawTexture(new Rect(x-27.5f,y,55,7),Texture2D.whiteTexture);
-            GUI.color=Windup?Color.yellow:new Color(.95f,.35f,.25f);GUI.DrawTexture(new Rect(x-27.5f,y,55*Mathf.Clamp01(health.Current/Mathf.Max(1,health.maxHealth)),7),Texture2D.whiteTexture);
-            GUI.color=Color.white;if(Windup)GUI.Label(new Rect(x-40,y-25,100,25),"! ATTACK");GUI.color=previous;
-        }
     }
 }
+

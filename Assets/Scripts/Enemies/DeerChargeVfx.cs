@@ -18,8 +18,8 @@ namespace DogLife
             {
                 var go=new GameObject("HornWindTrail"+i);go.transform.SetParent(transform,false);
                 var trail=go.AddComponent<TrailRenderer>();trails[i]=trail;
-                trail.sharedMaterial=material;trail.time=.3f;trail.minVertexDistance=.035f;
-                trail.widthCurve=AnimationCurve.EaseInOut(0,i==2?.12f:.20f,1,0);
+                trail.sharedMaterial=material;trail.time=.42f;trail.minVertexDistance=.035f;
+                trail.widthCurve=AnimationCurve.EaseInOut(0,(i==2?.22f:.34f)*Mathf.Abs(transform.lossyScale.x),1,0);
                 var gradient=new Gradient();gradient.SetKeys(new[]{new GradientColorKey(new Color(1,.88f,.95f),0),new GradientColorKey(new Color(1,.25f,.55f),1)},new[]{new GradientAlphaKey(.8f,0),new GradientAlphaKey(0,1)});
                 trail.colorGradient=gradient;trail.numCornerVertices=4;trail.numCapVertices=4;
                 trail.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;trail.emitting=false;
@@ -41,3 +41,4 @@ namespace DogLife
         void OnDisable(){charging=false;foreach(var trail in trails)if(trail){trail.emitting=false;trail.Clear();}}
     }
 }
+

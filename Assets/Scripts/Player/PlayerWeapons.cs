@@ -15,10 +15,60 @@ namespace DogLife
         [SerializeField] private float aimDistance=100f;
         bool hasAimPoint;
         readonly RaycastHit[] aimHits=new RaycastHit[64];
+        readonly Collider[] meleeHits=new Collider[64];
+        readonly HashSet<CombatHealth> meleeDamaged=new HashSet<CombatHealth>();
+        // 주 궤적의 좌표와 두께를 판정에서도 공유합니다. 잔상/파편은 피해를 주지 않습니다.
+        public void ApplyVisibleMelee(InventoryWeapon equipped,Vector3 origin,LineRenderer shape,bool sweep,float damageScale,LineRenderer impact=null)
+        {
+            meleeDamaged.Clear();
+            for(int i=1;i<shape.positionCount;i++)
+            {
+                Vector3 a=shape.GetPosition(i-1),b=shape.GetPosition(i);
+                float u=(i-.5f)/(shape.positionCount-1);
+                float radius=Mathf.Max(.015f,shape.widthCurve.Evaluate(u)*shape.widthMultiplier*.5f);
+                DamageSegment(equipped,origin,a,b,radius,damageScale);
+                if(sweep)DamageSegment(equipped,origin,origin,b,radius,damageScale);
+            }
+            if(impact)
+            {
+                Vector3 center=Vector3.zero;
+                for(int i=0;i<impact.positionCount-1;i++)center+=impact.GetPosition(i);
+                center/=impact.positionCount-1;
+                for(int i=1;i<impact.positionCount;i++)
+                    DamageSegment(equipped,origin,center,impact.GetPosition(i),impact.widthMultiplier*.5f,damageScale);
+            }
+            Attacked?.Invoke();
+        }
+        void DamageSegment(InventoryWeapon equipped,Vector3 origin,Vector3 a,Vector3 b,float radius,float power)
+        {
+            int count=Physics.OverlapCapsuleNonAlloc(a,b,radius,meleeHits,~0,QueryTriggerInteraction.Ignore);
+            var hits=count==meleeHits.Length?Physics.OverlapCapsule(a,b,radius,~0,QueryTriggerInteraction.Ignore):meleeHits;
+            if(hits!=meleeHits)count=hits.Length;
+            for(int i=0;i<count;i++)
+            {
+                var target=hits[i].GetComponentInParent<CombatHealth>();
+                if(!target||target.player||meleeDamaged.Contains(target))continue;
+                Vector3 segment=b-a;
+                float t=segment.sqrMagnitude>.0001f?Mathf.Clamp01(Vector3.Dot(hits[i].bounds.center-a,segment)/segment.sqrMagnitude):0;
+                Vector3 closest=a+segment*t;
+                Vector3 point=hits[i].ClosestPoint(closest);
+                if((point-closest).sqrMagnitude<.000001f)point=hits[i].ClosestPoint(origin);
+                Vector3 delta=point-origin;
+                if(delta.sqrMagnitude>.0001f&&Physics.Raycast(origin,delta.normalized,delta.magnitude,1<<8))continue;
+                meleeDamaged.Add(target);
+                Color tint=equipped.boneOrigin==InventoryWeapon.BoneOrigin.Humanoid?new Color(.8f,.24f,.3f,1):new Color(.5f,.85f,1,1);
+                float feedbackPower=attackCombo&&attackCombo.ComboStep==3&&equipped.weaponCategory!=InventoryWeapon.WeaponCategory.Spear?Mathf.Max(1.5f,power):power;
+                if(CombatFeedback.DealDamage(target,equipped.damage*power,point,point-origin,feedbackPower,transform,tint)&&target.Dead)
+                {
+                    var karma=GetComponent<PlayerKarma>();if(karma)karma.RecordDefeat(target,equipped);
+                }
+            }
+        }
         public event System.Action Attacked;
         PlayerMotor motor;
         BasicWeaponCombat attackCombo;
-        void Awake() { motor = GetComponent<PlayerMotor>(); attackCombo = GetComponent<BasicWeaponCombat>(); }
+        PlayerInventory inventory;
+        void Awake() { motor = GetComponent<PlayerMotor>(); attackCombo = GetComponent<BasicWeaponCombat>(); inventory=GetComponent<PlayerInventory>(); }
         void Start() { if (!aimCamera) aimCamera = Camera.main; }
         void Update()
         {
@@ -74,9 +124,34 @@ namespace DogLife
         {
             AimPoint=point;hasAimPoint=true;
             var direction = Vector3.ProjectOnPlane(point - transform.position, Vector3.up);
+            var item=inventory?inventory.EquippedWeapon:null;
+            bool melee=item&&item.weaponCategory!=InventoryWeapon.WeaponCategory.Bow&&item.weaponCategory!=InventoryWeapon.WeaponCategory.Boomerang;
+            if(aimCamera)
+            {
+                var view=Vector3.ProjectOnPlane(aimCamera.transform.forward,Vector3.up).normalized;
+                // 근접 공격은 카메라와 몸 사이의 적 표면에 조준점이 잡혀도 뒤집히지 않습니다.
+                if(view.sqrMagnitude>.01f&&(melee||Vector3.Dot(direction,view)<=.15f))direction=view;
+            }
             if (direction.sqrMagnitude < .001f) return;
             AimDirection = direction.normalized;
             if (motor) motor.Face(AimDirection);
+        }
+        public float ThrustHeight(Vector3 origin,Vector3 forward,float reach)
+        {
+            int count=Physics.OverlapSphereNonAlloc(origin,reach,meleeHits,~0,QueryTriggerInteraction.Ignore);
+            float nearest=float.PositiveInfinity,height=origin.y;
+            for(int i=0;i<count;i++)
+            {
+                var c=meleeHits[i];var health=c.GetComponentInParent<CombatHealth>();
+                if(!health||health.player||health.Dead)continue;
+                Vector3 delta=c.bounds.center-origin;float along=Vector3.Dot(delta,forward);
+                Vector3 side=Vector3.ProjectOnPlane(delta,Vector3.up)-forward*along;
+                float width=Mathf.Max(c.bounds.extents.x,c.bounds.extents.z);
+                if(along<0||along>reach+width||side.magnitude>width+.12f||along>=nearest)continue;
+                if(Physics.Raycast(origin,delta.normalized,delta.magnitude,1<<8,QueryTriggerInteraction.Ignore))continue;
+                nearest=along;height=Mathf.Clamp(c.bounds.center.y,origin.y-.8f,origin.y+.3f);
+            }
+            return height;
         }
         public void ApplyBasicMelee(InventoryWeapon equipped, Vector3 origin, Vector3 forward, float reach, float minimumDot,float damageScale=1f)
         {
@@ -88,7 +163,9 @@ namespace DogLife
                 var offset=target.transform.position-origin;
                 if(Vector3.Dot(Vector3.ProjectOnPlane(offset,Vector3.up).normalized,forward)<minimumDot)continue;
                 if(Physics.Raycast(origin,offset.normalized,offset.magnitude,1<<8))continue;
+                bool wasAlive=!target.Dead;
                 target.Damage(equipped.damage*damageScale);
+                if(wasAlive&&target.Dead){var karma=GetComponent<PlayerKarma>();if(karma)karma.RecordDefeat(target,equipped);}
             }
             Attacked?.Invoke();
         }

@@ -297,6 +297,8 @@ GameObject:
   - component: {fileID: 3137752511506995242}
   - component: {fileID: 6496750061828518693}
   - component: {fileID: 6780149048831602835}
+  - component: {fileID: 1810493137484206613}
+  - component: {fileID: 3890771407015584568}
   m_Layer: 0
   m_Name: BlossomSkeleton
   m_TagString: Untagged
@@ -383,9 +385,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7ec31b56d4fa0324ab9d3b38b177327c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DogLife.CombatHealth
-  maxHealth: 20
+  maxHealth: 30
   player: 0
   practiceTarget: 0
+  playerHitInvulnerability: 0.7
+  playerBlinkInterval: 0.08
 --- !u!195 &6496750061828518693
 NavMeshAgent:
   m_ObjectHideFlags: 0
@@ -437,6 +441,34 @@ MonoBehaviour:
   obstacleMask:
     serializedVersion: 2
     m_Bits: 256
+--- !u!114 &1810493137484206613
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5969629334037219549}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b819cd4c1ed1a07498da3f3e0c6853a9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DogLife.CombatFeedback
+  normalStop: 0.04
+  heavyStop: 0.08
+  recoilAngle: 13
+  recoilDuration: 0.22
+--- !u!114 &3890771407015584568
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5969629334037219549}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 65107a6142017774cbdaf4d306258e7d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DogLife.SeasonEnemyHealthBar
 --- !u!1001 &1081426651023314405
 PrefabInstance:
   m_ObjectHideFlags: 0

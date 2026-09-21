@@ -14,6 +14,7 @@ namespace DogLife
         readonly HashSet<CombatHealth> outward=new HashSet<CombatHealth>(),inward=new HashSet<CombatHealth>();
         LineRenderer visual;
         float power=1,speedScale=1;
+        float HitRadius=>item.weaponCategory==InventoryWeapon.WeaponCategory.Bow?.19f*visualScale:.51f*visualScale;
         public event System.Action Returned;
         void OnDestroy(){Returned?.Invoke();}
         public static BoneWeaponProjectile Launch(Vector3 position,Vector3 direction,Transform owner,InventoryWeapon item,BasicWeaponMoveset move,Color color,float reach,float charge=0)
@@ -53,7 +54,11 @@ namespace DogLife
             if(!health||health.player)return false;
             if((returning?inward:outward).Add(health))
             {
-                health.Damage((returning?item.returnDamage:item.damage)*power);
+                Vector3 contact=collider.ClosestPoint(transform.position);
+                if(CombatFeedback.DealDamage(health,(returning?item.returnDamage:item.damage)*power,contact,forward,power,null,tint)&&health.Dead&&owner)
+                {
+                    var karma=owner.GetComponent<PlayerKarma>();if(karma)karma.RecordDefeat(health,item);
+                }
                 BoneWeaponVfx.Ring(point,Vector3.right,Vector3.up,.25f*visualScale,tint,move.effectMaterial,visualScale);
             }
             return true;
@@ -61,7 +66,7 @@ namespace DogLife
         void CheckBoomerangOverlap()
         {
             // Sweep casts can miss colliders already overlapping the turnaround point.
-            foreach(var collider in Physics.OverlapSphere(transform.position,move.ProjectileHitRadius,~0,QueryTriggerInteraction.Ignore))
+            foreach(var collider in Physics.OverlapSphere(transform.position,HitRadius,~0,QueryTriggerInteraction.Ignore))
             {
                 if(collider.transform.IsChildOf(owner)||!collider.GetComponentInParent<CombatHealth>())continue;
                 var point=collider.ClosestPoint(transform.position);var offset=point-transform.position;
@@ -83,7 +88,10 @@ namespace DogLife
             float length=move.projectileSpeed*speedScale*Time.fixedDeltaTime;
             if(returning&&Vector3.Distance(target,transform.position)<=length+.25f){Destroy(gameObject);return;}
             if(!returning)length=Mathf.Min(length,Mathf.Max(0,reach-distance));
-            var hits=Physics.SphereCastAll(transform.position,move.ProjectileHitRadius,direction,length,~0,QueryTriggerInteraction.Ignore);
+            // 화살은 길이까지 포함하고, 부메랑은 회전하는 원형 외곽을 검사합니다.
+            var hits=bow
+                ?Physics.CapsuleCastAll(transform.position-direction*.45f*visualScale,transform.position+direction*.3f*visualScale,HitRadius,direction,length,~0,QueryTriggerInteraction.Ignore)
+                :Physics.SphereCastAll(transform.position,HitRadius,direction,length,~0,QueryTriggerInteraction.Ignore);
             System.Array.Sort(hits,(a,b)=>a.distance.CompareTo(b.distance));
             foreach(var hit in hits)
             {

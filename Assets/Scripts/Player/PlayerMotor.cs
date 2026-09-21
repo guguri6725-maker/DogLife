@@ -57,15 +57,15 @@ namespace DogLife
             if (visualRoot) { visualScale = visualRoot.localScale; visualPosition = visualRoot.localPosition; }
         }
         void Update() {
-            if (AttackMovementLocked) { MoveInput = Vector2.zero; ClearJumpInput(); return; }
             if (SkillWindow.BlocksGameplayInput) { MoveInput = Vector2.zero; ReleaseJump(); return; }
             if (!readInput) return;
             if (Cursor.lockState != CursorLockMode.Locked) { MoveInput = Vector2.zero; ReleaseJump(); return; }
             MoveInput = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
+            if (Input.GetKeyDown(KeyCode.LeftShift)) RequestDash();
+            if (AttackMovementLocked) { MoveInput = Vector2.zero; ClearJumpInput(); return; }
             SetCrouching(Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.C));
             if (Input.GetKeyDown(KeyCode.Space)) RequestJump();
             if (!Input.GetKey(KeyCode.Space)) ReleaseJump();
-            if (Input.GetKeyDown(KeyCode.LeftShift)) RequestDash();
         }
         public void RequestJump() {
             if (Crouching || IsKnockedBack || AttackLocked) return;
@@ -74,15 +74,18 @@ namespace DogLife
         // 물리 프레임 전에 짧게 눌렀다 놓아도 점프 예약은 유지합니다.
         public void ReleaseJump() { jumpHeld = false; }
         public bool RequestDash() {
-            if (Time.time < nextDash || Crouching || IsKnockedBack || AttackLocked) return false;
+            var health=GetComponent<CombatHealth>();
+            if (!isActiveAndEnabled || SkillWindow.BlocksGameplayInput || (health&&health.Dead) || Time.time < nextDash || Crouching || IsKnockedBack) return false;
             dashDirection = MoveDirection.sqrMagnitude > .01f ? MoveDirection.normalized : Facing;
+            if(attackCombo)attackCombo.CancelForDash();
+            var feedback=GetComponent<CombatFeedback>();if(feedback)feedback.CancelHitStop();
             dashUntil = Time.time + dashDuration; nextDash = Time.time + dashCooldown; return true;
         }
         public void Face(Vector3 direction) {
-            if (AttackLocked) return;
+            if (attackCombo&&attackCombo.LocksFacing) return;
             FaceForAttack(direction);
         }
-        // Combat may change facing only when starting the next combo step.
+        // 타격 시점에는 전투 코드가 판정과 동일한 방향으로 맞춥니다.
         internal void FaceForAttack(Vector3 direction) {
             direction.y = 0; if (direction.sqrMagnitude < .001f) return;
             Facing = direction.normalized;

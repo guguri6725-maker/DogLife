@@ -211,7 +211,7 @@ ParticleSystem:
     startSize:
       serializedVersion: 3
       minMaxState: 3
-      scalar: 0.12
+      scalar: 0.198
       minScalar: 0.035
       maxCurve:
         serializedVersion: 2
@@ -472,7 +472,7 @@ ParticleSystem:
       countCurve:
         serializedVersion: 3
         minMaxState: 0
-        scalar: 32
+        scalar: 41.6
         minScalar: 30
         maxCurve:
           serializedVersion: 2
@@ -2531,7 +2531,7 @@ ParticleSystem:
     startSize:
       serializedVersion: 3
       minMaxState: 3
-      scalar: 0.12
+      scalar: 0.198
       minScalar: 0.035
       maxCurve:
         serializedVersion: 2
@@ -2754,7 +2754,7 @@ ParticleSystem:
     rateOverTime:
       serializedVersion: 3
       minMaxState: 0
-      scalar: 48
+      scalar: 55.199997
       minScalar: 10
       maxCurve:
         serializedVersion: 2
@@ -4831,6 +4831,8 @@ GameObject:
   - component: {fileID: 1242774284300859805}
   - component: {fileID: 1512353403964826079}
   - component: {fileID: 1315029113378659593}
+  - component: {fileID: 7950534963502051268}
+  - component: {fileID: 266845158629445317}
   m_Layer: 0
   m_Name: SakuraRabbit
   m_TagString: Untagged
@@ -4919,9 +4921,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7ec31b56d4fa0324ab9d3b38b177327c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DogLife.CombatHealth
-  maxHealth: 18
+  maxHealth: 27
   player: 0
   practiceTarget: 0
+  playerHitInvulnerability: 0.7
+  playerBlinkInterval: 0.08
 --- !u!195 &1512353403964826079
 NavMeshAgent:
   m_ObjectHideFlags: 0
@@ -4975,9 +4979,38 @@ MonoBehaviour:
   retreatDistance: 2
   cooldown: 1.5
   skillDelay: 3
+  biteDuration: 0.85
   obstacleMask:
     serializedVersion: 2
     m_Bits: 4294967295
+--- !u!114 &7950534963502051268
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8719923838393488895}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b819cd4c1ed1a07498da3f3e0c6853a9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DogLife.CombatFeedback
+  normalStop: 0.04
+  heavyStop: 0.08
+  recoilAngle: 13
+  recoilDuration: 0.22
+--- !u!114 &266845158629445317
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8719923838393488895}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 65107a6142017774cbdaf4d306258e7d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DogLife.SeasonEnemyHealthBar
 --- !u!1001 &6444603845634477424
 PrefabInstance:
   m_ObjectHideFlags: 0

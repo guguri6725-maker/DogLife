@@ -11,6 +11,7 @@ namespace DogLife
         public bool hostile;
         public bool dot;
         public GameObject impactEffect;
+        [SerializeField, Min(0)] private float playerLaunchSpeed;
         float travelled;
         // 빠른 발사체도 벽을 통과하지 않도록 구간 전체를 SphereCast로 검사합니다.
         void FixedUpdate()
@@ -22,7 +23,17 @@ namespace DogLife
             {
                 if (owner && hit.transform.IsChildOf(owner)) continue;
                 var health = hit.collider.GetComponentInParent<CombatHealth>();
-                if (health && health.player == hostile) { health.Damage(damage); if (dot) health.ApplyDot(); }
+                if (health && health.player == hostile)
+                {
+                    float before=health.Current;
+                    CombatFeedback.DealDamage(health,damage,hit.collider.ClosestPoint(transform.position+direction*hit.distance),direction,1.2f,null,new Color(1,.55f,.73f,1));
+                    if (dot) health.ApplyDot();
+                    if (health.player && !health.Dead && health.Current<before && playerLaunchSpeed>0)
+                    {
+                        var motor=health.GetComponent<PlayerMotor>();
+                        if(motor)motor.ApplyKnockback(Vector3.zero,0,playerLaunchSpeed,.35f);
+                    }
+                }
                 if (impactEffect)
                 {
                     // SphereCast 접촉면 대신 충돌 순간의 탄환 중심에서 터뜨립니다.

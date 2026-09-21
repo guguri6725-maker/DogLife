@@ -17,6 +17,9 @@ namespace DogLife
         float started,endsAt;
         bool queued,struck,secondStruck;
         Vector3 direction;
+        [SerializeField,Range(0,.15f),Tooltip("실제 타격 직후에만 방향을 고정하는 시간")] private float strikeFacingLock=.045f;
+        float facingLockedUntil;
+        public bool LocksFacing=>step>=0&&(Time.time<facingLockedUntil||CombatFeedback.Paused(this));
         const string DaggerLayer="Blade Upper Body";
         bool upperBodyAttack;
         [SerializeField] private float bowChargeSeconds=1.2f;
@@ -36,7 +39,7 @@ namespace DogLife
         public bool LocksMovement=>IsAttacking&&!UsesUpperBody;
         public bool Ready=>isActiveAndEnabled&&animator&&inventory&&inventory.EquippedWeapon&&inventory.EquippedWeapon.weaponForm==InventoryWeapon.WeaponForm.Basic;
         void Awake(){inventory=GetComponent<PlayerInventory>();motor=GetComponent<PlayerMotor>();weapons=GetComponent<PlayerWeapons>();health=GetComponent<CombatHealth>();}
-        bool Interrupted=>(health&&health.Dead)||!weapons.enabled||SkillWindow.BlocksGameplayInput||(motor&&motor.IsKnockedBack);
+        bool Interrupted=>(health&&health.Dead)||!weapons.enabled||SkillWindow.BlocksGameplayInput||(motor&&(motor.IsKnockedBack||motor.IsDashing));
         public void PressAttack()
         {
             if(!Ready||Interrupted)return;
@@ -68,6 +71,7 @@ namespace DogLife
         }
         void Begin(int index)
         {
+            facingLockedUntil=0;
             // Sample at execution, not at the buffered click or combo start.
             weapons.RefreshAimDirection();
             direction=weapons.AimDirection;
@@ -87,10 +91,21 @@ namespace DogLife
         }
         void Update()
         {
+            if(CombatFeedback.Paused(this))
+            {
+                if(step>=0){started+=Time.deltaTime;endsAt+=Time.deltaTime;}
+                if(charging)chargeStarted+=Time.deltaTime;
+                if(Interrupted)Cancel();return;
+            }
             int upperLayer=animator?animator.GetLayerIndex(DaggerLayer):-1;
             if(upperLayer>=0&&!upperBodyAttack)animator.SetLayerWeight(upperLayer,Mathf.MoveTowards(animator.GetLayerWeight(upperLayer),0,Time.deltaTime/.14f));
             if(step<0)return;
             if(Interrupted||inventory.EquippedWeapon!=item){Cancel();return;}
+            if(!LocksFacing)
+            {
+                weapons.RefreshAimDirection();direction=weapons.AimDirection;
+                if(motor)motor.FaceForAttack(direction);
+            }
             if(charging)
             {
                 weapons.RefreshAimDirection();direction=weapons.AimDirection;if(motor)motor.FaceForAttack(direction);
@@ -109,6 +124,10 @@ namespace DogLife
         }
         void Strike()
         {
+            // 각 타격 직전에 최신 조준을 읽고, 판정과 이펙트에 같은 방향을 사용합니다.
+            weapons.RefreshAimDirection();direction=weapons.AimDirection;
+            if(motor)motor.FaceForAttack(direction);
+            facingLockedUntil=Time.time+strikeFacingLock;
             var capsule=GetComponent<CapsuleCollider>();
             Vector3 origin=capsule?capsule.bounds.center:transform.position+Vector3.up;
             Color color=item.boneOrigin==InventoryWeapon.BoneOrigin.Humanoid?new Color(.65f,.20f,.25f,.55f):new Color(.50f,.82f,1,.55f);
@@ -127,18 +146,28 @@ namespace DogLife
             }
             else
             {
-                bool spin=item.weaponCategory==InventoryWeapon.WeaponCategory.Sword&&step==2;
                 bool thrust=(item.weaponCategory==InventoryWeapon.WeaponCategory.Spear&&step==2)||item.weaponCategory==InventoryWeapon.WeaponCategory.Dagger;
+                if(item.weaponCategory==InventoryWeapon.WeaponCategory.Dagger)
+                    origin.y=weapons.ThrustHeight(origin,direction,reach*BoneWeaponVfx.SizeFor(item)*(step==2?1.35f:1));
                 float power=item.weaponCategory==InventoryWeapon.WeaponCategory.Axe?(step==2?1.8f:step==1?1.3f:1):1;
-                weapons.ApplyBasicMelee(item,origin,direction,reach,spin?0f:thrust?.9f:.25f,power);
-                BoneWeaponVfx.Strike(origin,direction,reach,item.weaponCategory,step,color,move.effectMaterial,BoneWeaponVfx.SizeFor(item),secondStruck);
+                var effect=BoneWeaponVfx.Strike(origin,direction,reach,item.weaponCategory,step,color,move.effectMaterial,BoneWeaponVfx.SizeFor(item),secondStruck);
+                weapons.ApplyVisibleMelee(item,origin,effect.HitShape,!thrust,power,effect.ImpactShape);
             }
         }
         public void Cancel()
         {
+            facingLockedUntil=0;
+            var bow=inventory&&inventory.EquippedVisual?inventory.EquippedVisual.GetComponent<EquippedBowString>():null;
+            if(bow)bow.Draw=0;
             charging=false;ClearChargeVisual();
             bool active=step>=0,wasUpper=upperBodyAttack;step=-1;queued=false;item=null;move=null;upperBodyAttack=false;
             if(active&&!wasUpper&&animator&&animator.isInitialized&&animator.isActiveAndEnabled)animator.CrossFadeInFixedTime("Base Layer.Locomotion",.12f,0);
+        }
+        public void CancelForDash()
+        {
+            Cancel();
+            int layer=animator?animator.GetLayerIndex(DaggerLayer):-1;
+            if(layer>=0)animator.SetLayerWeight(layer,0);
         }
         void ClearChargeVisual(){if(chargeArrow)Destroy(chargeArrow.gameObject);chargeArrow=null;}
         void UpdateChargeVisual()

@@ -12,6 +12,29 @@ namespace DogLife
         [SerializeField] private Text status;
         bool loading;
 
+        public void LoadGame()
+        {
+            if (loading || GameSettingsWindow.BlocksGameplayInput) return;
+            status.text = "저장된 게임이 없습니다.";
+        }
+
+        public void OpenOptions()
+        {
+            if (loading) return;
+            var settings = FindFirstObjectByType<GameSettingsWindow>();
+            if (settings) settings.Open();
+        }
+
+        public void ExitGame()
+        {
+            if (loading || GameSettingsWindow.BlocksGameplayInput) return;
+#if UNITY_EDITOR
+            UnityEditor.EditorApplication.isPlaying = false;
+#else
+            Application.Quit();
+#endif
+        }
+
         void Awake()
         {
             Time.timeScale = 1;

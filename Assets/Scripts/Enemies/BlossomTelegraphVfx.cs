@@ -56,9 +56,15 @@ namespace DogLife
             Color pink=new Color(1,.30f,.55f,.12f),bright=new Color(1,.76f,.88f,.8f);
             if(corridor)
             {
-                var a=outline.GetPosition(0)+Vector3.up*.004f;var b=outline.GetPosition(1)+Vector3.up*.004f;
-                var c=outline.GetPosition(2)+Vector3.up*.004f;var d=outline.GetPosition(3)+Vector3.up*.004f;
+                bool rounded=outline.positionCount==35;
+                var a=outline.GetPosition(rounded?33:0)+Vector3.up*.004f;var b=outline.GetPosition(rounded?0:1)+Vector3.up*.004f;
+                var c=outline.GetPosition(rounded?16:2)+Vector3.up*.004f;var d=outline.GetPosition(rounded?17:3)+Vector3.up*.004f;
                 Quad(a,b,c,d,pink);
+                if(rounded)for(int i=0;i<16;i++)
+                {
+                    Triangle((b+c)*.5f,outline.GetPosition(i)+Vector3.up*.004f,outline.GetPosition(i+1)+Vector3.up*.004f,pink);
+                    Triangle((a+d)*.5f,outline.GetPosition(i+17)+Vector3.up*.004f,outline.GetPosition(i+18)+Vector3.up*.004f,pink);
+                }
                 var start=(a+d)*.5f;var end=(b+c)*.5f;var forward=(end-start).normalized;var side=(d-a).normalized;
                 float length=Vector3.Distance(start,end),width=Vector3.Distance(a,d)*.40f;
                 for(float distance=.65f;distance<length-.35f;distance+=1.1f)

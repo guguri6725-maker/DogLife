@@ -48,8 +48,14 @@ namespace DogLife
             var saved=GameGraphicsSettings.Load();GameGraphicsSettings.SetCurrent(saved);GameGraphicsSettings.ApplyGraphics(saved);
             yield return GameGraphicsSettings.ApplyDisplay(saved);
             Applying=false;
+            UpdateLauncher();
         }
-        void SceneChanged(Scene oldScene,Scene newScene){if(IsOpen)Close();}
+        void UpdateLauncher()
+        {
+            foreach(var button in GetComponentsInChildren<Button>(true))
+                if(button.name=="Open Settings")button.gameObject.SetActive(!FindFirstObjectByType<TitleScreen>());
+        }
+        void SceneChanged(Scene oldScene,Scene newScene){if(IsOpen)Close();UpdateLauncher();}
         void OnDestroy()
         {
             if(instance!=this)return;
