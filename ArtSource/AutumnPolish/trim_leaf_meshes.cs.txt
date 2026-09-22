@@ -1,0 +1,15 @@
+// 실제 바닥 삼각형을 기준으로 공중에 떠 있는 외곽 낙엽만 제거한다.
+var report=new System.Collections.Generic.List<object>();
+System.Func<Vector3,Vector3,Vector3,float> cross=(a,b,p)=>(b.x-a.x)*(p.z-a.z)-(b.z-a.z)*(p.x-a.x);
+foreach(var path in System.IO.Directory.GetFiles("Assets/Scenes/SeasonRooms/AutumnJourney9","*.unity")){
+var s=UnityEditor.SceneManagement.EditorSceneManager.OpenPreviewScene(path);
+try{
+var root=s.GetRootGameObjects()[0];var room=root.GetComponent<DogLife.ForestRoom>();var fs=root.GetComponentsInChildren<MeshFilter>(true);
+var floorTriangles=new System.Collections.Generic.List<Vector3[]>();
+foreach(var f in fs.Where(f=>f.name.Contains("Floor")||f.name.Contains("Passage"))){var mesh=f.sharedMesh;var verts=mesh.vertices;var ts=mesh.triangles;for(int j=0;j<ts.Length;j+=3)floorTriangles.Add(new[]{f.transform.TransformPoint(verts[ts[j]]),f.transform.TransformPoint(verts[ts[j+1]]),f.transform.TransformPoint(verts[ts[j+2]])});}
+System.Func<Vector3,bool> inside=p=>floorTriangles.Any(t=>{var a=cross(t[0],t[1],p);var b=cross(t[1],t[2],p);var c=cross(t[2],t[0],p);return (a>=-.001f&&b>=-.001f&&c>=-.001f)||(a<=.001f&&b<=.001f&&c<=.001f);});
+foreach(var f in fs.Where(f=>f.name.Contains("AutumnLeafDrifts"))){var src=f.sharedMesh;var verts=src.vertices;var allowed=verts.Select(v=>inside(f.transform.TransformPoint(v))).ToArray();var ts=src.triangles;var kept=new System.Collections.Generic.List<int>();for(int j=0;j<ts.Length;j+=3)if(allowed[ts[j]]&&allowed[ts[j+1]]&&allowed[ts[j+2]]){kept.Add(ts[j]);kept.Add(ts[j+1]);kept.Add(ts[j+2]);}
+var copy=UnityEngine.Object.Instantiate(src);copy.triangles=kept.ToArray();copy.RecalculateBounds();var dest="Assets/Art/AutumnPolish/Meshes/LeafDrifts_R"+(room.index+1).ToString("00")+(f.name.EndsWith("LOD0")?"_LOD0":"_LOD1")+".asset";AssetDatabase.CreateAsset(copy,dest);
+report.Add(new{room=room.index+1,name=f.name,dest,before=ts.Length/3,after=kept.Count/3});}
+}finally{UnityEditor.SceneManagement.EditorSceneManager.ClosePreviewScene(s);}}
+AssetDatabase.SaveAssets();return report;

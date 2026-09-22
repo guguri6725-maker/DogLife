@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace DogLife
 {
-    // 공용 물 머티리얼을 복제하지 않고 이 문의 폭포만 개방 진행도에 맞춰 투명하게 만듭니다.
+    // 문별 진행도로 중앙부터 물 공급을 끊고 남은 물이 아래로 흘러내리게 표현합니다.
     [ExecuteAlways]
     public sealed class WaterGateFade : MonoBehaviour
     {
@@ -10,25 +10,32 @@ namespace DogLife
         public Renderer[] waterfalls = new Renderer[0];
         [Range(0f, 1f)] public float editorPreview;
         static readonly int Opacity = Shader.PropertyToID("_Opacity");
+        static readonly int OpenProgress = Shader.PropertyToID("_OpenProgress");
+        static readonly int FlowTime = Shader.PropertyToID("_FlowTime");
         MaterialPropertyBlock block;
-        float previous = -1f;
+        float flowClock;
 
-        void OnEnable() { previous = -1f; }
-        void OnValidate() { previous = -1f; }
+        void OnEnable() { flowClock = Time.time; }
 
         void LateUpdate()
         {
             float progress = Application.isPlaying && gate ? gate.Progress : editorPreview;
-            if (Mathf.Approximately(previous, progress)) return;
-            previous = progress;
+            // 공급이 끊긴 뒤에도 남은 물은 계속 아래로 흐릅니다. 전체 물막을 얼리지 않습니다.
+            if (Application.isPlaying) flowClock += Time.deltaTime;
             if (block == null) block = new MaterialPropertyBlock();
             float visibility = 1f - Mathf.SmoothStep(0f, 1f, progress);
             foreach (var waterfall in waterfalls)
             {
                 if (!waterfall || !waterfall.sharedMaterial) continue;
-                // 기존 강/폭포의 머티리얼 설정은 유지하고 이 렌더러의 불투명도만 덮어씁니다.
+                // 새 문 셰이더는 중앙부터 열고, 기존 물 셰이더는 전체 페이드를 유지합니다.
                 waterfall.GetPropertyBlock(block);
-                block.SetFloat(Opacity, waterfall.sharedMaterial.GetFloat(Opacity) * visibility);
+                bool centreOpening = waterfall.sharedMaterial.HasProperty(OpenProgress);
+                block.SetFloat(Opacity, waterfall.sharedMaterial.GetFloat(Opacity) * (centreOpening ? 1f : visibility));
+                if (centreOpening)
+                {
+                    block.SetFloat(OpenProgress, progress);
+                    block.SetFloat(FlowTime, Application.isPlaying ? flowClock : 0f);
+                }
                 waterfall.SetPropertyBlock(block);
                 waterfall.enabled = progress < 1f;
             }
@@ -42,6 +49,8 @@ namespace DogLife
                 if (!waterfall || !waterfall.sharedMaterial) continue;
                 waterfall.GetPropertyBlock(block);
                 block.SetFloat(Opacity, waterfall.sharedMaterial.GetFloat(Opacity));
+                block.SetFloat(OpenProgress, 0f);
+                block.SetFloat(FlowTime, -1f);
                 waterfall.SetPropertyBlock(block);
                 waterfall.enabled = true;
             }

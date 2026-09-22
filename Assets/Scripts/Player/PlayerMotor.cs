@@ -143,11 +143,26 @@ namespace DogLife
             wallNormals.Clear();
             return horizontal;
         }
+        bool IsGroundCollider(Collider candidate) {
+            // Default 레이어의 구조물도 받치지만 자신과 전투 캐릭터는 발판으로 사용하지 않습니다.
+            return candidate && candidate.attachedRigidbody != body &&
+                !candidate.transform.IsChildOf(transform) && !candidate.GetComponentInParent<CombatHealth>() &&
+                !Physics.GetIgnoreLayerCollision(gameObject.layer, candidate.gameObject.layer) &&
+                !Physics.GetIgnoreCollision(capsule, candidate);
+        }
+        bool CheckGround(Vector3 origin) {
+            if (body.linearVelocity.y > .5f) return false;
+            // 가까운 옆면이 먼저 검출되어도 그 아래의 평평한 지지면을 계속 확인합니다.
+            foreach (var hit in Physics.SphereCastAll(origin, capsule.radius * .85f, Vector3.down,
+                .22f, groundMask.value | 1, QueryTriggerInteraction.Ignore))
+                if (hit.normal.y > GroundNormalY && IsGroundCollider(hit.collider)) return true;
+            return false;
+        }
         void FixedUpdate() {
             // 캡슐 하단에서 지면을 검사하고 수직 벽은 바닥에서 제외합니다.
             var b = capsule.bounds;
             var origin = new Vector3(b.center.x, b.min.y + capsule.radius + .08f, b.center.z);
-            Grounded = Physics.SphereCast(origin, capsule.radius * .85f, Vector3.down, out var hit, .22f, groundMask, QueryTriggerInteraction.Ignore) && hit.normal.y > GroundNormalY && body.linearVelocity.y <= .5f;
+            Grounded = CheckGround(origin);
             if (Grounded) { lastGrounded = Time.time; jumping = false; }
             var horizontal = IsDashing ? dashDirection * dashSpeed : MoveDirection * moveSpeed * (Crouching ? .5f : 1);
             if (AttackMovementLocked) horizontal = Vector3.zero;
