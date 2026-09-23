@@ -25,6 +25,19 @@ namespace DogLife
         Vector3 lockedAim;
         BlossomSkeletonAttackVfx attackVfx;
         float Size=>Mathf.Max(.01f,transform.lossyScale.x);
+        // 모델 배율을 다시 곱하지 않고 실제 베기 궤적의 전방 도달 거리를 구합니다.
+        public float EffectiveAttackRange
+        {
+            get
+            {
+                float reach=0;
+                var forward=visualRoot?visualRoot.forward:transform.forward;
+                if(attackVfx)for(int i=0;i<=32;i++)
+                    if(attackVfx.TryGetStrikeSegment(i/32f,out var grip,out var tip))
+                        reach=Mathf.Max(reach,Vector3.Dot(grip-transform.position,forward),Vector3.Dot(tip-transform.position,forward));
+                return reach>.1f?Mathf.Min(attackRange*Size,Mathf.Max(.1f,reach-.1f)):Mathf.Min(attackRange,hitRange)*Size;
+            }
+        }
         static readonly int Moving=Animator.StringToHash("Moving"), Attacking=Animator.StringToHash("Attacking");
 
         void Awake()
@@ -86,11 +99,13 @@ namespace DogLife
             }
             if(Time.time<nextAttack&&Time.time-attackStarted<attackDuration+recovery){StopNavigation();return;}
             var delta=target.position-transform.position;float distance=Vector3.ProjectOnPlane(delta,Vector3.up).magnitude;bool clear=ClearSight(delta);
-            bool walking=distance<detectionRange&&(distance>1.3f*Size||!clear);
+            float effectiveRange=EffectiveAttackRange;
+            float stopDistance=effectiveRange*.85f;
+            bool walking=distance<detectionRange&&(distance>stopDistance||!clear);
             var heading=Vector3.ProjectOnPlane(delta,Vector3.up).normalized;
             if(agent.isActiveAndEnabled&&agent.isOnNavMesh)
             {
-                agent.isStopped=!walking;agent.speed=speed;agent.stoppingDistance=clear?1.3f*Size:.1f;
+                agent.isStopped=!walking;agent.speed=speed;agent.stoppingDistance=clear?stopDistance:.1f;
                 if(walking&&Time.time>=nextPathUpdate)
                 {
                     nextPathUpdate=Time.time+.25f;
@@ -101,7 +116,7 @@ namespace DogLife
                 if(walking&&agent.desiredVelocity.sqrMagnitude>.001f)heading=agent.desiredVelocity.normalized;
             }
             if(visualRoot&&heading.sqrMagnitude>.001f)visualRoot.rotation=Quaternion.LookRotation(heading);
-            if(distance<=attackRange*Size&&clear&&Time.time>=nextAttack)
+            if(distance<=effectiveRange&&clear&&Time.time>=nextAttack)
             {
                 lockedAim=Vector3.ProjectOnPlane(delta,Vector3.up).normalized;
                 if(lockedAim.sqrMagnitude<.001f)lockedAim=visualRoot?visualRoot.forward:transform.forward;

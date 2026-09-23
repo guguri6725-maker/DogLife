@@ -39,6 +39,8 @@ namespace DogLife
         float GroundOffset=>(agent?agent.baseOffset:1)*WorldScale;
         float HornReach=>bodyFront*WorldScale;
         float HornRadius=>hitRadius*WorldScale;
+        // 돌진으로 도달하지 못하는 거리에서는 준비 동작을 시작하지 않습니다.
+        public float EffectiveAttackRange=>Mathf.Min(attackRange,chargeDistance+HornReach+HornRadius);
         void Awake()
         {
             health=GetComponent<CombatHealth>();agent=GetComponent<NavMeshAgent>();agent.updateRotation=false;
@@ -156,12 +158,13 @@ namespace DogLife
             if(distance>detectionRange){Stop();Animate("Idle");return;}
             if(delta.sqrMagnitude>.001f)transform.rotation=Quaternion.LookRotation(delta);
             bool clear=ObstacleDistance(transform.position,delta.normalized,Mathf.Max(0,distance-bodyFront))>=distance-bodyFront-.1f;
-            if(Time.time>=nextAttack&&distance<=attackRange&&clear){BeginWindup(delta);return;}
-            if(distance>attackRange*.8f||!clear)
+            float reachableRange=EffectiveAttackRange;
+            if(Time.time>=nextAttack&&distance<=reachableRange&&clear){BeginWindup(delta);return;}
+            if(distance>reachableRange*.8f||!clear)
             {
                 if(Navigable&&Time.time>=nextPath)
                 {
-                    nextPath=Time.time+.3f;agent.isStopped=false;agent.speed=speed;agent.stoppingDistance=clear?attackRange*.7f:.1f;
+                    nextPath=Time.time+.3f;agent.isStopped=false;agent.speed=speed;agent.stoppingDistance=clear?reachableRange*.7f:.1f;
                     var filter=new NavMeshQueryFilter{agentTypeID=agent.agentTypeID,areaMask=agent.areaMask};NavMeshHit hit;
                     if(NavMesh.SamplePosition(target.position-Vector3.up,out hit,2,filter))agent.SetDestination(hit.position);
                 }

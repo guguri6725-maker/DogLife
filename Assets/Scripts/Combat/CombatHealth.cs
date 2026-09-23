@@ -23,7 +23,28 @@ namespace DogLife
         Renderer[] blinkRenderers;
         bool[] previousHidden;
         bool blinking,blinkHidden;
-        void Awake() { Current = maxHealth; renderers = GetComponentsInChildren<Renderer>(); block = new MaterialPropertyBlock(); }
+        void Awake()
+        {
+            Current = maxHealth;
+            CacheFlashRenderers();
+        }
+        void CacheFlashRenderers()
+        {
+            // 피격 반짝임은 모델에만 적용합니다. 포자·범위 표시의 색과 알파는 유지합니다.
+            var animator=GetComponentInChildren<Animator>();
+            var candidates=animator?animator.GetComponentsInChildren<Renderer>(true):GetComponentsInChildren<Renderer>(true);
+            var bodyRenderers=new System.Collections.Generic.List<Renderer>();
+            foreach(var renderer in candidates)
+            {
+                if(!(renderer is SkinnedMeshRenderer)&&!(renderer is MeshRenderer))continue;
+                if(renderer.GetComponentInParent<FallAttackVfx>())continue;
+                bool opaque=true;
+                foreach(var material in renderer.sharedMaterials)
+                    if(material&&material.renderQueue>=2500){opaque=false;break;}
+                if(opaque)bodyRenderers.Add(renderer);
+            }
+            renderers=bodyRenderers.ToArray();block=new MaterialPropertyBlock();
+        }
         // 피해를 적용하고 사망 대상의 후처리를 실행합니다.
         public void Damage(float amount)
         {
@@ -75,6 +96,8 @@ namespace DogLife
         }
         void Update()
         {
+            // 실행 중 스크립트가 다시 로드돼도 비직렬화 캐시를 복구합니다.
+            if(block==null||renderers==null)CacheFlashRenderers();
             UpdateBlink();
             if (practiceTarget && Dead && Time.time >= restoreAt) Restore();
             bool flashing=Time.time<flashUntil;

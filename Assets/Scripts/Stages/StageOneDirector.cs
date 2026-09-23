@@ -46,6 +46,8 @@ namespace DogLife
             foreach (var enemy in FindObjectsByType<BlossomSpiritEnemy>(FindObjectsSortMode.None)) enemy.enabled=false;
             foreach (var enemy in FindObjectsByType<FloralDeerEnemy>(FindObjectsSortMode.None)) enemy.enabled=false;
             foreach (var enemy in FindObjectsByType<SakuraRabbitEnemy>(FindObjectsSortMode.None)) enemy.enabled=false;
+            // 가을 몬스터도 클리어/사망 시 공격 판정과 효과를 함께 정리합니다.
+            foreach (var enemy in FindObjectsByType<FallMonsterEnemy>(FindObjectsSortMode.None)) enemy.enabled=false;
             foreach (var hazard in FindObjectsByType<SeaHazard>(FindObjectsSortMode.None)) Destroy(hazard.gameObject);
             foreach (var projectile in FindObjectsByType<CombatProjectile>(FindObjectsSortMode.None)) Destroy(projectile.gameObject);
         }

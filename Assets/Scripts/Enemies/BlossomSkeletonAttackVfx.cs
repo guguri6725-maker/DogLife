@@ -18,13 +18,22 @@ namespace DogLife
         readonly List<int> triangles=new List<int>(4096);
         static readonly int Attacking=Animator.StringToHash("Attacking");
         readonly Collider[] hitBuffer=new Collider[32];
+        // AI와 판정도 화면에 그리는 것과 같은 월드 좌표 궤적을 사용합니다.
+        public bool TryGetStrikeSegment(float progress,out Vector3 grip,out Vector3 tip)
+        {
+            grip=tip=Vector3.zero;
+            if(!animator||grips==null||tips==null||tips.Length<2||grips.Length!=tips.Length)return false;
+            float time=Mathf.Lerp(swingStart,impactTime,Mathf.Clamp01(progress));
+            grip=transform.TransformPoint(Sample(grips,time));
+            tip=transform.TransformPoint(Sample(tips,time));
+            return true;
+        }
         public bool HitsTarget(CombatHealth target)
         {
             if(!animator||grips==null||tips==null||tips.Length<2||grips.Length!=tips.Length)return false;
             for(int i=0;i<=32;i++)
             {
-                float t=Mathf.Lerp(swingStart,impactTime,i/32f);
-                Vector3 a=transform.TransformPoint(Sample(grips,t)),b=transform.TransformPoint(Sample(tips,t));
+                if(!TryGetStrikeSegment(i/32f,out var a,out var b))continue;
                 int count=Physics.OverlapCapsuleNonAlloc(a,b,.06f,hitBuffer,~0,QueryTriggerInteraction.Ignore);
                 var hits=count==hitBuffer.Length?Physics.OverlapCapsule(a,b,.06f,~0,QueryTriggerInteraction.Ignore):hitBuffer;
                 if(hits!=hitBuffer)count=hits.Length;
