@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 namespace DogLife
 {
     // 전투방 활성화, 문 개방, 회복 지점과 스테이지 완료를 관리합니다.
@@ -42,6 +42,8 @@ namespace DogLife
                 if (!enemyBody.isKinematic) enemyBody.linearVelocity = Vector3.zero;
             }
             foreach (var boar in FindObjectsByType<SpringBoarBoss>(FindObjectsSortMode.None)) boar.enabled=false;
+            foreach (var reaper in FindObjectsByType<HarvestReaperBoss>(FindObjectsSortMode.None)) reaper.enabled=false;
+            foreach (var kraken in FindObjectsByType<KrakenBoss>(FindObjectsSortMode.None)) kraken.enabled=false;
             foreach (var boss in FindObjectsByType<SeaBoss>(FindObjectsSortMode.None)) boss.enabled = false;
             foreach (var enemy in FindObjectsByType<BlossomSkeletonEnemy>(FindObjectsSortMode.None)) enemy.enabled=false;
             foreach (var enemy in FindObjectsByType<BlossomSpiritEnemy>(FindObjectsSortMode.None)) enemy.enabled=false;

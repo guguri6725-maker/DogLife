@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
@@ -68,6 +68,8 @@ namespace DogLife
                     if(spreadAcrossFrames)yield return null;
                     var boss=Instantiate(bossPrefab,origin,Quaternion.Euler(0,-90,0),room.encounter.transform);boss.name=bossPrefab.name;
                     var boar=boss.GetComponent<SpringBoarBoss>();if(boar)boar.BindRoom(room);
+                    var reaper=boss.GetComponent<HarvestReaperBoss>();if(reaper)reaper.BindRoom(room);
+                    var kraken=boss.GetComponent<KrakenBoss>();if(kraken)kraken.BindRoom(room);
                     Prepared=true;yield break;
                 }
                 var pool=new List<GameObject>();
