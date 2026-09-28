@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 namespace DogLife
 {
     // 전투방 활성화, 문 개방, 회복 지점과 스테이지 완료를 관리합니다.
@@ -41,6 +41,7 @@ namespace DogLife
                 var enemyBody = enemy.GetComponent<Rigidbody>();
                 if (!enemyBody.isKinematic) enemyBody.linearVelocity = Vector3.zero;
             }
+            foreach (var boar in FindObjectsByType<SpringBoarBoss>(FindObjectsSortMode.None)) boar.enabled=false;
             foreach (var boss in FindObjectsByType<SeaBoss>(FindObjectsSortMode.None)) boss.enabled = false;
             foreach (var enemy in FindObjectsByType<BlossomSkeletonEnemy>(FindObjectsSortMode.None)) enemy.enabled=false;
             foreach (var enemy in FindObjectsByType<BlossomSpiritEnemy>(FindObjectsSortMode.None)) enemy.enabled=false;
@@ -48,6 +49,10 @@ namespace DogLife
             foreach (var enemy in FindObjectsByType<SakuraRabbitEnemy>(FindObjectsSortMode.None)) enemy.enabled=false;
             // 가을 몬스터도 클리어/사망 시 공격 판정과 효과를 함께 정리합니다.
             foreach (var enemy in FindObjectsByType<FallMonsterEnemy>(FindObjectsSortMode.None)) enemy.enabled=false;
+            foreach (var enemy in FindObjectsByType<SummerMonsterEnemy>(FindObjectsSortMode.None)) enemy.enabled=false;
+            foreach (var enemy in FindObjectsByType<WinterMonsterEnemy>(FindObjectsSortMode.None)) enemy.enabled=false;
+            foreach (var ice in FindObjectsByType<WinterIcePatch>(FindObjectsSortMode.None)) Destroy(ice.gameObject);
+            foreach (var bubble in FindObjectsByType<SummerHomingBubble>(FindObjectsSortMode.None)) Destroy(bubble.gameObject);
             foreach (var hazard in FindObjectsByType<SeaHazard>(FindObjectsSortMode.None)) Destroy(hazard.gameObject);
             foreach (var projectile in FindObjectsByType<CombatProjectile>(FindObjectsSortMode.None)) Destroy(projectile.gameObject);
         }

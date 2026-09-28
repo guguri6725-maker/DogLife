@@ -165,6 +165,10 @@ namespace DogLife
             Grounded = CheckGround(origin);
             if (Grounded) { lastGrounded = Time.time; jumping = false; }
             var horizontal = IsDashing ? dashDirection * dashSpeed : MoveDirection * moveSpeed * (Crouching ? .5f : 1);
+            if (TryGetComponent<BubbleDebuff>(out var bubbleDebuff))
+                horizontal *= IsDashing ? bubbleDebuff.RollMultiplier : bubbleDebuff.MoveMultiplier;
+            if(Grounded&&!IsDashing&&!IsKnockedBack&&!AttackMovementLocked)
+                horizontal=WinterIcePatch.ApplySurface(new Vector3(b.center.x,b.min.y,b.center.z),body.linearVelocity,horizontal,Time.fixedDeltaTime);
             if (AttackMovementLocked) horizontal = Vector3.zero;
             if(IsKnockedBack)horizontal=knockbackVelocity*Mathf.Clamp01((knockbackUntil-Time.time)/knockbackDuration);
             horizontal = LimitWallMovement(horizontal);

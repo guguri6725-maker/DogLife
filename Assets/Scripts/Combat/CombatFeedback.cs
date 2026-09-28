@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.AI;
 
 namespace DogLife
@@ -31,10 +31,10 @@ namespace DogLife
         }
         public static bool Paused(Component actor)
         {var feedback=actor.GetComponent<CombatFeedback>();return feedback&&feedback.IsStopped;}
-        public static bool DealDamage(CombatHealth target,float amount,Vector3 contact,Vector3 direction,float power,Transform attacker,Color tint)
+        public static bool DealDamage(CombatHealth target,float amount,Vector3 contact,Vector3 direction,float power,Transform attacker,Color tint,bool useFullPlayerDamage=false)
         {
             if(!target)return false;
-            float before=target.Current;target.Damage(amount);
+            float before=target.Current;target.Damage(amount,useFullPlayerDamage);
             if(target.Current>=before)return false;
             if(!target.player)CombatContactVfx.Spawn(contact,direction,tint,power);
             if(!target.Dead&&target.gameObject.activeInHierarchy)

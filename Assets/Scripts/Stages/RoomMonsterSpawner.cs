@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
@@ -10,6 +10,7 @@ namespace DogLife
     public sealed class RoomMonsterSpawner : MonoBehaviour
     {
         public GameObject[] monsterPrefabs;
+        [SerializeField,Tooltip("지정된 방은 일반 몬스터 대신 보스 한 마리만 소환합니다.")] private GameObject bossPrefab;
         public Vector3 spawnCenter;
         public Vector2 spawnArea = new Vector2(14, 8);
         public bool Prepared { get; private set; }
@@ -47,6 +48,28 @@ namespace DogLife
             try
             {
                 var room=GetComponent<ForestRoom>();
+                if(bossPrefab)
+                {
+                    if(!room.encounter){Debug.LogError("Boss room has no encounter root",this);yield break;}
+                    var bossAgent=bossPrefab.GetComponent<NavMeshAgent>();
+                    if(!bossAgent){Debug.LogError("Boss needs NavMeshAgent",this);yield break;}
+                    var filter=new NavMeshQueryFilter{agentTypeID=bossAgent.agentTypeID,areaMask=bossAgent.areaMask};
+                    NavMeshHit nav;bool found=false;Vector3 origin=spawnCenter;
+                    for(int attempt=0;attempt<80;attempt++)
+                    {
+                        Vector3 candidate=spawnCenter+(attempt==0?Vector3.zero:new Vector3(Random.Range(-5f,5f),0,Random.Range(-4f,4f)));
+                        if(!NavMesh.SamplePosition(candidate,out nav,3,filter))continue;
+                        if(nav.position.x<room.entryX+8||nav.position.x>room.exitX-8)continue;
+                        int count=Physics.OverlapSphereNonAlloc(nav.position+Vector3.up*3.4f,3.1f,spawnOverlaps,1<<8,QueryTriggerInteraction.Ignore);
+                        if(count>0)continue;
+                        origin=nav.position;found=true;break;
+                    }
+                    if(!found){Debug.LogError("No clear boss spawn position: "+gameObject.scene.path,this);yield break;}
+                    if(spreadAcrossFrames)yield return null;
+                    var boss=Instantiate(bossPrefab,origin,Quaternion.Euler(0,-90,0),room.encounter.transform);boss.name=bossPrefab.name;
+                    var boar=boss.GetComponent<SpringBoarBoss>();if(boar)boar.BindRoom(room);
+                    Prepared=true;yield break;
+                }
                 var pool=new List<GameObject>();
                 if(monsterPrefabs!=null)foreach(var prefab in monsterPrefabs)if(prefab&&!pool.Contains(prefab))pool.Add(prefab);
                 if(pool.Count<2||!room.encounter){Debug.LogError("Room monster configuration is incomplete",this);yield break;}

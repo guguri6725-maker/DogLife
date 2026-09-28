@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using UnityEngine;
 
 namespace DogLife
@@ -46,13 +46,15 @@ namespace DogLife
             renderers=bodyRenderers.ToArray();block=new MaterialPropertyBlock();
         }
         // 피해를 적용하고 사망 대상의 후처리를 실행합니다.
-        public void Damage(float amount)
+        public void Damage(float amount) { Damage(amount,false); }
+        public void Damage(float amount,bool useFullPlayerDamage)
         {
             if (Dead || invulnerable || Time.time < invulnerableUntil || amount <= 0) return;
+            if (TryGetComponent<CombatDamageGate>(out var gate) && gate.isActiveAndEnabled && gate.BlocksDamage(amount)) return;
             var motor = GetComponent<PlayerMotor>();
             if (motor && motor.IsDashing) return;
             // 플레이어는 공격 종류와 관계없이 유효한 피격 한 번에 하트 한 칸을 잃습니다.
-            if (player) amount = 1;
+            if (player && !useFullPlayerDamage) amount = 1;
             Current = Mathf.Max(Mathf.Min(minimumHealth, Current), Current - amount);
             flashUntil = Time.time + .12f;
             if (player)
