@@ -1,0 +1,307 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &2771416716643180896
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 484132904880737827}
+  m_Layer: 0
+  m_Name: BladeTip
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &484132904880737827
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2771416716643180896}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 1.22}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2968460947800882720}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &5617199798610093466
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3954651634079497589}
+  - component: {fileID: 921412301853689773}
+  - component: {fileID: 8360102556952368475}
+  m_Layer: 0
+  m_Name: IceBladeDamageArea
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3954651634079497589
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5617199798610093466}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2968460947800882720}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &921412301853689773
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5617199798610093466}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 0
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &8360102556952368475
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5617199798610093466}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 167c2b518497148449be8ff52bd3bfaa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DogLife.FrozenKnightDamageArea
+  attackCollider: {fileID: 921412301853689773}
+  targetMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  sweepStep: 0.2
+--- !u!1 &9180149559865656162
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2968460947800882720}
+  - component: {fileID: 8028781559235371926}
+  - component: {fileID: 637809264015061088}
+  - component: {fileID: 5222839173815990468}
+  m_Layer: 0
+  m_Name: FrozenIceBlade
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2968460947800882720
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9180149559865656162}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 3954651634079497589}
+  - {fileID: 4033650948111721368}
+  - {fileID: 484132904880737827}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &8028781559235371926
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9180149559865656162}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 605b15c90a967a244b5ce7cf1408b618, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DogLife.FrozenKnightHazard
+  damageArea: {fileID: 8360102556952368475}
+  effects: {fileID: 637809264015061088}
+  obstacleMask:
+    serializedVersion: 2
+    m_Bits: 256
+  projectileVisual: {fileID: 4033650948111721368}
+  collisionRadius: 0.35
+  projectileTint: {r: 0.3, g: 0.78, b: 1, a: 0.9}
+  bladeTip: {fileID: 484132904880737827}
+  plantingTime: 0.22
+  embeddedDepth: 0.2
+  swordFadeTime: 0.65
+  impactRadius: 1.35
+--- !u!114 &637809264015061088
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9180149559865656162}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 97406c720235b0746b26d99f8725c0b1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DogLife.FrozenKnightVfx
+  frostMaterial: {fileID: 2100000, guid: 06113ef0fbb7cc04bbc6150eea252d38, type: 2}
+  crystalMesh: {fileID: 4300000, guid: 4822e48e869e5c949b1392eba137ff63, type: 2}
+  boss: {fileID: 0}
+  swordBase: {fileID: 0}
+  swordTip: {fileID: 0}
+  segments: 72
+  floorOffset: 0.055
+  edgeWidth: 0.12
+  crystalHeight: 2
+  crystalWidth: 0.35
+  ribbonLifetime: 0.25
+  crystalCount: 20
+  warningColor: {r: 0.15, g: 0.7, b: 1, a: 0.22}
+  edgeColor: {r: 0.65, g: 0.94, b: 1, a: 0.85}
+  activeColor: {r: 0.6, g: 0.9, b: 1, a: 0.48}
+  frostMoteCount: 18
+  frostMoteHeight: 1.5
+  swordCoreWidth: 0.045
+  furyCrystalHeightMultiplier: 2
+  furyCrystalWidthMultiplier: 1.45
+  furyCrystalDensity: 2
+  furyShockwaveHeight: 0.75
+  showCrystals: 0
+  detailedIceSurface: 1
+--- !u!54 &5222839173815990468
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9180149559865656162}
+  serializedVersion: 5
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 0
+  m_IsKinematic: 1
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
+--- !u!1001 &3376891445831806895
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 2968460947800882720}
+    m_Modifications:
+    - target: {fileID: 691674299709288164, guid: 2dad4e41e017d6d48be082d1d10026c1, type: 3}
+      propertyPath: m_Name
+      value: IceSwordVisual
+      objectReference: {fileID: 0}
+    - target: {fileID: 1812497409201261623, guid: 2dad4e41e017d6d48be082d1d10026c1, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 1812497409201261623, guid: 2dad4e41e017d6d48be082d1d10026c1, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 1812497409201261623, guid: 2dad4e41e017d6d48be082d1d10026c1, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 1812497409201261623, guid: 2dad4e41e017d6d48be082d1d10026c1, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1812497409201261623, guid: 2dad4e41e017d6d48be082d1d10026c1, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1812497409201261623, guid: 2dad4e41e017d6d48be082d1d10026c1, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 1.28
+      objectReference: {fileID: 0}
+    - target: {fileID: 1812497409201261623, guid: 2dad4e41e017d6d48be082d1d10026c1, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: 1812497409201261623, guid: 2dad4e41e017d6d48be082d1d10026c1, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: 1812497409201261623, guid: 2dad4e41e017d6d48be082d1d10026c1, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1812497409201261623, guid: 2dad4e41e017d6d48be082d1d10026c1, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1812497409201261623, guid: 2dad4e41e017d6d48be082d1d10026c1, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1812497409201261623, guid: 2dad4e41e017d6d48be082d1d10026c1, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1812497409201261623, guid: 2dad4e41e017d6d48be082d1d10026c1, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5641364073789536559, guid: 2dad4e41e017d6d48be082d1d10026c1, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 06113ef0fbb7cc04bbc6150eea252d38, type: 2}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: -9137962142385034750, guid: 2dad4e41e017d6d48be082d1d10026c1, type: 3}
+--- !u!4 &4033650948111721368 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 1812497409201261623, guid: 2dad4e41e017d6d48be082d1d10026c1, type: 3}
+  m_PrefabInstance: {fileID: 3376891445831806895}
+  m_PrefabAsset: {fileID: 0}

@@ -22,7 +22,7 @@ namespace DogLife
         {
             if (!target || !target.Dead || target.player || !weapon) return;
             var enemy = target.GetComponent<StageEnemy>();
-            bool boss = (enemy && enemy.boss) || target.GetComponent<SeaBoss>();
+            bool boss = (enemy && enemy.boss) || target.GetComponent<FrozenKnightBoss>();
             Add(boss ? weapon.bossKillKarma : weapon.normalKillKarma);
         }
         void OnValidate() { maximum = Mathf.Max(1, maximum); SetValue(value); }

@@ -11,7 +11,8 @@ namespace DogLife
         [NonSerialized] public bool invulnerable;
         [NonSerialized] public float minimumHealth;
         public float Current { get; private set; }
-        public bool Dead => Current <= 0;
+        bool phaseTransitionPending;
+        public bool Dead => Current <= 0 && !phaseTransitionPending;
         public event Action Died;
         float invulnerableUntil, restoreAt;
         Renderer[] renderers;
@@ -49,7 +50,7 @@ namespace DogLife
         public void Damage(float amount) { Damage(amount,false); }
         public void Damage(float amount,bool useFullPlayerDamage)
         {
-            if (Dead || invulnerable || Time.time < invulnerableUntil || amount <= 0) return;
+            if (Dead || phaseTransitionPending || invulnerable || Time.time < invulnerableUntil || amount <= 0) return;
             if (TryGetComponent<CombatDamageGate>(out var gate) && gate.isActiveAndEnabled && gate.BlocksDamage(amount)) return;
             var motor = GetComponent<PlayerMotor>();
             if (motor && motor.IsDashing) return;
@@ -63,11 +64,17 @@ namespace DogLife
                 if(!Dead&&playerHitInvulnerability>0)BeginBlink();
             }
             if (!Dead) return;
+            // 페이즈 전환은 Died 이벤트보다 먼저 처리해 방이 조기 클리어되지 않게 합니다.
+            if (TryGetComponent<CombatPhaseTransition>(out var phase) && phase.isActiveAndEnabled && phase.TryBeginNextPhase())
+            {
+                phaseTransitionPending = true;
+                return;
+            }
             Died?.Invoke();
             if (practiceTarget) restoreAt = Time.time + 2;
             else if (!player) gameObject.SetActive(false);
         }
-        public void Restore() { Current = maxHealth;invulnerableUntil=0;EndBlink(); }
+        public void Restore() { Current = maxHealth;phaseTransitionPending=false;invulnerableUntil=0;EndBlink(); }
         void BeginBlink()
         {
             EndBlink();blinkRenderers=GetComponentsInChildren<Renderer>(true);

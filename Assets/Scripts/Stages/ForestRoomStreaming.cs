@@ -8,6 +8,21 @@ namespace DogLife
     // 공통 씬은 계속 유지하고 방은 현재/다음 두 개만 비동기로 관리합니다.
     public sealed class ForestRoomStreaming : MonoBehaviour
     {
+        // 방 씬들이 공유하는 관리자입니다. 계절 씬이 종료되면 함께 해제합니다.
+        public static ForestRoomStreaming Instance { get; private set; }
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetState() { Instance = null; }
+
+        void Awake()
+        {
+            if(Instance && Instance != this)
+            {
+                Debug.LogWarning("중복 방 스트리밍 관리자를 비활성화했습니다.", this);
+                enabled=false;
+                return;
+            }
+            Instance=this;
+        }
         public string[] roomScenePaths;
         public StageOneDirector director;
         // 계절 맵: 전투 중 현재 방만 유지하고, 클리어한 뒤에 다음 방을 준비합니다.
@@ -81,7 +96,11 @@ namespace DogLife
             changedLoadingPriority=false;
         }
 
-        void OnDestroy() { RestoreLoadingPriority(); }
+        void OnDestroy()
+        {
+            RestoreLoadingPriority();
+            if(Instance==this)Instance=null;
+        }
 
         IEnumerator LoadRoomContent(int index)
         {
@@ -194,7 +213,6 @@ namespace DogLife
             var camera = Camera.main ? Camera.main.GetComponent<PlayerCamera>() : null;
             if (camera) camera.minimumWorldX = room.entryX + 1f;
             foreach (var projectile in FindObjectsByType<CombatProjectile>(FindObjectsSortMode.None)) Destroy(projectile.gameObject);
-            foreach (var hazard in FindObjectsByType<SeaHazard>(FindObjectsSortMode.None)) Destroy(hazard.gameObject);
             if (room.rearVines)
                 while (!room.rearVines.IsClosed) yield return null;
             cleared = false;

@@ -5,7 +5,7 @@ namespace DogLife
     public sealed class WinterIcePatch:MonoBehaviour
     {
         static readonly List<WinterIcePatch> active=new List<WinterIcePatch>();
-        CombatHealth owner;float born,lifetime,acceleration;
+        CombatHealth owner;float born,lifetime,acceleration;bool initialized,reusable;
         public float Radius {get;private set;}
         public float Age=>Time.time-born;
         public float Growth=>Mathf.SmoothStep(0,1,Mathf.Clamp01(Age/.65f));
@@ -13,18 +13,22 @@ namespace DogLife
         public static void Create(Vector3 position,float radius,float duration,float steering,CombatHealth source,Material material)
         {
             var go=new GameObject("Winter slippery ice");UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(go,source.gameObject.scene);go.transform.position=position;
-            var patch=go.AddComponent<WinterIcePatch>();patch.owner=source;patch.Radius=radius;patch.lifetime=duration;patch.acceleration=steering;patch.born=Time.time;
+            var patch=go.AddComponent<WinterIcePatch>();patch.Initialize(source,radius,duration,steering,false);
             var fx=go.AddComponent<WinterAttackVfx>();fx.patch=patch;fx.Initialize(material);
         }
         void OnEnable(){active.Add(this);}
         void OnDisable(){active.Remove(this);}
-        void Update(){if(!owner||owner.Dead||!owner.isActiveAndEnabled||Age>=lifetime)Destroy(gameObject);}
+        // 보스 프리팹에 미리 배치한 빙판도 기존 이동 표면 처리에 등록합니다.
+        public void Initialize(CombatHealth source,float radius,float duration,float steering,bool reuse=true)
+        {owner=source;Radius=radius;lifetime=duration;acceleration=steering;born=Time.time;initialized=true;reusable=reuse;}
+        public void Clear(){initialized=false;}
+        void Update(){if(initialized&&(!owner||owner.Dead||!owner.isActiveAndEnabled||Age>=lifetime)){if(reusable)Clear();else Destroy(gameObject);}}
         public static Vector3 ApplySurface(Vector3 foot,Vector3 velocity,Vector3 desired,float dt)
         {
             float steering=float.MaxValue;
             foreach(var patch in active)
             {
-                if(!patch||Mathf.Abs(foot.y-patch.transform.position.y)>.45f)continue;
+                if(!patch||!patch.initialized||Mathf.Abs(foot.y-patch.transform.position.y)>.45f)continue;
                 Vector3 d=Vector3.ProjectOnPlane(foot-patch.transform.position,Vector3.up);
                 if(d.sqrMagnitude<=Mathf.Pow(patch.Radius*patch.Growth,2))steering=Mathf.Min(steering,patch.acceleration);
             }

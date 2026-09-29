@@ -38,6 +38,14 @@ namespace DogLife
         Vector3 knockbackVelocity;
         float knockbackUntil, knockbackDuration;
         public bool IsKnockedBack => Time.time < knockbackUntil;
+        float movementSlowUntil,movementSlowMultiplier=1;
+        public float MovementSlowMultiplier=>Time.time<movementSlowUntil?movementSlowMultiplier:1;
+        public void ApplyMovementSlow(float multiplier,float duration)
+        {
+            // 얼음검은 일반 이동만 감속합니다. 대시 속도/시간/쿨타임은 변경하지 않습니다.
+            movementSlowMultiplier=Mathf.Min(MovementSlowMultiplier,Mathf.Clamp(multiplier,.1f,1));
+            movementSlowUntil=Mathf.Max(movementSlowUntil,Time.time+Mathf.Max(0,duration));
+        }
         public void ApplyKnockback(Vector3 direction,float speed,float lift,float duration)
         {
             if(!isActiveAndEnabled||body.isKinematic)return;
@@ -166,6 +174,7 @@ namespace DogLife
             Grounded = CheckGround(origin);
             if (Grounded) { lastGrounded = Time.time; jumping = false; }
             var horizontal = IsDashing ? dashDirection * dashSpeed : MoveDirection * moveSpeed * (Crouching ? .5f : 1);
+            if(!IsDashing)horizontal*=MovementSlowMultiplier;
             if (TryGetComponent<BubbleDebuff>(out var bubbleDebuff))
                 horizontal *= IsDashing ? bubbleDebuff.RollMultiplier : bubbleDebuff.MoveMultiplier;
             if(Grounded&&!IsDashing&&!IsKnockedBack&&!AttackMovementLocked)
@@ -189,7 +198,7 @@ namespace DogLife
             if (horizontal.sqrMagnitude > .01f && !directionalLocomotion) Face(horizontal);
             if (body.position.y < -12) Respawn();
         }
-        public void Respawn() { knockbackUntil=0;wallNormals.Clear(); ClearJumpInput(); body.position = spawn; body.linearVelocity = Vector3.zero; }
+        public void Respawn() { movementSlowUntil=0;knockbackUntil=0;wallNormals.Clear(); ClearJumpInput(); body.position = spawn; body.linearVelocity = Vector3.zero; }
         public void SetRespawnPoint(Vector3 point) { spawn = point; }
         public void StopForAttack()
         {
@@ -197,7 +206,7 @@ namespace DogLife
             if (body && !body.isKinematic) body.linearVelocity = new Vector3(0, body.linearVelocity.y, 0);
         }
         void ClearJumpInput() { jumpHeld = jumping = jumpReleased = false; jumpBuffer = 0; lastGrounded = -10; }
-        void OnDisable() { knockbackUntil=0;wallNormals.Clear(); MoveInput = Vector2.zero; ClearJumpInput(); }
+        void OnDisable() { movementSlowUntil=0;knockbackUntil=0;wallNormals.Clear(); MoveInput = Vector2.zero; ClearJumpInput(); }
     }
 }
 

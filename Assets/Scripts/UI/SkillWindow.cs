@@ -23,7 +23,9 @@ namespace DogLife
         public PlayerMotor motor;
         public PlayerWeapons weapons;
         public PlayerCamera playerCamera;
-        public static bool IsOpen { get; private set; }
+        // 인벤토리는 현재 게임 씬에 하나만 두고, 열린 상태도 해당 인스턴스에서 읽습니다.
+        public static SkillWindow Instance { get; private set; }
+        public static bool IsOpen => Instance && Instance.opened;
         public static bool BlocksGameplayInput => IsOpen || Time.frameCount == inputConsumedFrame || GameSettingsWindow.BlocksGameplayInput;
         static int inputConsumedFrame = -1;
         public SkillCard Selected { get; private set; }
@@ -36,6 +38,20 @@ namespace DogLife
         RectTransform listContent;
         Vector2 firstCardPosition;
         float cardStride;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetState() { Instance = null; inputConsumedFrame = -1; }
+
+        void Awake()
+        {
+            if (Instance && Instance != this)
+            {
+                Debug.LogWarning("중복 인벤토리의 입력 처리를 비활성화했습니다.", this);
+                enabled = false;
+                return;
+            }
+            Instance = this;
+        }
 
         void ResizeCards(int count)
         {
@@ -59,7 +75,6 @@ namespace DogLife
         {
             windowRoot.SetActive(false);
             dragGhost.gameObject.SetActive(false);
-            IsOpen = false;
             foreach (var slot in slots) slot.Refresh();
             if (inventory) inventory.Changed += RefreshInventory;
             if (equipButton) equipButton.onClick.AddListener(EquipSelected);
@@ -76,8 +91,8 @@ namespace DogLife
         public void Close() { SetOpen(false); }
         public void SetOpen(bool value)
         {
-            if (opened == value) return;
-            opened = value; IsOpen = value;
+            if (Instance != this || opened == value) return;
+            opened = value;
             // 닫기 클릭이나 Esc가 같은 프레임의 공격·카메라 입력으로 전달되지 않게 합니다.
             inputConsumedFrame = Time.frameCount;
             windowRoot.SetActive(value);
@@ -181,7 +196,13 @@ namespace DogLife
             if(equipButton)equipButton.interactable=Selected&&Selected.Item&&inventory&&Selected.InstanceId!=inventory.EquippedInstanceId;
             if(unequipButton)unequipButton.interactable=equipped;
         }
-        void OnDestroy(){if(inventory)inventory.Changed-=RefreshInventory;}
+        void OnDestroy()
+        {
+            if(inventory)inventory.Changed-=RefreshInventory;
+            if(equipButton)equipButton.onClick.RemoveListener(EquipSelected);
+            if(unequipButton)unequipButton.onClick.RemoveListener(UnequipWeapon);
+            if(Instance==this)Instance=null;
+        }
         void OnDisable() { if (opened) SetOpen(false); }
     }
 }

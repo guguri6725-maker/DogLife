@@ -47,7 +47,7 @@ namespace DogLife
         IEnumerator Start()
         {
             // 방 씬을 단독 실행해 점검할 때도 구조물을 준비합니다.
-            if(!FindAnyObjectByType<ForestRoomStreaming>())yield return PrepareGeometry();
+            if(!ForestRoomStreaming.Instance)yield return PrepareGeometry();
         }
 
         public IEnumerator PrepareGeometry()

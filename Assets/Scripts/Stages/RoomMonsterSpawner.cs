@@ -70,6 +70,7 @@ namespace DogLife
                     var boar=boss.GetComponent<SpringBoarBoss>();if(boar)boar.BindRoom(room);
                     var reaper=boss.GetComponent<HarvestReaperBoss>();if(reaper)reaper.BindRoom(room);
                     var kraken=boss.GetComponent<KrakenBoss>();if(kraken)kraken.BindRoom(room);
+                    var knight=boss.GetComponent<FrozenKnightBoss>();if(knight)knight.BindRoom(room);
                     Prepared=true;yield break;
                 }
                 var pool=new List<GameObject>();

@@ -15,6 +15,7 @@ namespace DogLife
         public bool Complete => hud.completed;
         CombatHealth[][] enemies;
         bool[] usedStations;
+        bool ended;
         void Start()
         {
             hud.health.Died += EndRun;
@@ -31,6 +32,9 @@ namespace DogLife
         // 플레이어 사망이나 클리어 시 모든 전투 동작을 정지합니다.
         public void EndRun()
         {
+            // 사망 이벤트와 클리어 처리가 겹쳐도 정리는 한 번만 실행합니다.
+            if(ended)return;
+            ended=true;
             hud.motor.MoveInput = Vector2.zero; hud.motor.readInput = false; hud.weapons.readInput = false;
             hud.motor.enabled = false; hud.weapons.enabled = false;
             var body = hud.motor.GetComponent<Rigidbody>(); body.linearVelocity = Vector3.zero; body.isKinematic = true;
@@ -41,23 +45,20 @@ namespace DogLife
                 var enemyBody = enemy.GetComponent<Rigidbody>();
                 if (!enemyBody.isKinematic) enemyBody.linearVelocity = Vector3.zero;
             }
-            foreach (var boar in FindObjectsByType<SpringBoarBoss>(FindObjectsSortMode.None)) boar.enabled=false;
-            foreach (var reaper in FindObjectsByType<HarvestReaperBoss>(FindObjectsSortMode.None)) reaper.enabled=false;
-            foreach (var kraken in FindObjectsByType<KrakenBoss>(FindObjectsSortMode.None)) kraken.enabled=false;
-            foreach (var boss in FindObjectsByType<SeaBoss>(FindObjectsSortMode.None)) boss.enabled = false;
-            foreach (var enemy in FindObjectsByType<BlossomSkeletonEnemy>(FindObjectsSortMode.None)) enemy.enabled=false;
-            foreach (var enemy in FindObjectsByType<BlossomSpiritEnemy>(FindObjectsSortMode.None)) enemy.enabled=false;
-            foreach (var enemy in FindObjectsByType<FloralDeerEnemy>(FindObjectsSortMode.None)) enemy.enabled=false;
-            foreach (var enemy in FindObjectsByType<SakuraRabbitEnemy>(FindObjectsSortMode.None)) enemy.enabled=false;
-            // 가을 몬스터도 클리어/사망 시 공격 판정과 효과를 함께 정리합니다.
-            foreach (var enemy in FindObjectsByType<FallMonsterEnemy>(FindObjectsSortMode.None)) enemy.enabled=false;
-            foreach (var enemy in FindObjectsByType<SummerMonsterEnemy>(FindObjectsSortMode.None)) enemy.enabled=false;
-            foreach (var enemy in FindObjectsByType<WinterMonsterEnemy>(FindObjectsSortMode.None)) enemy.enabled=false;
-            foreach (var ice in FindObjectsByType<WinterIcePatch>(FindObjectsSortMode.None)) Destroy(ice.gameObject);
-            foreach (var bubble in FindObjectsByType<SummerHomingBubble>(FindObjectsSortMode.None)) Destroy(bubble.gameObject);
-            foreach (var hazard in FindObjectsByType<SeaHazard>(FindObjectsSortMode.None)) Destroy(hazard.gameObject);
-            foreach (var projectile in FindObjectsByType<CombatProjectile>(FindObjectsSortMode.None)) Destroy(projectile.gameObject);
+            StopEnemies<SpringBoarBoss>(); StopEnemies<HarvestReaperBoss>();
+            StopEnemies<KrakenBoss>();
+            StopEnemies<FrozenKnightBoss>();
+            StopEnemies<BlossomSkeletonEnemy>(); StopEnemies<BlossomSpiritEnemy>();
+            StopEnemies<FloralDeerEnemy>(); StopEnemies<SakuraRabbitEnemy>();
+            StopEnemies<FallMonsterEnemy>(); StopEnemies<SummerMonsterEnemy>(); StopEnemies<WinterMonsterEnemy>();
+            ClearHazards<WinterIcePatch>(); ClearHazards<SummerHomingBubble>();
+            ClearHazards<CombatProjectile>();
         }
+        // 적별 OnDisable에서 공격 판정과 효과를 정리하는 기존 동작을 유지합니다.
+        static void StopEnemies<T>() where T : Behaviour
+        { foreach(var enemy in FindObjectsByType<T>(FindObjectsSortMode.None))enemy.enabled=false; }
+        static void ClearHazards<T>() where T : Component
+        { foreach(var hazard in FindObjectsByType<T>(FindObjectsSortMode.None))Destroy(hazard.gameObject); }
         // 현재 방의 적 수를 확인해 다음 방과 출구를 순서대로 엽니다.
         void Update()
         {

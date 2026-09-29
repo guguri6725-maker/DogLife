@@ -21,7 +21,7 @@ namespace DogLife
         public void OpenOptions()
         {
             if (loading) return;
-            var settings = FindFirstObjectByType<GameSettingsWindow>();
+            var settings = GameSettingsWindow.Instance;
             if (settings) settings.Open();
         }
 

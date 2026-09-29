@@ -15,6 +15,8 @@ namespace DogLife
         [SerializeField] Text[] optionLabels;
         [SerializeField] Text selectionLabel, liveFps, confirmationLabel;
         static GameSettingsWindow instance;
+        // 설정창은 씬 전환 후에도 유지되는 단일 인스턴스를 사용합니다.
+        public static GameSettingsWindow Instance => instance;
         static int consumedFrame=-1;
         public static bool IsOpen => instance&&instance.panel.activeSelf;
         public static bool BlocksGameplayInput => IsOpen||Time.frameCount==consumedFrame;
@@ -25,6 +27,8 @@ namespace DogLife
         CursorLockMode previousCursor;
         bool previousCursorVisible;
         int frames;
+        Camera renderCamera;
+        WorldRenderScale renderScale;
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void ResetState(){instance=null;consumedFrame=-1;WorldRenderScale.Scale=1;}
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -67,9 +71,14 @@ namespace DogLife
             var camera=Camera.main;
             if(camera)
             {
-                var scaling=camera.GetComponent<WorldRenderScale>();
-                if(!scaling)scaling=camera.gameObject.AddComponent<WorldRenderScale>();
-                scaling.enabled=WorldRenderScale.Scale<.999f;
+                // 카메라가 바뀔 때만 컴포넌트를 찾고, 프레임마다 재검색하지 않습니다.
+                if(renderCamera!=camera||!renderScale)
+                {
+                    renderCamera=camera;
+                    renderScale=camera.GetComponent<WorldRenderScale>();
+                    if(!renderScale)renderScale=camera.gameObject.AddComponent<WorldRenderScale>();
+                }
+                renderScale.enabled=WorldRenderScale.Scale<.999f;
             }
             if(!SkillWindow.IsOpen&&(Input.GetKeyDown(KeyCode.Escape)||Input.GetKeyDown(KeyCode.F10)))Toggle();
             if(AwaitingConfirmation)
