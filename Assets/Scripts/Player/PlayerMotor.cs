@@ -89,7 +89,8 @@ namespace DogLife
         internal void FaceForAttack(Vector3 direction) {
             direction.y = 0; if (direction.sqrMagnitude < .001f) return;
             Facing = direction.normalized;
-            if (visualRoot) visualRoot.rotation = Quaternion.LookRotation(Facing) * Quaternion.Euler(0, visualYawOffset, 0);
+            // 활 조준 보정은 몸 전체에 적용하여 상체와 골반이 과하게 비틀리지 않게 합니다.
+            if (visualRoot) visualRoot.rotation = Quaternion.LookRotation(Facing) * Quaternion.Euler(0, visualYawOffset + (attackCombo ? attackCombo.VisualYawOffset : 0), 0);
         }
         public bool SetCrouching(bool value) {
             if (AttackLocked) return false;

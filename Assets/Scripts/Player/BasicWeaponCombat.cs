@@ -30,6 +30,8 @@ namespace DogLife
         BoneWeaponProjectile activeBoomerang;
         LineRenderer chargeArrow;
         public bool IsCharging=>charging;
+        // 활 클립은 옆으로 서는 자세이므로 모델 전체의 방향으로 조준축을 맞춥니다.
+        public float VisualYawOffset=>move&&move.bowDrawClip&&item&&item.weaponCategory==InventoryWeapon.WeaponCategory.Bow?move.bowVisualYawOffset:0;
         public bool BoomerangInFlight=>activeBoomerang;
         public float ChargeAmount=>charging?Mathf.Clamp01((Time.time-chargeStarted)/Mathf.Max(.1f,bowChargeSeconds)):shotCharge;
         public int ComboStep=>step+1;
@@ -65,8 +67,11 @@ namespace DogLife
             if(Interrupted||inventory.EquippedWeapon!=item){Cancel();return;}
             shotCharge=ChargeAmount;charging=false;
             weapons.RefreshAimDirection();direction=weapons.AimDirection;if(motor)motor.FaceForAttack(direction);
-            started=Time.time-move.attacks[0].length*.45f;endsAt=started+move.attacks[0].length;
-            animator.Play(DaggerLayer+"."+move.attacks[0].name,animator.GetLayerIndex(DaggerLayer),.45f);
+            // 분리된 발사 클립은 처음부터 재생하고 해당 클립의 타격 시간에 화살을 발사합니다.
+            float releaseOffset=move.bowDrawClip?0:move.attacks[0].length*.45f;
+            started=Time.time-releaseOffset;endsAt=started+move.attacks[0].length;
+            if(move.bowDrawClip)animator.CrossFadeInFixedTime(DaggerLayer+"."+move.attacks[0].name,.06f,animator.GetLayerIndex(DaggerLayer),0);
+            else animator.Play(DaggerLayer+"."+move.attacks[0].name,animator.GetLayerIndex(DaggerLayer),.45f);
             ClearChargeVisual();
         }
         void Begin(int index)
@@ -87,7 +92,8 @@ namespace DogLife
                 int upperLayer=animator.GetLayerIndex(DaggerLayer);
                 if(upperLayer>=0)animator.SetLayerWeight(upperLayer,0);
             }
-            animator.CrossFadeInFixedTime((upperBodyAttack?DaggerLayer:"Base Layer")+"."+move.attacks[index].name,.09f,layer,0);
+            var openingClip=item.weaponCategory==InventoryWeapon.WeaponCategory.Bow&&move.bowDrawClip?move.bowDrawClip:move.attacks[index];
+            animator.CrossFadeInFixedTime((upperBodyAttack?DaggerLayer:"Base Layer")+"."+openingClip.name,.09f,layer,0);
         }
         void Update()
         {
@@ -109,7 +115,9 @@ namespace DogLife
             if(charging)
             {
                 weapons.RefreshAimDirection();direction=weapons.AimDirection;if(motor)motor.FaceForAttack(direction);
-                animator.Play(DaggerLayer+"."+move.attacks[0].name,upperLayer,Mathf.Lerp(.02f,.42f,ChargeAmount));
+                // 완충 뒤에는 당기기 클립의 마지막 자세만 유지하며 발사 구간으로 넘어가지 않습니다.
+                if(move.bowDrawClip)animator.Play(DaggerLayer+"."+move.bowDrawClip.name,upperLayer,Mathf.Min(.9999f,ChargeAmount));
+                else animator.Play(DaggerLayer+"."+move.attacks[0].name,upperLayer,Mathf.Lerp(.02f,.42f,ChargeAmount));
                 UpdateChargeVisual();return;
             }
             bool flurry=item.weaponCategory==InventoryWeapon.WeaponCategory.Spear&&step==2;
@@ -156,11 +164,13 @@ namespace DogLife
         }
         public void Cancel()
         {
+            bool restoreBowFacing=move&&move.bowDrawClip&&item&&item.weaponCategory==InventoryWeapon.WeaponCategory.Bow;
             facingLockedUntil=0;
             var bow=inventory&&inventory.EquippedVisual?inventory.EquippedVisual.GetComponent<EquippedBowString>():null;
             if(bow)bow.Draw=0;
             charging=false;ClearChargeVisual();
             bool active=step>=0,wasUpper=upperBodyAttack;step=-1;queued=false;item=null;move=null;upperBodyAttack=false;
+            if(restoreBowFacing&&motor)motor.FaceForAttack(motor.Facing);
             if(active&&!wasUpper&&animator&&animator.isInitialized&&animator.isActiveAndEnabled)animator.CrossFadeInFixedTime("Base Layer.Locomotion",.12f,0);
         }
         public void CancelForDash()

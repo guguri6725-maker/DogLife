@@ -312,6 +312,11 @@ MonoBehaviour:
   groundMask:
     serializedVersion: 2
     m_Bits: 256
+  turnSmoothTime: 0.32
+  turnDeadZone: 1.5
+  minimumFacingDistance: 1.5
+  attackFacingTolerance: 8
+  recoveryTurnStart: 0.65
   sweep:
     damage: 1
     range: 12
@@ -342,7 +347,7 @@ MonoBehaviour:
     width: 3
     knockback: 12
     lift: 2
-    warning: 1.6
+    warning: 2.5
     duration: 0.8
     recovery: 1.3
     cooldown: 10
@@ -370,7 +375,7 @@ MonoBehaviour:
     explosionDamage: 1
     explosionDuration: 0.5
     poolRadius: 3
-    poolDuration: 9
+    poolDuration: 24
     poolDamage: 1
     tickInterval: 1
     spawnHeight: 1.5
@@ -393,7 +398,7 @@ MonoBehaviour:
     lastHP: 0.3
     innerRadius: 7
     outerRadius: 23
-    warning: 1.7
+    warning: 0.8
     explosionDuration: 0.45
     delay: 0.45
     damage: 1

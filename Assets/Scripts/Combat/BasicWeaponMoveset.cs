@@ -6,6 +6,11 @@ namespace DogLife
     {
         public InventoryWeapon.WeaponCategory category;
         public AnimationClip[] attacks;
+        [Header("활 충전")]
+        [Tooltip("버튼을 누르는 동안 재생하고 마지막 자세를 유지할 당기기 동작")]
+        public AnimationClip bowDrawClip;
+        [Tooltip("활 자세의 조준축을 맞추는 캐릭터 전체 회전. 허리 뼈를 비틀지 않습니다.")]
+        public float bowVisualYawOffset;
         public float[] strikeTimes;
         public float[] secondaryStrikeTimes;
         [Range(.5f,1f)] public float comboLinkNormalized=1f;
