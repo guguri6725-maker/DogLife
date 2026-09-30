@@ -12,6 +12,7 @@ namespace DogLife
             [Min(.1f)] public float safeRadius=7,outerRadius=45,gatherWarning=2.5f,outerDamage=1,outerTick=1;
             [Min(1)] public int charges=6;
             [Min(.1f)] public float entryRadius=14,chargeSpeed=17,chargeWidth=2.6f,bodyLength=4,damage=1,knockback=7;
+            [Min(1)] public float chargeSpeedMultiplier=1.2f;
             [Min(.1f)] public float warning=1,delay=.35f,repositionSpeed=13,repositionTimeout=6;
             [Range(15,120)] public float directionStep=90;
             [Min(.1f)] public float safeRouteMargin=.6f;
@@ -31,7 +32,7 @@ namespace DogLife
             [Min(1)] public float homingTurnSpeed=210;
             [UnityEngine.Serialization.FormerlySerializedAs("iceStructureDuration"),Min(.1f)] public float plantedSwordDuration=4.5f;
         }
-        [Header("폭주 — 보스 주변 안전지대 / 군마 협공")]
+        [Header("얼음검의 저주 — 보스 주변 안전지대 / 군마 협공")]
         [SerializeField] CavalryFurySettings cavalryFury=new CavalryFurySettings();
         [SerializeField] FrozenKnightVfx horseWarningVfx;
         [Header("탑승 후 바닥에 남은 검 / 빙판")]
@@ -63,9 +64,9 @@ namespace DogLife
         {
             yield return PlantSword(swordFury.prepareTime);
             effects.Show(FrozenKnightVfx.Shape.Ring,transform.position,Forward,cavalryFury.outerRadius,cavalryFury.safeRadius);
-            yield return Stage(CombatState.Warning,cavalryFury.gatherWarning);
+            yield return Stage(CombatState.Warning,cavalryFury.gatherWarning,null,effects);
             outerFuryActive=true;nextOuterFuryTick=Time.time;effects.Activate();horseWaiting=false;horseRoot.gameObject.SetActive(true);
-            Vector3 center=transform.position;float baseAngle=transform.eulerAngles.y;
+            Vector3 center=transform.position;float baseAngle=transform.eulerAngles.y,currentChargeSpeed=cavalryFury.chargeSpeed;
             for(int i=0;i<Mathf.Max(1,cavalryFury.charges);i++)
             {
                 // 반대편 왕복 후 옆 방향으로 옮깁니다. 경고 시작 이후 경로는 바뀌지 않습니다.
@@ -85,7 +86,7 @@ namespace DogLife
                 if(Physics.SphereCast(horseRoot.position+Vector3.up*chargeObstacleHeight,chargeObstacleRadius,dir,out _,distance,obstacleMask,QueryTriggerInteraction.Ignore))continue;
                 horseRoot.rotation=Quaternion.LookRotation(dir);
                 horseWarningVfx.Show(FrozenKnightVfx.Shape.Line,horseRoot.position,dir,distance,cavalryFury.chargeWidth,FrozenKnightVfx.Theme.HorseCharge);
-                Play(horseAnimator,"Rear",cavalryFury.warning);yield return Stage(CombatState.Warning,cavalryFury.warning);
+                Play(horseAnimator,"Rear",cavalryFury.warning);yield return Stage(CombatState.Warning,cavalryFury.warning,null,horseWarningVfx);
                 var box=(BoxCollider)chargeArea.Shape;var scale=chargeArea.transform.lossyScale;
                 box.size=new Vector3(cavalryFury.chargeWidth/Mathf.Abs(scale.x),hitHeight/Mathf.Abs(scale.y),cavalryFury.bodyLength/Mathf.Abs(scale.z));
                 box.center=new Vector3(0,hitHeight*.5f/scale.y,0);
@@ -95,12 +96,14 @@ namespace DogLife
                 for(float travelled=0;travelled<distance;)
                 {
                     if(CombatFeedback.Paused(this)){yield return null;continue;}
-                    float step=Mathf.Min(cavalryFury.chargeSpeed*Time.deltaTime,distance-travelled);
+                    float step=Mathf.Min(currentChargeSpeed*Time.deltaTime,distance-travelled);
                     if(Physics.SphereCast(horseRoot.position+Vector3.up*chargeObstacleHeight,chargeObstacleRadius,dir,out var hit,step+chargeSkin,obstacleMask,QueryTriggerInteraction.Ignore))step=Mathf.Min(step,Mathf.Max(0,hit.distance-chargeSkin));
                     if(step<=.001f)break;
                     horseRoot.position+=dir*step;travelled+=step;chargeArea.transform.SetPositionAndRotation(horseRoot.position,horseRoot.rotation);
                     yield return null;
                 }
+                // 실제로 수행한 돌진마다 누적 가속하며 인위적인 최대 속도는 두지 않습니다.
+                currentChargeSpeed*=cavalryFury.chargeSpeedMultiplier;
                 chargeArea.Disarm();horseWarningVfx.Hide();Play(horseAnimator,"Idle");yield return Stage(CombatState.Recovery,cavalryFury.delay);
             }
             outerFuryActive=false;effects.Hide();horseWarningVfx.Hide();chargeArea.Disarm();
@@ -137,11 +140,16 @@ namespace DogLife
         {
             // 원 바깥의 NavMesh 가시성 그래프를 사용합니다. 모든 선분이 안전구역을 피하는지 검사합니다.
             float clearance=cavalryFury.safeRadius+cavalryFury.chargeWidth*.5f+cavalryFury.safeRouteMargin;
-            Vector3 center=transform.position;var nodes=new System.Collections.Generic.List<Vector3>{start,destination};
+            return ClearHorseRoute(start,destination,transform.position,clearance,cavalryFury.entryRadius);
+        }
+        // 군마의 접근 경로도 같은 우회 검사를 사용해 꽂힌 검을 가로지르지 않습니다.
+        Vector3[] ClearHorseRoute(Vector3 start,Vector3 destination,Vector3 center,float clearance,float outerRadius)
+        {
+            var nodes=new System.Collections.Generic.List<Vector3>{start,destination};
             var filter=new NavMeshQueryFilter{agentTypeID=agent.agentTypeID,areaMask=agent.areaMask};
             for(int ring=0;ring<2;ring++)for(int i=0;i<cavalryFury.routeSamples;i++)
             {
-                float r=ring==0?clearance+.45f:Mathf.Max(clearance+1,cavalryFury.entryRadius);
+                float r=ring==0?clearance+.45f:Mathf.Max(clearance+1,outerRadius);
                 Vector3 sample=center+Quaternion.AngleAxis(360f*i/cavalryFury.routeSamples,Vector3.up)*Vector3.forward*r;
                 if(NavMesh.SamplePosition(sample,out var point,.7f,filter)&&Vector3.ProjectOnPlane(point.position-center,Vector3.up).magnitude>=clearance)nodes.Add(point.position);
             }
@@ -170,8 +178,16 @@ namespace DogLife
             if(!swordIcePatch||!swordFieldVfx||!swordPlanted)return;
             iceFieldPosition=new Vector3(plantedSwordPosition.x,transform.position.y,plantedSwordPosition.z);
             swordIcePatch.transform.position=iceFieldPosition;
-            swordIcePatch.Initialize(health,plantedField.radius,float.PositiveInfinity,plantedField.steeringAcceleration);
-            swordFieldVfx.Show(FrozenKnightVfx.Shape.Ring,iceFieldPosition,Vector3.forward,plantedField.radius,0,FrozenKnightVfx.Theme.SwordField);swordFieldVfx.Activate();iceFieldActive=true;
+            // 검 위치에서 방의 모든 모서리까지 덮되 미끄러지는 가속도는 그대로 사용합니다.
+            float radius=Mathf.Max(plantedField.radius,arenaRadius*2+Vector3.ProjectOnPlane(Arena-iceFieldPosition,Vector3.up).magnitude);
+            if(room)foreach(var renderer in room.GetComponentsInChildren<MeshRenderer>())
+            {
+                if(renderer.GetComponentInParent<CombatHealth>())continue;
+                var b=renderer.bounds;
+                for(int i=0;i<4;i++){var corner=new Vector3((i&1)==0?b.min.x:b.max.x,iceFieldPosition.y,(i&2)==0?b.min.z:b.max.z);radius=Mathf.Max(radius,Vector3.Distance(iceFieldPosition,corner));}
+            }
+            swordIcePatch.Initialize(health,radius,float.PositiveInfinity,plantedField.steeringAcceleration);
+            swordFieldVfx.Hide();iceFieldActive=true;
         }
         IEnumerator MountedIceBlades()
         {
@@ -188,12 +204,29 @@ namespace DogLife
                 // 준비 중에는 조준하고, 발사 순간의 플레이어 위치로 방향을 고정합니다.
                 var blade=Instantiate(iceBladePrefab,spawn,Quaternion.LookRotation(direction));hazards.Add(blade);blade.Prepare(this);
                 blade.Track(player.transform,mountedBlades.homingTurnSpeed,mountedBlades.plantedSwordDuration);
-                effects.Show(FrozenKnightVfx.Shape.Ring,new Vector3(spawn.x,transform.position.y,spawn.z),Forward,1.4f,.9f);
-                yield return Stage(CombatState.Warning,mountedBlades.warning,"MountedReady");
+                // 생성 고리는 검에 남기고, 바닥 조준 표시는 실제 표적 아래에 따로 놓습니다.
+                effects.Show(FrozenKnightVfx.Shape.Ring,IceBladeWarningPoint(),Forward,1.4f,.9f);
+                // 연속 발사도 매번 새로 지정한 시전 동작을 처음부터 재생합니다.
+                float clipTime=StartNativeCast("IceSwordMounted");
+                var warning=Stage(CombatState.Warning,clipTime*iceSwordCastMoment,null,effects);
+                while(warning.MoveNext())
+                {
+                    effects.MoveOrigin(IceBladeWarningPoint());
+                    yield return warning.Current;
+                }
+                // 발사 직전까지 조준을 맞추고 이후에는 표식을 고정합니다.
+                effects.MoveOrigin(IceBladeWarningPoint());
                 if(blade)blade.Launch(this,mountedBlades.width,mountedBlades.length,mountedBlades.height,mountedBlades.damage,0,0,mountedBlades.speed,mountedBlades.maxDistance,0,0,mountedBlades.movementMultiplier,mountedBlades.slowDuration);
-                effects.Activate();yield return Stage(CombatState.Active,mountedBlades.shotDelay,"MountedImpact");effects.Hide();
+                effects.Activate();yield return Stage(CombatState.Active,Mathf.Max(mountedBlades.shotDelay,clipTime*(1-iceSwordCastMoment)));effects.Hide();
             }
             yield return Recover(mountedBlades.recovery);
+        }
+        Vector3 IceBladeWarningPoint()
+        {
+            var body=player.GetComponent<Collider>();
+            Vector3 point=body?body.bounds.center:player.transform.position;
+            point.y=Arena.y;
+            return GroundPoint(point);
         }
         void ClearCavalryEffects()
         {

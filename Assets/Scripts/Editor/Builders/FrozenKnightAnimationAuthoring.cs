@@ -11,32 +11,11 @@ namespace DogLife.EditorTools
         const string Source="Assets/VARCO3DImports/WinterBoss/", Output="Assets/Art/FrozenKnight/Animations/";
         static AnimationClip SourceClip(string name)=>AssetDatabase.LoadAssetAtPath<AnimationClip>(Source+name+".anim");
         public static string BuildPlant()=>FrozenKnightPlantAuthoring.Build();
-        // 기존 분리 클립을 갱신하는 편집 도구입니다. 실전 비탑승 공격은 원본 State를 1배속으로 재생합니다.
-        public static string BuildFootAttacks()
-        {
-            Bake("Attack1","1타2타",.05f,.47f,1,false);
-            Bake("Attack2","1타2타",.47f,.94f,1,false);
-            Bake("Attack3","3타",.16f,.83f,1,false);
-            Bake("Slam","내려찍기",.3f,.83f,1,false);
-            Bake("SwordReady","1타2타",0,.05f,1,false);
-            Bake("SpinReady","3타",0,.16f,1,false);
-            Bake("SlamReady","내려찍기",0,.3f,1,false);
-            AssetDatabase.SaveAssets();return "Updated legacy foot clips; runtime uses original unmodified states";
-        }
         public static string Build()
         {
             System.IO.Directory.CreateDirectory(Output);AssetDatabase.Refresh();
             Bake("Idle","Idle",0,1,SourceClip("Idle").length,true);
             Bake("Walk","Walk",0,1,SourceClip("Walk").length,true);
-            Bake("Attack1","1타2타",.05f,.47f,1,false);
-            Bake("Attack2","1타2타",.47f,.94f,1,false);
-            Bake("Attack3","3타",.16f,.83f,1,false);
-            Bake("Slam","내려찍기",.3f,.83f,1,false);
-            Bake("SwordReady","1타2타",.08f,.16f,1,false);
-            Bake("SpinReady","3타",.06f,.2f,1,false);
-            Bake("SlamReady","내려찍기",.08f,.33f,1,false);
-            Bake("BladeReady","3타",.06f,.2f,1,false);
-            Bake("BladeRelease","3타",.2f,.65f,1,false);
             BuildPlant();
             Bake("Kneel","Idle",0,.1f,1,false);
             Bake("StandUp","Idle",0,.1f,1,false);
@@ -44,9 +23,6 @@ namespace DogLife.EditorTools
             Bake("MountedIdle","Idle",0,1,2,true);
             Bake("MountedReady","내려찍기",.16f,.28f,1,false);
             Bake("MountedCharge","Idle",0,1,1,true);
-            Bake("MountedSlashReady","3타",.05f,.18f,1,false);
-            Bake("MountedSlash","3타",.2f,.75f,1,false);
-            Bake("MountedImpact","내려찍기",.33f,.73f,1,false);
             Bake("MountedGroggy","Idle",0,1,2,true);
             var clips=AssetDatabase.LoadAllAssetsAtPath("Assets/Art/FrozenKnight/Models/IceHorse_Rigged.fbx").OfType<AnimationClip>().Where(a=>!a.name.StartsWith("__preview__")).ToArray();
             foreach(var source in clips)
@@ -56,7 +32,7 @@ namespace DogLife.EditorTools
                 var settings=AnimationUtility.GetAnimationClipSettings(copy);settings.loopTime=name=="Idle"||name=="Gallop"||name=="Groggy";AnimationUtility.SetAnimationClipSettings(copy,settings);
                 Save(copy,"Horse_"+name);
             }
-            BuildFootAttacks();BakeArmorMesh();BakeCrystal();AssetDatabase.SaveAssets();return "Knight clips and "+clips.Length+" horse clips saved";
+            BakeArmorMesh();BakeCrystal();AssetDatabase.SaveAssets();return "Knight clips and "+clips.Length+" horse clips saved";
         }
         public static void BakeArmorMesh()
         {

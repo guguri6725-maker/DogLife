@@ -10,6 +10,11 @@ namespace DogLife
         public float shoulderOffset = .55f;
         public float yaw = 90, pitch = 18;
         public bool readInput = true;
+        Vector3 cinematicFrom;Quaternion cinematicRotation;float cinematicReturnStart,cinematicReturnDuration,cinematicFov,gameplayFov;
+        Camera ownCamera;
+        // 연출 마지막 화면에서 평소 추적 카메라로 부드럽게 복귀합니다.
+        public void BlendFromCinematic(float duration,float originalFov)
+        {cinematicFrom=transform.position;cinematicRotation=transform.rotation;cinematicReturnStart=Time.unscaledTime;cinematicReturnDuration=duration;ownCamera=GetComponent<Camera>();cinematicFov=ownCamera?ownCamera.fieldOfView:originalFov;gameplayFov=originalFov;}
         // 지나온 방을 해제한 뒤 카메라가 닫힌 문 뒤로 넘어가지 않게 합니다.
         [System.NonSerialized] public float minimumWorldX = float.NegativeInfinity;
         void Start() { CaptureCursor(true); }
@@ -33,7 +38,9 @@ namespace DogLife
             if (Physics.SphereCast(pivot, .22f, back, out var hit, distance, obstructionMask, QueryTriggerInteraction.Ignore)) length = Mathf.Max(.3f, hit.distance - .15f);
             var position = pivot + back * length;
             position.x = Mathf.Max(position.x, minimumWorldX);
-            transform.SetPositionAndRotation(position, rotation);
+            float blend=cinematicReturnDuration>0?Mathf.SmoothStep(0,1,(Time.unscaledTime-cinematicReturnStart)/cinematicReturnDuration):1;
+            transform.SetPositionAndRotation(Vector3.Lerp(cinematicFrom,position,blend),Quaternion.Slerp(cinematicRotation,rotation,blend));
+            if(ownCamera){ownCamera.fieldOfView=Mathf.Lerp(cinematicFov,gameplayFov,blend);if(blend>=1)ownCamera=null;}
         }
         void OnDisable() { CaptureCursor(false); }
     }

@@ -7,6 +7,7 @@ namespace DogLife
     {
         public WinterMonsterEnemy enemy;
         public WinterIcePatch patch;
+        [SerializeField,Min(0)] float spreadCrestWidth=.65f;
         [SerializeField] private Material material;
         float VisualScale=>enemy?enemy.SizeScale:1;
         Mesh mesh;MeshRenderer surface;CombatHealth health;
@@ -83,17 +84,29 @@ namespace DogLife
         void DrawPatch()
         {
             Vector3 p=patch.transform.position+Vector3.up*.065f;float radius=patch.Radius*patch.Growth,alpha=patch.Opacity;
+            // 얼어붙는 경계에 밝은 서리 띠를 두어 눈 바닥에서도 확산이 보이게 합니다.
+            if(patch.Growth<.995f&&radius>.1f)
+            {
+                Arc(p+Vector3.up*.06f,Vector3.forward,radius,360,spreadCrestWidth,A(White,.9f));
+                Arc(p+Vector3.up*.08f,Vector3.forward,radius*.96f,360,spreadCrestWidth*.3f,A(Ice,.85f));
+            }
             for(int i=0;i<72;i++){Vector3 a=Dir(Vector3.forward,i*5),b=Dir(Vector3.forward,(i+1)*5);Tri(p,p+a*radius,p+b*radius,A(new Color(.20f,.43f,.67f),.42f*alpha));}
             Arc(p+Vector3.up*.005f,Vector3.forward,radius,360,.11f,A(White,.30f*alpha));
             Arc(p+Vector3.up*.008f,Vector3.forward,radius-.025f,360,.026f,A(White,.70f*alpha));
             // Broken, offset polygon cells resemble frozen water rather than radial spokes.
-            for(int ring=1;ring<=3;ring++)for(int i=0;i<11;i++)
+            // 넓은 보스 장판도 작은 장판과 비슷한 얼음 조각 밀도를 유지합니다.
+            int rings=Mathf.Clamp(Mathf.CeilToInt(radius/3),3,24);
+            for(int ring=1;ring<=rings;ring++)
             {
-                float a=i*360f/11+(ring%2)*13,b=(i+1)*360f/11+(ring%2)*13;
-                float r=radius*(ring*.27f+.025f*Mathf.Sin(i*13+ring));
+                int cells=Mathf.Clamp(Mathf.CeilToInt(2*Mathf.PI*radius*ring/(rings+1)/3),11,96);
+                for(int i=0;i<cells;i++)
+                {
+                float a=i*360f/cells+(ring%2)*13,b=(i+1)*360f/cells+(ring%2)*13;
+                float r=radius*(ring/(float)(rings+1)+.08f/(rings+1)*Mathf.Sin(i*13+ring));
                 Vector3 x=p+Dir(Vector3.forward,a)*r,y=p+Dir(Vector3.forward,b)*r;
                 Line(x,y,.026f,A(Deep,.45f*alpha));Line(x+Vector3.up*.009f,y+Vector3.up*.009f,.010f,A(White,.65f*alpha));
-                if(ring<3&&i%2==0){Vector3 q=p+Dir(Vector3.forward,a+15)*radius*(ring+1)*.27f;Line(x,q,.016f,A(White,.5f*alpha));}
+                if(ring<rings&&i%2==0){Vector3 q=p+Dir(Vector3.forward,a+15)*radius*(ring+1)/(rings+1);Line(x,q,.016f,A(White,.5f*alpha));}
+                }
             }
             for(int i=0;i<8;i++){Vector3 dir=Dir(Vector3.forward,i*137);Snowflake(p+dir*radius*(.25f+.5f*Mathf.Abs(Mathf.Sin(i*7))),.08f+.05f*Mathf.Sin(i),(.25f+.2f*Mathf.Sin(Time.time*1.5f+i))*alpha,i*19);}
             for(int i=0;i<18;i++){Vector3 d=Dir(Vector3.forward,i*20);Crystal(p+d*(radius-.08f),.06f+.05f*Mathf.Sin(i*3),.07f,alpha*.75f,i);}
@@ -101,7 +114,7 @@ namespace DogLife
         void LateUpdate()
         {
             vertices.Clear();colors.Clear();indices.Clear();
-            if(patch)DrawPatch();
+            if(patch&&patch.IsActive)DrawPatch();
             else if(enemy&&enemy.isActiveAndEnabled&&health&&!health.Dead)
             {
                 var state=enemy.State;float t=enemy.Progress;Vector3 p=enemy.Origin+Vector3.up*.10f;var kind=enemy.Kind;

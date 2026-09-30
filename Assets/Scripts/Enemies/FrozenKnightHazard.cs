@@ -47,6 +47,8 @@ namespace DogLife
             launched=true;prepared=false;if(projectileVisual)projectileVisual.localScale=visualScale;
             expires=Time.time+(moving?distance/Mathf.Max(.01f,speed):duration);
             var box=(BoxCollider)damageArea.Shape;box.size=new Vector3(width,height,length);box.center=Vector3.up*(moving?0:height*.5f);
+            // 이동하는 얼음검은 시각 메시의 실제 위치와 크기에 판정을 맞춥니다.
+            if(moving&&projectileVisual)FitBladeCollider(box);
             effects.Show(FrozenKnightVfx.Shape.Line,projectileVisual?transform.position:transform.position-transform.forward*length*.5f,transform.forward,length,width,projectileVisual?FrozenKnightVfx.Theme.BladeFlight:FrozenKnightVfx.Theme.IceTrail);effects.Activate();
             damageArea.Arm(source,damage,push,lift,null,tick,false,slowMultiplier,slowDuration);
         }
@@ -70,10 +72,29 @@ namespace DogLife
             if(Physics.SphereCast(transform.position,collisionRadius,transform.forward,out var obstacle,step+tipReach,obstacleMask,QueryTriggerInteraction.Ignore))
             {
                 transform.position+=transform.forward*Mathf.Max(0,obstacle.distance-tipReach);
+                damageArea.SweepNow();
                 FinishProjectile(obstacle.normal.y>.5f?(Vector3?)obstacle.point:null);return;
             }
             transform.position+=transform.forward*step;travelled+=step;effects.MovePose(transform.position,transform.forward);
+            damageArea.SweepNow();
+            if(damageArea.HasHit){FinishProjectile();return;}
             if(travelled>=maxDistance)FinishProjectile();
+        }
+        void FitBladeCollider(BoxCollider box)
+        {
+            bool found=false;Bounds bounds=new Bounds();
+            foreach(var mesh in projectileVisual.GetComponentsInChildren<MeshFilter>())
+            {
+                if(!mesh.sharedMesh)continue;
+                var b=mesh.sharedMesh.bounds;
+                for(int i=0;i<8;i++)
+                {
+                    Vector3 corner=b.center+Vector3.Scale(b.extents,new Vector3((i&1)==0?-1:1,(i&2)==0?-1:1,(i&4)==0?-1:1));
+                    Vector3 local=box.transform.InverseTransformPoint(mesh.transform.TransformPoint(corner));
+                    if(!found){bounds=new Bounds(local,Vector3.zero);found=true;}else bounds.Encapsulate(local);
+                }
+            }
+            if(found){box.center=bounds.center;box.size=bounds.size;}
         }
         void FinishProjectile(Vector3? groundContact=null)
         {

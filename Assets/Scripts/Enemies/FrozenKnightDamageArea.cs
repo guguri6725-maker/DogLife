@@ -43,6 +43,9 @@ namespace DogLife
         void OnTriggerEnter(Collider other) { Touch(other); }
         void OnTriggerStay(Collider other) { Touch(other); }
         void FixedUpdate()
+        { SweepNow(); }
+        // 투사체는 이동 직후 검사하여 지면 충돌로 판정이 꺼지기 전에 타격을 전달합니다.
+        public void SweepNow()
         {
             if(!Armed)return;
             if(!owner||!owner.CanDealDamage){Disarm();return;}

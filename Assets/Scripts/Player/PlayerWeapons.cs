@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 namespace DogLife
 {
@@ -54,7 +54,9 @@ namespace DogLife
                 Vector3 point=hits[i].ClosestPoint(closest);
                 if((point-closest).sqrMagnitude<.000001f)point=hits[i].ClosestPoint(origin);
                 Vector3 delta=point-origin;
-                if(delta.sqrMagnitude>.0001f&&Physics.Raycast(origin,delta.normalized,delta.magnitude,1<<8))continue;
+                // 파괴 가능한 장애물 자신은 시야를 가리는 벽으로 처리하지 않습니다.
+                if(delta.sqrMagnitude>.0001f&&Physics.Raycast(origin,delta.normalized,out var obstruction,delta.magnitude,1<<8,QueryTriggerInteraction.Ignore)
+                    &&obstruction.collider.GetComponentInParent<CombatHealth>()!=target)continue;
                 meleeDamaged.Add(target);
                 Color tint=equipped.boneOrigin==InventoryWeapon.BoneOrigin.Humanoid?new Color(.8f,.24f,.3f,1):new Color(.5f,.85f,1,1);
                 float feedbackPower=attackCombo&&attackCombo.ComboStep==3&&equipped.weaponCategory!=InventoryWeapon.WeaponCategory.Spear?Mathf.Max(1.5f,power):power;

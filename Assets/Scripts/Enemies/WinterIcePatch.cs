@@ -7,8 +7,12 @@ namespace DogLife
         static readonly List<WinterIcePatch> active=new List<WinterIcePatch>();
         CombatHealth owner;float born,lifetime,acceleration;bool initialized,reusable;
         public float Radius {get;private set;}
+        public bool IsActive=>initialized;
         public float Age=>Time.time-born;
-        public float Growth=>Mathf.SmoothStep(0,1,Mathf.Clamp01(Age/.65f));
+        float growthDuration=.65f;
+        public float Growth=>Mathf.SmoothStep(0,1,Mathf.Clamp01(Age/growthDuration));
+        // 연출용 빙판도 실제 표면과 같은 속도로 바깥으로 퍼집니다.
+        public void SetGrowthDuration(float duration){growthDuration=Mathf.Max(.01f,duration);}
         public float Opacity=>Mathf.Clamp01((lifetime-Age)/.45f);
         public static void Create(Vector3 position,float radius,float duration,float steering,CombatHealth source,Material material)
         {

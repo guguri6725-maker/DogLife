@@ -17,7 +17,7 @@ namespace DogLife
         [SerializeField] Color warningColor=new Color(.15f,.7f,1,.22f),edgeColor=new Color(.65f,.94f,1,.85f),activeColor=new Color(.6f,.9f,1,.48f);
         [SerializeField,Range(4,32)] int frostMoteCount=18;
         [SerializeField,Min(.01f)] float frostMoteHeight=1.5f,swordCoreWidth=.045f;
-        [Header("얼음 검의 폭주 전용")]
+        [Header("얼음검의 저주 전용")]
         [SerializeField,Range(1,3)] float furyCrystalHeightMultiplier=2f,furyCrystalWidthMultiplier=1.45f;
         [SerializeField,Range(1,3)] int furyCrystalDensity=2;
         [SerializeField,Min(.1f)] float furyShockwaveHeight=.75f;
@@ -38,6 +38,11 @@ namespace DogLife
         Mesh areaMesh,ribbonMesh;
         MaterialPropertyBlock properties,surfaceProperties;
         Shape shape;Vector3 origin,direction;float length,width,started;bool visible,active;
+        float warningProgress=-1;bool reverseWarning;
+        public float WarningProgress=>warningProgress;
+        public Vector3 SwordTipPosition=>swordTip?swordTip.position:transform.position;
+        // 진행률은 공격 코루틴/Animator에서 전달합니다. 이펙트 자체 시간으로 판정을 추측하지 않습니다.
+        public void SetWarningProgress(float progress,bool reverse=false){warningProgress=Mathf.Clamp01(progress);reverseWarning=reverse;}
         void Awake()=>EnsureResources();
         void EnsureResources()
         {
@@ -48,11 +53,11 @@ namespace DogLife
             if(surfaceProperties==null)surfaceProperties=new MaterialPropertyBlock();
         }
         public void Show(Shape value,Vector3 point,Vector3 forward,float range,float breadth,Theme style=Theme.Auto)
-        {shape=value;origin=point;direction=forward;length=Mathf.Max(.01f,range);width=Mathf.Max(0,breadth);theme=style==Theme.Auto?ResolveTheme():style;visible=true;active=false;started=Time.time;}
+        {shape=value;origin=point;direction=forward;length=Mathf.Max(.01f,range);width=Mathf.Max(0,breadth);theme=style==Theme.Auto?ResolveTheme():style;visible=true;active=false;warningProgress=-1;started=Time.time;}
         public void MovePose(Vector3 point,Vector3 forward){origin=point;direction=forward;}
         public void MoveOrigin(Vector3 point){origin=point;}
         public void ResizePath(Vector3 point,float range){origin=point;length=Mathf.Max(.01f,range);}
-        public void Activate(){active=true;started=Time.time;}
+        public void Activate(){active=true;if(warningProgress>=0)warningProgress=1;started=Time.time;}
         public void Hide(){visible=false;}
         void LateUpdate()
         {

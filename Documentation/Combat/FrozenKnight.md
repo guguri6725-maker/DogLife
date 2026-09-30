@@ -1,5 +1,84 @@
 # 겨울 보스 — 얼어붙은 기사
 
+## 현재 패턴 구성 (2026-09-30)
+
+### 원본 속도 / Blender 대검 자세 보정
+
+- 원형 검기는 원본 `3타.anim`에서 손잡이 지지만 보정한 `Spin3Sword`를 사용한다.
+- IceWallFull/Mounted, IceSwordMounted, PushUpper, Spin3Sword는 1배속으로 재생한다. 기존 Warning 초에 클립을 압축하지 않고 Wall/IceSword/Push/Spin Cast Moment(0~1)에서 생성/피해를 시작한다. 원격 검은 Remote First/Second Moment에 맞춰 두 번 휘두른다. 원본 동작이 끝나기 전 Idle로 끊지 않는다.
+- 원본 길이: 기둥 5.73초, 얼음검 4.83초, 밀어내기 3.27초, 3타 5.07초. 준비 시간이 기존보다 길어지는 것은 원본 속도를 따른 결과다.
+- Blender에서 Idle/Walk, IceWallFull, PushUpper, Roar, FrostChannel, Spin3Sword를 보정했다. Idle/Walk와 양손 공격은 보조 손을 손잡이에 맞추고, 한손 시전은 오른손에 검을 안전하게 들고 왼손으로 표현한다. 본 길이를 늘리거나 실행 중 강제 IK를 사용하지 않는다.
+- 편집 원본: `ArtSource/FrozenKnight/WinterKnight_SwordMotion.blend`, 재현 스크립트: `refine_sword_motion.py`. Unity 교환 도구는 `FrozenKnightBlenderBridge.Export/Import`이며 기존 클립 GUID를 유지한다. 시전 클립을 재생성했다면 Blender 보정 Import를 마지막에 적용한다.
+
+### 사용자 제공 시전 애니메이션 적용
+
+| 원본 | 적용 패턴 | 하체 |
+| --- | --- | --- |
+| Winter_IceSword | 기마 얼음검 발사, 원격 검 | MountedIdle 유지 |
+| Winter_IceWall | 1페이즈 얼음 기둥 | 원본 전신 동작 |
+| Winter_IceWall | 2페이즈 얼음 기둥, 몬스터 소환 | MountedIdle 유지 |
+| 밀어내기 | 빙결 폭발 | Idle 유지, 상체만 적용 |
+
+- 적용용 클립은 `IceSwordMounted`, `IceWallFull`, `IceWallMounted`, `PushUpper`이며 `FrozenKnightImportedCastAuthoring`으로 재생성할 수 있다. 루트 이동은 AI에 맡기고 상체 전용 클립은 Spine 아래 동작만 복사한다.
+- 원격 검은 두 번 휘두르는 시간 동안 시전 동작을 이어 재생한다. 얼음검 연속 발사는 매번 시전 클립을 다시 시작한다.
+- 미사용 상태 14개, 구형 분리 클립 10개(Attack1/2, Slam, SpinReady, SlamReady, BladeReady/Release, MountedSlashReady/Slash, MountedImpact) 및 미사용 FrozenKnightForwardAuthoring을 제거했다. 재생성 도구에서도 삭제 클립의 생성 항목을 제거했다.
+- 후속 3타 적용으로 FrostSpin/SwordReady/구형 Attack3 클립과 두 상태도 제거했다. 원본 3타는 Spin3Sword 제작 소스다. Roar는 한기 패턴, MountedCommand는 최후 패턴에서 계속 사용한다.
+
+### 얼음칼 판정 / 점프 회피 / 투창 표시 수정
+
+- 비행 얼음칼은 메시 경계를 판정 상자 로컬 좌표로 변환해 보이는 크기와 위치에 맞춘다. 이동 직후에도 지나온 구간을 검사하며, 바닥 충돌로 비활성화하기 전에 피해 검사를 마친다.
+- 얼음칼 생성 중 바닥 경고는 등 뒤 생성점이 아닌 플레이어 몸체 중심 아래 지면에 표시한다. 준비 중 이동을 따라가고 발사 순간 위치에 고정된다. 검 자체의 생성 고리는 검에 유지된다.
+- 원격 검은 플레이어의 X/Z와 지면만 사용한다. `remoteSwordHeight` 기본 0.8m 높이에서 휘두르므로 점프로 넘을 수 있다. 회수 단계는 Recovery이며 곡선 이동과 가감속을 사용한다.
+- 발악 투창 예고는 플레이어 발밑에서 끝나는 기본 3m 화살표다. 준비 중 이동을 따라가며 발사 후 방향은 고정한다.
+- 포효 준비·회복, 기마 명령의 비대칭 팔 자세, 발구르기 상체 반동, 질주 중 고개 안정화, 투창 준비/발사 연결을 보강했다. SpearThrow 마지막 프레임과 SpearRelease 첫 프레임의 뼈 회전 차이는 0도다.
+
+### 기둥·눈보라·투창 연출 보강
+
+- 기둥은 타격마다 실제 체력이 1씩 줄어 기존 무기 타격 성공/히트스톱을 전달한다. `CombatDamageGate.FilterDamage`는 이 구조물에서만 1회 피해로 정규화한다. DOTween으로 짧은 흔들림과 `_CrackProgress` 진행을 만들고, 전용 `Fracturing Ice` 셰이더가 1타보다 2타에 더 많은 균열을 보여 준다. 3타에는 독립된 `FrozenIceBurst` 파편 이펙트를 생성한다.
+- 새 기둥 위치는 기존 기둥과의 거리, 벽/구조물 충돌, 플레이어와 보스의 위치를 검사한다. 기본 간격 3.2m이며, 빈 자리를 찾지 못하면 겹쳐 생성하지 않는다.
+- 소환 원판 대신 실제 검 주위를 감싸 올라가는 냉기와 작은 결정 조각을 표시한다.
+- 한기 패턴은 최소 7초의 수집 준비 시간을 제공한다. 준비 중 모은 보호 시간은 소비하지 않고 눈보라가 시작된 뒤부터 줄어든다. 피해는 눈보라 발동 이후 기존 Tick 간격으로 처리한다.
+- 결정 획득 시 작은 얼음 조각이 플레이어 쪽으로 모인다. 공통 `SeasonGameplay/PlayerHealthUI/FrostProtection`에 배치한 아이콘·시간·잔여 막대를 `FrostProtectionHUD`가 갱신한다. 일반 피격 무적과 결정 보호 시간은 구분한다.
+- 투창 예고는 균열이 없는 직선/화살표이며, 준비 및 던지기 직전까지 플레이어를 따라간다. 발사 순간 방향을 고정한다. 손에 연결된 위치에서 2.6초 동안 창을 만들고 기본 속도 28로 던진다. 창 촉과 자루 메시, 생성 고리, 비행 냉기 꼬리를 추가했다.
+- `Roar`, `FrostChannel`, `FrostSpin`, `MountedCommand`, `MountedStompReady/Impact`, `MountedCharge`, `SpearThrow/Release` 클립을 다듬었다. 팔 포즈는 길이를 보존한 키프레임으로 제작하며 실행 중 강제 IK로 휘두르지 않는다. 1타·2타 및 정면 내려찍기 원본은 기준 동작으로 유지한다.
+- `StartPolish()` 실행 검사: 실제 무기 피해 경로의 타격 성공, DOTween 균열 누적, 파괴 파편, 반복 소환 간 충돌 없음, 보호 UI와 7초 준비/보호 시간 보존, 눈보라 Tick, 새 모션 종료 후 복귀, 이동 표적 방향 표시, 손에서 발사한 빠른 창 3회 유도 성공을 통과했다. 별도 실패 경로에서도 즉사와 정리를 확인했다. UI 및 모션/파편 스크린샷을 확인했으며 검증은 MonsterTest에서 수행했다.
+
+이 절이 현재 동작 기준이다. 아래 이전 작업 기록에는 제거된 패턴과 과거 검증 결과가 포함되어 있다.
+
+### 1페이즈
+
+- 기본 1·2타와 내려찍기/균열은 기존 애니메이션을 유지한다.
+- 빙결 폭발은 새 `Roar` 동작으로 예고한다.
+- **얼음검의 저주**: 기존 50% 안전지대＋군마 왕복 공격을 유지하고 표시 이름만 변경했다. 내부 Enum `SwordFury`는 저장 호환을 위해 유지한다.
+- 얼음 기둥: 기존 `Plant` 동작 후 기본 6개를 소환한다. `CombatHealth`와 `FrozenKnightConstruct`를 통해 공격력 크기에 관계없이 기본 3번의 유효 타격으로 파괴한다. 기둥은 이동 장애물이며 수명이 끝나면 제거된다.
+- 확장 원형 검기: `FrostSpin`으로 한 바퀴 회전하며 고리를 밖으로 보낸다. 기존 `PlayerMotor`의 앉기/점프 상태로 회피를 판정한다.
+- HP 70%·30% 한기: 각 1회, 현재 공격 종료 후 실행한다. 구형 결정이 보스로 이동하며, 준비 후 15초 동안 전장 지속 피해를 준다. 획득당 3초 보호가 누적되고 전용 HUD로 표시된다. 보스에 도착한 결정은 보호를 주지 않고 사라진다.
+
+### 2페이즈
+
+- 기존 직선 돌진·발구르기·고정 방향 얼음검은 유지한다. 빙결 기마 돌격은 선택과 수동 시작에서 제외했다.
+- 얼음 기둥은 하마하지 않고 이미 꽂힌 검에서 소환 연출을 시작한다.
+- 좌우 기마 분신은 모델의 현재 자세를 복제한 시각 효과다. 실제 피해는 넓어진 별도 돌진 판정으로 처리하며 한 공격의 중복 피해를 막는다.
+- 겨울 잡몹은 기존 SnowWolf / IceGolem / FrostMammoth 프리팹을 사용한다. 소환한 생존 몬스터는 최대 3마리다.
+- 원격 대검은 플레이어 쪽으로 이동해 2회 휘두른 뒤 저장된 월드 위치/회전으로 돌아와 꽂힌다.
+- HP 0에서 즉시 사망하지 않고 마지막 결정 기믹을 시작한다. 중앙 구형 결정은 플레이어 공격에 면역이고 보스의 창 3회 충돌로 파괴된다. 보스는 가장자리에서 총 4개의 창을 준비해 발사한다. 발사 후에는 추적하지 않는다. 실패하면 전장 폭발이 플레이어를 즉사시키고, 성공하면 플레이어 피해 없이 보스 사망을 완료한다. 사망 이벤트는 마지막에 한 번만 전달한다.
+
+### 추가 파일과 연결
+
+- 실행 코드: `FrozenKnightBoss.Encounters.cs`, `FrozenKnightConstruct.cs`, `FrozenKnightSpear.cs`.
+- 기존 확장: `FrozenKnightBoss`, `CombatHealth`, `FrozenKnightVfx.Patterns`, `FrozenKnightAfterimage`.
+- 에셋 제작 도구: `FrozenKnightEncounterAuthoring`. 씬 오브젝트를 생성하지 않고 클립과 메시만 제작한다.
+- 프리팹: `Assets/Prefabs/Effects/FrozenKnightPillar`, `FrozenKnightPickup`, `FrozenKnightCore`, `FrozenKnightSpear`.
+- 기둥: BoxCollider＋CombatHealth＋FrozenKnightConstruct＋NavMeshObstacle. 결정: 별도 SphereCollider＋CombatHealth＋FrozenKnightConstruct. 창: 모델과 분리한 이동 구간 SphereCast 판정.
+- 클립/Animator State: `Roar`, `FrostSpin`, `SpearThrow`. 기존 컨트롤러에 연결했으며 새 Parameter는 없다.
+- 메인 FrozenKnight 프리팹에 위 프리팹 4개와 겨울 잡몹 3개 참조를 연결했다. 추가 수동 연결은 필요하지 않다.
+- Inspector의 신규 패턴 항목에서 HP 임계값, 기둥 수/타격 횟수/수명, 검기 속도/폭/높이, 한기 시간/Tick, 결정 수/보호 시간, 분신 간격, 소환 상한, 원격검 시간, 창 수/속도/준비 시간/결정 파괴 횟수를 조절한다.
+- 전장 중심은 연결된 `arenaCenter`, 방 입출구 중앙, 초기 보스 위치 순으로 정하고 NavMesh 바닥 높이에 맞춘다. 별도 보스방은 `arenaCenter`를 직접 연결하고 `arenaRadius`를 방 크기에 맞추면 된다.
+- 검증 도구: Play Mode에서 `FrozenKnightVerification.StartEncounters()`는 새 패턴과 성공 경로, `StartEncounters(true)`는 실패 즉사 경로를 검사한다. 검사 중 바꾸는 체력/위치는 씬에 저장하지 않는다.
+- MonsterTest 실행 검증: 기둥 3타 파괴, 원형 검기의 서기 피격/앉기·점프 회피, 결정 보호 3초 누적, 소환 생존 상한 3, 원격 대검 실제 피격/제자리 복귀, 창 3회 유도 성공 및 4회 실패 즉사, 최종 사망 1회와 소환물 정리를 통과했다. 70%·50%·30% 순차 발동과 각 한기 패턴 1회 제한도 검사했다. 현재 컴파일/실행 콘솔 오류는 없다. 실제 겨울방 구조물과의 배치 간섭 및 난이도 조정은 별도 플레이 점검 대상이다.
+
+## 이전 작업 기록
+
 ## 꽂힌 대검 피격 반동 / 얼어붙은 기사 패턴 디자인
 
 - 검의 월드 위치를 고정한 뒤 CombatFeedback(LateUpdate 순서 15000)이 상체 뼈에 반동을 적용해, 손 뼈의 자식이던 검도 흔들렸다. 칼을 꽂을 때 SwordGrip을 보스 루트로 옮겨 뼈 계층에서 분리하고 월드 자세를 유지한다. 회수/중단/비활성화 시 원래 손 부모·로컬 자세·배율로 복원한다. 기사의 피격 반동은 유지한다.
@@ -216,3 +295,66 @@ MonsterTest에서 3연격과 내려찍기를 연속 재생한 검증: 타격 활
 - 전환 이펙트의 높은 기둥 대신 낮은 냉기 문양과 작은 얼음 조각을 사용해 전환 동작이 보이도록 했다.
 - MonsterTest 실행에서 1·2타 Active 구간과 1→2페 전환 완료를 확인했다. 기마 발끝 방향은 양쪽 모두 전방이며 정면/측면 렌더를 확인했다. 기존 UnityEditor.Graphs.Edge.WakeUp 예외 외 새 컴파일/플레이 오류는 관찰되지 않았다.
 - **군마 일반 이동:** `FrozenHorseWalkAuthoring`으로 `Horse_Walk.anim`을 제작하고 IceHorse Controller의 `Walk`에 연결했다. 네 발의 접지/회수 순서를 분리하며, 접지 구간에서 발굽이 일정 속도로 뒤로 이동하도록 제작했다. 일반 추적은 Walk, 공격 돌진은 기존 Gallop을 사용한다. 실제 NavMesh 속도를 `horseWalkReferenceSpeed`(3.2)로 나눠 재생 속도를 맞추며, 최소/최대 배율도 Inspector에서 조절한다.
+
+## 기마 패턴 발동 / 구분 개선
+
+- 발구르기 체류 판정은 별도 closeRange 5가 아닌 실제 stomp.range 6을 사용한다. 기존 추적 정지 거리 5.5에서도 조건이 충족되며, 체류 시간과 쿨타임을 만족하면 우선 선택한다.
+- 연속 질주는 일반 기마 공격 2회 이후 쿨타임이 준비되면 우선 선택한다. 시작 전 1.3초 동안 연속 화살표 문장을 보여주고, 각 돌진 경로 입구에 남은 횟수를 표시한다. 마지막에는 기존 긴 그로기를 유지한다.
+- 빙결 기마 돌격은 이동 전에 2.4초간 다섯 얼음날 왕관과 바닥 서리 문장을 보여준다. 이 예고에는 피해가 없다. 각 돌진 준비 경로에도 작은 얼음날을 배치해 일반 돌진과 구분한다.
+- Inspector: multiChargeIntroduction, mountedFuryIntroduction, chargeEmblemRadius, attacksBeforeMultiCharge. 기존 VFX 메시와 재질을 재사용한다.
+
+## 연속 질주 제거 / 범위 타이밍 채우기 (현재)
+
+- 일반 연속 질주(MultiCharge)는 선택과 Begin 실행에서 제거했다. Enum 번호만 저장 호환을 위해 유지한다. 일반 돌진 및 HP 특수 빙결 기마 돌격은 유지한다.
+- 전체 공격 범위는 고정 표시하고 그 위로 밝은 얼음색이 채워진다. 원형은 안쪽→바깥, 직선은 출발→끝, 부채꼴은 각 타격의 휘두르는 방향으로 진행한다. 고리 범위의 안쪽 안전지대는 채우지 않는다.
+- 베기/균열은 Animator의 실제 재생 위치를 사용한다. 시간 기반 준비는 기존 Stage의 경과 시간과 히트 정지를 함께 사용한다. Activate 순간 진행률을 1로 고정한다. 1타와 2타는 각각 새 경고를 시작한다.
+- 범위 없는 왕관 시작 예고, 상시 빙판, 꽂힌 검의 장식에는 공격 범위 채우기를 적용하지 않는다.
+
+## 왕좌 입장 / 군마 탑승 연출 (2026-09-30)
+
+- Winter_Room04의 FrozenThrone_01에 FrozenKnightCinematicStage를 추가하고 ThroneSeatedOrigin / ThroneStandingOrigin을 Hierarchy에서 배치했다. RoomMonsterSpawner의 bossCinematicStage 참조도 연결했다.
+- 입장: 왕좌 대기 → SitUp 기반 ThroneRise → 제공 FBX를 리타겟한 ThroneDraw1/2 → 왕좌 앞으로 이동 → NavMesh로 중앙 이동 → 전투 시작. 준비 중에는 보스가 무적이고 공격 판정이 비활성이다.
+- SitUp의 발이 떠오르는 루트 이동은 Blender에서 접지 기준으로 보정했다. 소스는 ArtSource/FrozenKnight/WinterKnight_Cinematics.blend 및 author_cinematics.py에 보관한다.
+- 탑승: 기존 검 꽂기 / 군마 접근을 유지하고 군마 정지 후 CinematicMount를 2.8초로 재생한다. 기존 탑승 모션을 사용했으며 새로운 고품질 모션 캡처 소스로 교체한 것은 아니다.
+- FrozenKnightCinematicStage가 기존 Camera와 PlayerMotor/PlayerWeapons를 잠시 제어한다. 종료 및 비활성화 시 조작/무적을 복구하고 PlayerCamera가 원래 시점으로 보간 복귀한다. 별도 영상이나 Timeline 패키지는 사용하지 않았다.
+- FrozenKnight 프리팹의 Throne Idle/Rise/Draw1/Draw2/Cinematic Mount 참조와 Animator 상태를 연결했다. 이 방 참조가 없는 MonsterTest에서는 왕좌 입장을 실행하지 않는다.
+- 실제 Winter_Room04 단독 실행을 두 번 수행해 입장 완료, 2페이즈 탑승 완료, 플레이어 조작 복구를 확인했다. 마지막 실행 콘솔 오류 0건. 주요 자세 캡처는 Temp/FrozenKnight/Cinematics에 있다. 임시 플레이어/카메라는 삭제하고 씬을 저장했다.
+- 이번 범위에는 사망 연출과 사망 FBX의 기마 변환은 포함하지 않았다. 상용 게임과 동급의 연기/접촉 품질을 보장하는 단계는 아니며 원본 탑승 모션의 한계가 남아 있다.
+
+### 탑승 전환 수정
+
+- 검을 꽂은 뒤 Kneel / StandUp을 재생하던 구간을 제거했다. 기사는 서서 기다리고 옆 탑승 지점까지 걸어간다.
+- 군마는 꽂힌 검의 실제 Renderer 범위에 horseSwordClearance를 더한 영역을 우회한다. 기존 군마 경로 검사 함수를 재사용하며 horseBoardingDistance로 옆 정지 거리를 조절한다.
+- 정지 후 기존 탑승 모션을 재생하고 보스의 NavMesh 이동 기준을 군마 위치로 옮긴다. 기수/군마/꽂힌 검의 월드 위치는 보존한다.
+- 수정 후 Winter_Room04 실행 검증: 전환 중 Kneel/StandUp 재생 없음, 군마와 검의 Renderer Bounds 겹침 없음, 탑승 완료 및 조작 복구 확인, 콘솔 오류 0건. 검 회피 간격은 군마의 머리/꼬리를 포함한 실제 수평 반경으로 계산한다.
+
+## 최후의 일격 사망 연출 (2026-09-30)
+
+- 제공된 Two Handed Sword Death.fbx를 Blender에서 MountedIdle 하체와 결합해 MountedDeath.anim(4.8초)을 제작했다. 군마는 서서 멈추고 기사의 상체가 뒤로 무너지는 방식이다. 말에서 떨어지는 연출은 아니다.
+- Blender 원본: ArtSource/FrozenKnight/WinterKnight_Death.blend. 재제작 스크립트: author_mounted_death.py. 원본의 골반 낙하를 그대로 적용하지 않고 탑승 위치와 다리 자세를 유지했다.
+- 발악 공략 후 마지막 유효 타격에서 기존 CombatHealth 사망 보류 구조를 재사용한다. 사망 모션 → deathPoseHold(1.2초) → CompleteDeferredDeath(true) 순서로 실행해 방이 먼저 클리어되지 않게 한다. CombatHealth를 새로 대체하지 않았다.
+- FrozenKnight 프리팹의 mountedDeath / deathIceEffect를 Inspector로 연결했고 Animator에 MountedDeath 상태를 추가했다. 기존 FrozenIceBurst의 작은 파편 효과를 재사용한다.
+- FrozenKnightCinematicStage에 사망 구도를 추가했다. 연출 중 군마 애니메이션/공격/이동을 멈추며 플레이어를 보호하고 조작을 잠근다. 종료 후 기존 시점과 조작으로 복귀한다.
+- 실제 Winter_Room04에서 입장/탑승/발악의 검 파괴/마지막 타격을 연결 검증했다(검 파괴는 검증 도구에서 ReceiveSpear를 3회 호출). 마지막 타격 직후 사망 보류 확인, 연출 종료 후 Died 이벤트 1회, 플레이어 조작 복구, 콘솔 오류 0건. Temp/FrozenKnight/Cinematics/MountedDeath0.1/0.5/0.9.png에 자세 캡처를 보관했다.
+
+### 사망 자세 보존 / 빙판 확산 연출
+
+- 말에서 옆으로 떨어지는 이동은 제거했다. MountedDeath 마지막 자세에서 기사와 군마 애니메이션을 멈추고 모델을 남긴다. 충돌과 이동은 종료하며, 기존 Died 이벤트로 방 클리어를 처리한다.
+- CombatHealth.CompleteDeferredDeath의 keepBody 선택 인수는 기본 false이므로 다른 사망 처리는 유지한다.
+- 검을 꽂은 직후 3.2초 동안 빙판이 퍼지고 0.7초 보여준 뒤 군마 접근으로 연결한다. 빙판 확산과 미끄러지는 표면의 범위는 같은 Growth를 사용한다.
+- PlantedSwordIceField에 누락되었던 WinterAttackVfx / WinterFrost / patch 참조를 Inspector에서 연결했다. 확산 경계에는 밝은 서리 띠를 추가했다.
+- 최종 Winter_Room04 실행 확인: 빙판 확산 캡처 확인, 사망 후 모델 활성 상태 유지, 기사/군마 Animator 속도 0, 활성 Collider 0, Died 1회, 조작 복구, 콘솔 오류 0건. 검 파괴는 검증 도구로 모의 타격했다.
+
+### 입장 보행과 발도 보정
+
+- 왕좌에서 일어나 중앙까지 맨손 보행 후 발도한다. Unarmed Walk Forward.fbx를 보스 골격에 리타겟하여 UnarmedWalk 상태에 연결했다. 대검을 뽑은 후에는 기존 Walk를 사용한다.
+- Walk / UnarmedWalk의 마지막 구간을 첫 프레임의 자세 및 접선 속도로 연결했다. 두 클립 모두 반복 경계 값/속도 차이 0 확인. 수정 전 원본은 ArtSource/FrozenKnight/*_BeforeLoop.anim에 보관한다.
+- 실제 입장 실행에서 UnarmedWalk 3주기 및 중앙 도착을 확인했다.
+- 발도 1 후반과 발도 2 초반에 손목 방향을 바깥으로 보정해 칼날이 몸통을 가로지르던 구간을 줄였다. 수정한 자세 캡처를 확인했고 콘솔 오류 0건.
+
+### 얼음벽 지속 / 군마 누적 가속
+
+- 얼음벽은 시간 만료를 무시하며 1→2페이즈 전환에서도 보존한다. 최후 발악 시작 및 사망/방 해제 시 기존 정리 경로로 제거한다.
+- 2페이즈 돌진 이동 구간의 상자 범위에 닿은 벽은 파편 효과와 함께 즉시 파괴한다. 일반 고정 장애물 뒤까지 파괴하지 않도록 거리를 제한한다.
+- 1페이즈 50% 협공의 실제 수행 돌진마다 chargeSpeedMultiplier(기본 1.2)를 곱한다. 시작 속도 17, 6회면 마지막 약 42.3. 위치 재배치 속도와 예고 시간은 유지한다.
+- 런타임 기능 검증: 만료 시간이 지난 벽 및 페이즈 정리 후 생존 확인, 1페이즈 즉시 파괴 거부, 2페이즈 돌진 구간의 벽 사망/Collider 비활성 확인. 전체 전투 수동 회피 테스트는 수행하지 않았다.

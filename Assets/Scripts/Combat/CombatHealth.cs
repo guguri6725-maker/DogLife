@@ -12,9 +12,15 @@ namespace DogLife
         [NonSerialized] public float minimumHealth;
         public float Current { get; private set; }
         bool phaseTransitionPending;
+        bool awaitingFinalHit;
         public bool Dead => Current <= 0 && !phaseTransitionPending;
         public event Action Died;
         float invulnerableUntil, restoreAt;
+        float frostProtectionUntil;
+        public bool FrostProtectionPaused {get;set;}
+        public float FrostProtectionRemaining=>Dead?0:Mathf.Max(0,frostProtectionUntil-Time.time);
+        public void GrantFrostProtection(float seconds)
+        {if(Dead)return;frostProtectionUntil=Mathf.Max(Time.time,frostProtectionUntil)+Mathf.Max(0,seconds);}
         Renderer[] renderers;
         MaterialPropertyBlock block;
         float flashUntil;
@@ -50,10 +56,13 @@ namespace DogLife
         public void Damage(float amount) { Damage(amount,false); }
         public void Damage(float amount,bool useFullPlayerDamage)
         {
-            if (Dead || phaseTransitionPending || invulnerable || Time.time < invulnerableUntil || amount <= 0) return;
-            if (TryGetComponent<CombatDamageGate>(out var gate) && gate.isActiveAndEnabled && gate.BlocksDamage(amount)) return;
+            if (Dead || phaseTransitionPending || invulnerable || Time.time < invulnerableUntil || FrostProtectionRemaining>0 || amount <= 0) return;
+            if (TryGetComponent<CombatDamageGate>(out var gate) && gate.isActiveAndEnabled)
+            {if(gate.BlocksDamage(amount))return;amount=gate.FilterDamage(amount);}
             var motor = GetComponent<PlayerMotor>();
             if (motor && motor.IsDashing) return;
+            // 발악을 공략한 보스는 피해량에 관계없이 다음 유효 타격 한 번으로 마무리됩니다.
+            if(awaitingFinalHit)amount=Mathf.Max(amount,Current);
             // 플레이어는 공격 종류와 관계없이 유효한 피격 한 번에 하트 한 칸을 잃습니다.
             if (player && !useFullPlayerDamage) amount = 1;
             Current = Mathf.Max(Mathf.Min(minimumHealth, Current), Current - amount);
@@ -74,7 +83,24 @@ namespace DogLife
             if (practiceTarget) restoreAt = Time.time + 2;
             else if (!player) gameObject.SetActive(false);
         }
-        public void Restore() { Current = maxHealth;phaseTransitionPending=false;invulnerableUntil=0;EndBlink(); }
+        public void Restore() { Current = maxHealth;phaseTransitionPending=false;awaitingFinalHit=false;invulnerableUntil=0;frostProtectionUntil=0;FrostProtectionPaused=false;EndBlink(); }
+        public void ReleaseForFinalHit()
+        {
+            if(!phaseTransitionPending)return;
+            phaseTransitionPending=false;Current=1;awaitingFinalHit=true;invulnerable=false;invulnerableUntil=0;
+        }
+        // 결정 획득 보호는 피격 무적과 합쳐 남은 시간 뒤에 누적합니다.
+        public void AddInvulnerability(float seconds){if(Dead)return;invulnerableUntil=Mathf.Max(Time.time,invulnerableUntil)+Mathf.Max(0,seconds);if(player&&seconds>0)BeginBlink();}
+        // 발악처럼 사망을 보류한 전투가 끝났을 때만 최종 사망 이벤트를 보냅니다.
+        public void CompleteDeferredDeath(bool keepBody=false)
+        {
+            if(!phaseTransitionPending)return;
+            phaseTransitionPending=false;invulnerable=false;Current=0;EndBlink();Died?.Invoke();
+            // 연출 보스는 마지막 자세의 시체를 보존할 수 있습니다.
+            if(!player&&!keepBody)gameObject.SetActive(false);
+        }
+        // 실패한 전장 전체 즉사 기믹 전용입니다. 일반 공격은 Damage를 사용합니다.
+        public void FatalDamage(){if(Dead)return;Current=0;phaseTransitionPending=false;EndBlink();Died?.Invoke();if(!player)gameObject.SetActive(false);}
         void BeginBlink()
         {
             EndBlink();blinkRenderers=GetComponentsInChildren<Renderer>(true);
@@ -96,7 +122,7 @@ namespace DogLife
             if(hidden==blinkHidden)return;blinkHidden=hidden;
             for(int i=0;i<blinkRenderers.Length;i++)if(blinkRenderers[i])blinkRenderers[i].forceRenderingOff=previousHidden[i]||hidden;
         }
-        void OnDisable(){EndBlink();invulnerableUntil=0;}
+        void OnDisable(){EndBlink();invulnerableUntil=0;frostProtectionUntil=0;FrostProtectionPaused=false;}
         public void ApplyDot() { if (isActiveAndEnabled) StartCoroutine(Dot()); }
         // 1초 간격으로 세 번 지속 피해를 줍니다.
         System.Collections.IEnumerator Dot()
@@ -105,6 +131,8 @@ namespace DogLife
         }
         void Update()
         {
+            // 수집 준비 시간에는 획득한 보호 시간을 소비하지 않습니다.
+            if(FrostProtectionPaused&&frostProtectionUntil>Time.time-Time.deltaTime)frostProtectionUntil+=Time.deltaTime;
             // 실행 중 스크립트가 다시 로드돼도 비직렬화 캐시를 복구합니다.
             if(block==null||renderers==null)CacheFlashRenderers();
             UpdateBlink();

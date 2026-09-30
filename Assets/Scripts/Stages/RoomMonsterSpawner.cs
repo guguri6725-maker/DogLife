@@ -11,6 +11,7 @@ namespace DogLife
     {
         public GameObject[] monsterPrefabs;
         [SerializeField,Tooltip("지정된 방은 일반 몬스터 대신 보스 한 마리만 소환합니다.")] private GameObject bossPrefab;
+        [SerializeField] FrozenKnightCinematicStage bossCinematicStage;
         public Vector3 spawnCenter;
         public Vector2 spawnArea = new Vector2(14, 8);
         public bool Prepared { get; private set; }
@@ -70,7 +71,7 @@ namespace DogLife
                     var boar=boss.GetComponent<SpringBoarBoss>();if(boar)boar.BindRoom(room);
                     var reaper=boss.GetComponent<HarvestReaperBoss>();if(reaper)reaper.BindRoom(room);
                     var kraken=boss.GetComponent<KrakenBoss>();if(kraken)kraken.BindRoom(room);
-                    var knight=boss.GetComponent<FrozenKnightBoss>();if(knight)knight.BindRoom(room);
+                    var knight=boss.GetComponent<FrozenKnightBoss>();if(knight){knight.BindRoom(room);knight.BindCinematicStage(bossCinematicStage);}
                     Prepared=true;yield break;
                 }
                 var pool=new List<GameObject>();

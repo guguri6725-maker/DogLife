@@ -5,5 +5,7 @@ namespace DogLife
     public abstract class CombatDamageGate : MonoBehaviour
     {
         public abstract bool BlocksDamage(float amount);
+        // 타격 횟수로 부서지는 구조물만 피해량을 1회분으로 바꿉니다.
+        public virtual float FilterDamage(float amount)=>amount;
     }
 }

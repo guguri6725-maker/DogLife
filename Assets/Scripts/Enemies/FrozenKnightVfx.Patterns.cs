@@ -4,7 +4,9 @@ namespace DogLife
 {
     public sealed partial class FrozenKnightVfx
     {
-        public enum Theme { Auto, Slash, Crack, Burst, Fury, HorseCharge, Charge, Stomp, MultiCharge, MountedFury, BladeCharge, BladeFlight, PlantedBlade, IceTrail, SwordField, Summon }
+        public enum Theme { Auto, Slash, Crack, Burst, Fury, HorseCharge, Charge, Stomp, MultiCharge, MountedFury, BladeCharge, BladeFlight, PlantedBlade, IceTrail, SwordField, Summon, MultiReady, RoyalReady, BladeWave, ColdField, SwordConjure, SpearAim }
+        int chargeIndex,chargeCount=1;
+        public void SetChargeSequence(int index,int count){chargeIndex=index;chargeCount=Mathf.Max(1,count);}
         [Header("기사의 얼음 / 은백색 공통 재질")]
         [SerializeField] Color iceTint=new Color(.36f,.68f,.88f,1);
         [SerializeField,Range(.2f,2)] float ornamentIntensity=1;
@@ -20,6 +22,7 @@ namespace DogLife
                 case FrozenKnightBoss.Pattern.FrostBurst:return Theme.Burst;
                 case FrozenKnightBoss.Pattern.SwordFury:return Theme.Fury;
                 case FrozenKnightBoss.Pattern.Charge:return Theme.Charge;
+                case FrozenKnightBoss.Pattern.CloneCharge:return Theme.MountedFury;
                 case FrozenKnightBoss.Pattern.Stomp:return Theme.Stomp;
                 case FrozenKnightBoss.Pattern.MultiCharge:return Theme.MultiCharge;
                 case FrozenKnightBoss.Pattern.MountedFury:return Theme.MountedFury;
@@ -90,9 +93,41 @@ namespace DogLife
         {
             Clear();Vector3 c=origin+Vector3.up*floorOffset;Color accent=Accent();float age=Time.time-started;
             if(theme==Theme.BladeCharge||theme==Theme.BladeFlight){DrawBladeAura(accent,age);Submit(areaMesh);return;}
+            // 시작 문장은 피해 범위가 아니므로 일반 범위 테두리를 그리지 않습니다.
+            if(theme==Theme.MultiReady||theme==Theme.RoyalReady){DrawChargeEmblem(c,age,theme==Theme.RoyalReady);Submit(areaMesh);return;}
+            if(theme==Theme.SpearAim)
+            {
+                Vector3 side=Vector3.Cross(Vector3.up,direction),end=c+direction*length;
+                Stroke(c,end,.065f,Ink(Color.white,.65f));
+                for(int i=1;i<=5;i++){Vector3 p=c+direction*length*i/6;Stroke(p-direction*.6f+side*.45f,p,.1f,Ink(iceTint,.9f));Stroke(p-direction*.6f-side*.45f,p,.1f,Ink(iceTint,.9f));}
+                Submit(areaMesh);return;
+            }
+            if(theme==Theme.SwordConjure)
+            {
+                // 칼날 주변을 감싸 올라가는 냉기입니다. 수평 원판은 그리지 않습니다.
+                Vector3 tip=swordTip?swordTip.position:c,grip=swordBase?swordBase.position:c+Vector3.up*3;
+                Vector3 axis=(grip-tip).normalized,side=Vector3.Cross(axis,Vector3.right).normalized;if(side.sqrMagnitude<.1f)side=Vector3.forward;
+                Vector3 cross=Vector3.Cross(axis,side);
+                for(int band=0;band<4;band++)for(int j=0;j<20;j++)
+                {
+                    float u=j/20f,v=(j+1)/20f,a=age*5+band*Mathf.PI*.5f+u*7,b=age*5+band*Mathf.PI*.5f+v*7;
+                    Vector3 p=Vector3.Lerp(tip,grip,u)+(side*Mathf.Cos(a)+cross*Mathf.Sin(a))*(.2f+.2f*Mathf.Sin(u*Mathf.PI));
+                    Vector3 q=Vector3.Lerp(tip,grip,v)+(side*Mathf.Cos(b)+cross*Mathf.Sin(b))*(.2f+.2f*Mathf.Sin(v*Mathf.PI));
+                    Stroke(p,q,.075f,Ink(Color.Lerp(iceTint,Color.white,u),.7f));
+                }
+                for(int i=0;i<14;i++){float t=Mathf.Repeat(age*.5f+i*.071f,1);Vector3 p=Vector3.Lerp(tip,grip,t)+Radial(i*137+age*80,.45f);Shard(p,i*73,.14f,.06f,Ink(Color.white,.8f));}
+                Submit(areaMesh);return;
+            }
             Boundary(c,accent);
+            DrawWarningFill(c);
             switch(theme)
             {
+                case Theme.BladeWave:
+                    Arc(c,length,0,360,.15f,Ink(Color.white,.95f),.16f);Arc(c,length-.2f,0,360,.18f,Ink(iceTint,.85f));break;
+                case Theme.ColdField:
+                    if(active)DrawBlizzard(c,age);
+                    else for(int i=0;i<24;i++){float a=i*137.5f,r=length*Mathf.Sqrt((i+1f)/24);Vector3 p=c+Radial(a+age*3,r);Snowflake(p+Vector3.up*.2f,.25f,Ink(Color.white,.4f));}
+                    break;
                 case Theme.Slash:
                     // 경고는 고정된 부채꼴입니다. 발동 시에만 실제 칼끝 이동을 바닥에 투영합니다.
                     if(active)DrawSlashSweep(c,accent);
@@ -128,6 +163,28 @@ namespace DogLife
             }
             Submit(areaMesh);
         }
+        void DrawBlizzard(Vector3 c,float age)
+        {
+            // 가을 보스의 입체 회오리와 같은 방식으로 냉기 띠와 눈 입자를 전장에 흘립니다.
+            float radius=Mathf.Min(length,28);
+            for(int band=0;band<7;band++)for(int j=0;j<40;j++)
+            {
+                float u=j/40f,v=(j+1)/40f,r=radius*(.2f+band*.135f),spin=age*65+band*61;
+                Vector3 a=c+Radial(spin+u*270,r)+Vector3.up*(.3f+Mathf.Sin(u*Mathf.PI)*4);
+                Vector3 b=c+Radial(spin+v*270,r)+Vector3.up*(.3f+Mathf.Sin(v*Mathf.PI)*4);
+                Quad(a,b,b+Vector3.up*.45f,a+Vector3.up*.45f,Ink(iceTint,.28f*Mathf.Sin(u*Mathf.PI)));
+            }
+            var camera=Camera.main;Vector3 right=camera?camera.transform.right:Vector3.right,up=camera?camera.transform.up:Vector3.up;
+            for(int i=0;i<240;i++)
+            {
+                float r=radius*Mathf.Sqrt(Mathf.Repeat(i*.618f,1)),a=i*137.5f+age*(32+i%6*7);
+                Vector3 p=c+Radial(a,r)+Vector3.up*(.25f+Mathf.Repeat(i*.37f-age*.24f,1)*6);
+                float s=.09f+(i%4)*.04f;Vector3 x=right*s,y=up*s;
+                Quad(p-x,p+y,p+x,p-y,Ink(Color.white,.82f));
+                Vector3 trail=Radial(a+90,.35f)+Vector3.up*.08f;
+                Quad(p-x*.25f,p+x*.25f,p+trail+x*.25f,p+trail-x*.25f,Ink(Color.white,.25f));
+            }
+        }
         void DrawSlashSweep(Vector3 center,Color accent)
         {
             Vector3 forward=Vector3.ProjectOnPlane(direction,Vector3.up).normalized;bool previousValid=false;float previous=0;
@@ -143,6 +200,32 @@ namespace DogLife
                     Arc(center+Vector3.up*.04f,length*.84f,previous,a,.09f,Ink(accent,.6f));
                 }
                 previous=a;previousValid=true;
+            }
+        }
+        void DrawWarningFill(Vector3 center)
+        {
+            if(warningProgress<0)return;
+            float p=warningProgress;if(p<=0)return;
+            // 고정된 전체 경고 위에 밝은 얼음색을 덧씌웁니다. 안전한 안쪽 고리는 채우지 않습니다.
+            Vector3 c=center+Vector3.up*.012f;Color fill=new Color(.55f,.88f,1,active?.42f:.55f);
+            if(shape==Shape.Line)
+            {
+                Vector3 side=Vector3.Cross(Vector3.up,direction).normalized*width*.5f,end=c+direction*(length*p);
+                Quad(c-side,c+side,end+side,end-side,fill);Stroke(end-side,end+side,edgeWidth,Color.white);
+            }
+            else
+            {
+                float angle=shape==Shape.Sector?width:360,inner=shape==Shape.Ring?Mathf.Min(width,length):0;
+                float radius=shape==Shape.Sector?length:Mathf.Lerp(inner,length,p);
+                float from=-angle*.5f,to=shape==Shape.Sector?Mathf.Lerp(from,angle*.5f,p):angle*.5f;
+                if(shape==Shape.Sector&&reverseWarning){from=angle*.5f;to=Mathf.Lerp(from,-angle*.5f,p);}
+                for(int i=0;i<segments;i++)
+                {
+                    float a=Mathf.Lerp(from,to,i/(float)segments),b=Mathf.Lerp(from,to,(i+1f)/segments);
+                    Quad(c+Radial(a,inner),c+Radial(a,radius),c+Radial(b,radius),c+Radial(b,inner),fill);
+                }
+                if(shape==Shape.Sector)Stroke(c,c+Radial(to,radius),edgeWidth,Color.white);
+                else Arc(c,radius,0,360,edgeWidth,Color.white);
             }
         }
         void DrawCrack(Vector3 c,Color accent,float age)
@@ -196,6 +279,22 @@ namespace DogLife
         {
             Vector3 side=Vector3.Cross(Vector3.up,direction).normalized;int n=Mathf.Clamp(Mathf.CeilToInt(length/2),3,18);
             bool royal=theme==Theme.MountedFury,multi=theme==Theme.MultiCharge;
+            if(royal||multi)
+            {
+                // 남은 돌진 수를 경로 입구의 얼음 문장으로 표시합니다.
+                for(int j=chargeIndex;j<chargeCount;j++)
+                {
+                    Vector3 mark=c+direction*.65f+side*((j-(chargeCount-1)*.5f)*.55f);
+                    Stroke(mark-direction*.25f-side*.18f,mark+direction*.2f,.1f,Ink(Color.white,.9f));
+                    Stroke(mark+direction*.2f,mark-direction*.25f+side*.18f,.1f,Ink(Color.white,.9f));
+                }
+                if(royal&&!active)for(int j=0;j<4;j++)
+                {
+                    Vector3 p=c+direction*(length*(j+.5f)/4);
+                    IcePlate(p-side*width*.45f,Quaternion.LookRotation(direction),.4f,.75f,.16f,.55f);
+                    IcePlate(p+side*width*.45f,Quaternion.LookRotation(direction),.4f,.75f,.16f,.55f);
+                }
+            }
             for(int i=0;i<n;i++)
             {
                 float u=(i+.5f)/n;Vector3 p=c+direction*(length*u);float half=width*.36f;
@@ -208,6 +307,29 @@ namespace DogLife
             }
             if(active)for(int j=0;j<3;j++)
             {float u=Mathf.Repeat(age*1.6f+j*.33f,1);Vector3 p=c+direction*(length*u);Stroke(p-side*width*.42f,p+side*width*.42f,.16f,Ink(Color.white,.6f*(1-u)));}
+        }
+        void DrawChargeEmblem(Vector3 c,float age,bool royal)
+        {
+            float rise=Mathf.SmoothStep(0,1,Mathf.Clamp01(age/.65f));
+            Vector3 side=Vector3.Cross(Vector3.up,direction).normalized;
+            if(royal)
+            {
+                // 기사 왕관을 닮은 다섯 장의 얼음날이 군마 뒤에서 솟아 특별한 돌격을 예고합니다.
+                Vector3 back=c-direction*.8f+Vector3.up*(4+rise*.7f);
+                for(int i=-2;i<=2;i++)IcePlate(back+side*i*1.05f,Quaternion.LookRotation(direction)*Quaternion.Euler(0,0,-i*12),.7f,(3-Mathf.Abs(i)*.6f)*rise,.25f,.8f);
+                Arc(c,length,0,360,.1f,Ink(Color.white,.8f));
+                Snowflake(c,length*.75f,Ink(iceTint,.7f));
+                for(int i=0;i<6;i++){float a=i*60;Stroke(c+Radial(a,length*.7f),c+Radial(a,length*(1.2f-rise*.25f)),.08f,Ink(Color.white,.7f));}
+            }
+            else
+            {
+                for(int i=0;i<chargeCount;i++)
+                {
+                    Vector3 p=c+direction*(1+i*.8f);float w=.8f+i*.15f;
+                    Stroke(p-side*w-direction*.4f,p+direction*.25f,.16f,Ink(Color.white,.65f+.3f*Mathf.Sin(age*8-i)));
+                    Stroke(p+direction*.25f,p+side*w-direction*.4f,.16f,Ink(Color.white,.65f+.3f*Mathf.Sin(age*8-i)));
+                }
+            }
         }
         void DrawAurora(Vector3 c,float inner,Color accent,float age)
         {

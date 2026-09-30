@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -10,7 +10,7 @@ namespace DogLife
     [RequireComponent(typeof(CombatHealth),typeof(NavMeshAgent),typeof(Rigidbody))]
     public sealed partial class FrozenKnightBoss : CombatPhaseTransition
     {
-        public enum Pattern { Combo, Crack, IceBlade, FrostBurst, SwordFury, Charge, RideSlash, Stomp, MultiCharge, MountedFury, MountedIceBlades }
+        public enum Pattern { Combo, Crack, IceBlade, FrostBurst, SwordFury, Charge, RideSlash, Stomp, MultiCharge, MountedFury, MountedIceBlades, IcePillars, ExpandingBlade, ColdWave, CloneCharge, SummonMinions, RemoteSword, FinalStand }
         public enum CombatState { Idle, Warning, Attack, Active, Recovery, Transition, Reposition, Groggy, Dead }
         [Serializable] public class Attack
         {
@@ -51,12 +51,6 @@ namespace DogLife
             public Attack attack=new Attack{damage=2,range=4.5f,warning=1.2f,duration=.55f,recovery=2.2f,cooldown=8,knockback=6};
             [Min(.1f)] public float speed=8,distance=15,sideOffset=2.5f,hitDistance=5;
         }
-        [Serializable] public class MultiSettings
-        {
-            [Min(1)] public int count=3;
-            public RideSettings ride=new RideSettings();
-            [Min(0)] public float delay=.6f,groggy=3.5f,cooldown=14;
-        }
         [Serializable] public class MountedSpecialSettings
         {
             [Range(0,1)] public float triggerHP=.5f;
@@ -83,6 +77,8 @@ namespace DogLife
         [SerializeField,Min(.1f)] float walkSpeed=2.1f,rideMoveSpeed=5,turnSpeed=120,engageRange=40,entryInset=3,initialDelay=2,globalCooldown=1.1f;
         [Header("군마 보행 재생 속도")]
         [SerializeField,Min(.1f)] float horseWalkReferenceSpeed=3.2f,horseWalkMinimumRate=.25f,horseWalkMaximumRate=2.2f;
+        [Header("기마 패턴 예고 / 선택")]
+        [SerializeField,Min(.1f)] float mountedFuryIntroduction=2.4f,chargeEmblemRadius=3;
         [SerializeField,Min(.1f)] float closeRange=5,closeDwell=4,navSampleRadius=3,navUpdateInterval=.25f,attackApproachDistance=5.5f;
         [Header("판정 공통")]
         [SerializeField,Min(.01f)] float hitHeight=3,knockbackDuration=.45f,attackLeadTime=.12f,minimumAttackTime=.05f;
@@ -107,11 +103,10 @@ namespace DogLife
         [SerializeField] RideSettings charge=new RideSettings();
         [SerializeField] RideSlashSettings rideSlash=new RideSlashSettings();
         [SerializeField] Attack stomp=new Attack{damage=2,range=6,warning=1.4f,duration=.4f,recovery=2,cooldown=10,knockback=10,lift=3};
-        [SerializeField] MultiSettings multiCharge=new MultiSettings();
         [SerializeField] MountedSpecialSettings mountedFury=new MountedSpecialSettings();
         readonly HashSet<CombatHealth> hits=new HashSet<CombatHealth>();
         readonly List<FrozenKnightHazard> hazards=new List<FrozenKnightHazard>();
-        readonly float[] cooldowns=new float[11];
+        readonly float[] cooldowns=new float[18];
         readonly List<Pattern> candidates=new List<Pattern>();
         readonly Collider[] ringContacts=new Collider[64];
         CombatHealth health,target;
@@ -154,19 +149,24 @@ namespace DogLife
         {
             player=FindFirstObjectByType<PlayerMotor>();if(player){target=player.GetComponent<CombatHealth>();var body=GetComponent<Collider>();if(body)foreach(var c in player.GetComponents<Collider>())Physics.IgnoreCollision(body,c);}
             if(!room)room=GetComponentInParent<ForestRoom>();Play(knightAnimator,"Idle");
+            initialArenaCenter=arenaCenter?arenaCenter.position:room?new Vector3((room.entryX+room.exitX)*.5f,transform.position.y,room.transform.position.z):transform.position;
+            // 씬에서 보스를 바닥 위에 배치해도 전장 연출은 실제 이동 바닥에 놓습니다.
+            if(NavMesh.SamplePosition(initialArenaCenter,out var arenaFloor,Mathf.Max(navSampleRadius,10),agent.areaMask))initialArenaCenter=arenaFloor.position;
             if(showWaitingHorse)
             {
                 // 1페이즈부터 떨어진 곳에 군마를 배치해 실제로 기다리다가 접근하게 합니다.
-                horseWaitingPosition=HorseArrivalRoute(transform.position)[0];horseWaitingRotation=Quaternion.LookRotation(Flat(transform.position-horseWaitingPosition));
+                horseWaitingPosition=HorseArrivalRoute(initialArenaCenter)[0];horseWaitingRotation=Quaternion.LookRotation(Flat(initialArenaCenter-horseWaitingPosition));
                 horseRoot.SetPositionAndRotation(horseWaitingPosition,horseWaitingRotation);horseRoot.gameObject.SetActive(true);horseWaiting=true;Play(horseAnimator,"Idle");
             }
+            PrepareIntroduction();
         }
         public void BindRoom(ForestRoom value){room=value;}
         void LateUpdate()
         {
+            UpdateIntroductionSword();
             // 탑승 위치 보정 후 검의 월드 위치를 고정해야 검이 군마를 따라 움직이지 않습니다.
             if(PhaseNumber==2&&mountSeat&&riderRoot)riderRoot.position=mountSeat.position;
-            else if(horseWaiting&&State!=CombatState.Transition)horseRoot.SetPositionAndRotation(horseWaitingPosition,horseWaitingRotation);
+            else if(horseWaiting)horseRoot.SetPositionAndRotation(horseWaitingPosition,horseWaitingRotation);
             if(iceFieldActive&&swordIcePatch)swordIcePatch.transform.position=iceFieldPosition;
             // 손을 놓아도 검은 월드 위치를 유지하고, 회수 동작에서 다시 손잡이를 잡습니다.
             if(knightAnimator&&swordRoot)
@@ -180,27 +180,27 @@ namespace DogLife
                     swordRoot.SetParent(transform,true);
                 }
                 if(retrievingSword&&pose.IsName("PlantRetrieve")&&pose.normalizedTime>=swordRegripTime)RestoreSwordGrip();
-                if(swordPlanted)swordRoot.SetPositionAndRotation(plantedSwordPosition,plantedSwordRotation);
+                if(swordPlanted&&!remoteSwordActive)swordRoot.SetPositionAndRotation(plantedSwordPosition,plantedSwordRotation);
             }
         }
         void Update()
         {
+            ResetIntroductionSword();
             if(!health||health.Dead||!target||target.Dead)return;
             if(room&&player.transform.position.x<room.entryX+entryInset)return;
-            float distance=Vector3.Distance(player.transform.position,transform.position);
+            if(awaitingIntroduction){StartCoroutine(Introduction());return;}
+            float distance=GroundDistance(player.transform.position,transform.position);
             if(!engaged){if(distance>engageRange)return;engaged=true;nextAttack=Time.time+initialDelay;}
             if(State==CombatState.Transition)return;
             TickCavalryField();
-            bool used=PhaseNumber==1?Phase1SpecialUsed:Phase2SpecialUsed;
-            float threshold=PhaseNumber==1?swordFury.triggerHP:mountedFury.triggerHP;
-            if(!used&&health.Current/Mathf.Max(1,health.maxHealth)<=threshold)pendingSpecial=true;
             // 실제 폭발 범위 안에서 머문 시간을 누적합니다. 다른 공격이 끝나도 대기 시간을 지우지 않습니다.
-            float proximity=PhaseNumber==1?frostBurst.range:closeRange;
+            float proximity=PhaseNumber==1?frostBurst.range:stomp.range;
             closeTime=Vector3.ProjectOnPlane(player.transform.position-transform.position,Vector3.up).magnitude<=proximity?closeTime+Time.deltaTime:0;
             if(busy||CombatFeedback.Paused(this))return;
-            if(pendingSpecial){pendingSpecial=false;Begin(PhaseNumber==1?Pattern.SwordFury:Pattern.MountedFury);return;}
+            if(ThresholdAttack())return;
             Aim(false);
-            if(distance>attackApproachDistance&&Nav)
+            if(MaintainRangedSpacing(distance)){if(busy)return;}
+            else if(distance>attackApproachDistance&&Nav)
             {
                 agent.isStopped=false;agent.speed=PhaseNumber==1?walkSpeed:rideMoveSpeed;
                 if(Time.time>=nextPath){nextPath=Time.time+navUpdateInterval;agent.SetDestination(player.transform.position);}
@@ -213,6 +213,8 @@ namespace DogLife
         {
             // 근접 체류 조건을 만족하면 무작위 선택 때문에 폭발이 계속 밀리지 않게 우선 실행합니다.
             if(PhaseNumber==1&&closeTime>=closeDwell&&Time.time>=cooldowns[(int)Pattern.FrostBurst]&&previous!=(int)Pattern.FrostBurst)return Pattern.FrostBurst;
+            // 발구르기는 보이는 원형 범위 안의 체류로 발동하며 다른 무작위 패턴보다 우선합니다.
+            if(PhaseNumber==2&&closeTime>=closeDwell&&Time.time>=cooldowns[(int)Pattern.Stomp]&&previous!=(int)Pattern.Stomp)return Pattern.Stomp;
             candidates.Clear();int start=PhaseNumber==1?0:5;
             for(int i=start;i<start+4;i++)
             {
@@ -220,25 +222,37 @@ namespace DogLife
                 if(PhaseNumber==1&&i<2&&distance>attackApproachDistance)continue;
                 if(i==(int)Pattern.IceBlade)continue; // 기존 Enum 번호는 유지하되 검기 패턴은 제거합니다.
                 if(i==(int)Pattern.RideSlash)continue;
+                if(i==(int)Pattern.MultiCharge)continue; // 제거한 연속 질주의 Enum 번호는 저장 호환용으로만 유지합니다.
                 if((i==3||i==7)&&closeTime<closeDwell)continue;
                 candidates.Add((Pattern)i);
             }
             if(PhaseNumber==2&&Time.time>=cooldowns[(int)Pattern.MountedIceBlades]&&previous!=(int)Pattern.MountedIceBlades)candidates.Add(Pattern.MountedIceBlades);
+            AddCandidate(Pattern.IcePillars);
+            if(PhaseNumber==1)AddCandidate(Pattern.ExpandingBlade);
+            else{AddCandidate(Pattern.CloneCharge);AddCandidate(Pattern.RemoteSword);summonedMinions.RemoveAll(h=>!h||h.Dead||!h.gameObject.activeInHierarchy);if(summonedMinions.Count<maxMinions)AddCandidate(Pattern.SummonMinions);}
             // 직전 패턴밖에 준비되지 않았다면 잠깐 기다려 같은 패턴의 연속 사용을 피합니다.
             return candidates.Count==0?(Pattern?)null:candidates[UnityEngine.Random.Range(0,candidates.Count)];
         }
         public bool Begin(Pattern pattern)
         {
-            if(pattern==Pattern.IceBlade||pattern==Pattern.RideSlash)return false;
+            if(pattern==Pattern.IceBlade||pattern==Pattern.RideSlash||pattern==Pattern.MultiCharge||pattern==Pattern.MountedFury||pattern==Pattern.FinalStand)return false;
             if(busy||!CanDealDamage)return false;
-            if((PhaseNumber==1&&(int)pattern>=5)||(PhaseNumber==2&&(int)pattern<5))return false;
+            if(PhaseNumber==1&&((int)pattern>=5&&(int)pattern<=10||(int)pattern>=14))return false;
+            if(PhaseNumber==2&&((int)pattern<5||pattern==Pattern.ExpandingBlade||pattern==Pattern.ColdWave))return false;
             if(pattern==Pattern.SwordFury){if(Phase1SpecialUsed)return false;Phase1SpecialUsed=true;}
             if(pattern==Pattern.MountedFury){if(Phase2SpecialUsed)return false;Phase2SpecialUsed=true;}
-            CurrentPattern=pattern;busy=true;StopMovement();Aim(true);
+            CurrentPattern=pattern;busy=true;StopMovement();
             StartCoroutine(Run(pattern));return true;
         }
         IEnumerator Run(Pattern pattern)
         {
+            // 시전 전에 발을 디디며 방향을 맞추고, 준비 중에는 공격을 켜지 않습니다.
+            yield return FaceBeforeCast();
+            // 체력 기믹은 중앙, 원거리 기술은 확보한 거리에서 준비합니다.
+            if(pattern==Pattern.ColdWave||pattern==Pattern.SwordFury)yield return MoveToArenaCenter(false);
+            else if(RangedPattern(pattern))yield return MakeRangedSpace();
+            if(!target||target.Dead)yield break;
+            Aim(true);
             switch(pattern)
             {
                 case Pattern.Combo:yield return Combo();break;
@@ -248,23 +262,37 @@ namespace DogLife
                 case Pattern.Charge:yield return Charge(charge,charge.attack.damage,charge.attack.width,charge.attack.warning,false);yield return Recover(charge.attack.recovery);break;
                 case Pattern.MountedIceBlades:yield return MountedIceBlades();break;
                 case Pattern.Stomp:yield return Burst(stomp,true);break;
-                case Pattern.MultiCharge:
-                    for(int i=0;i<Mathf.Max(1,multiCharge.count);i++){yield return Charge(multiCharge.ride,multiCharge.ride.attack.damage,multiCharge.ride.attack.width,multiCharge.ride.attack.warning,false);if(i+1<multiCharge.count)yield return Stage(CombatState.Recovery,multiCharge.delay,"MountedIdle");}
-                    yield return Recover(multiCharge.groggy,true);break;
                 case Pattern.MountedFury:yield return MountedFury();break;
+                case Pattern.IcePillars:yield return IcePillars();break;
+                case Pattern.ExpandingBlade:yield return ExpandingBlade();break;
+                case Pattern.ColdWave:yield return ColdWave();break;
+                case Pattern.CloneCharge:yield return CloneRush();break;
+                case Pattern.SummonMinions:yield return SummonWinterMinions();break;
+                case Pattern.RemoteSword:yield return RemoteSword();break;
             }
             Disarm();effects.Hide();previous=(int)pattern;cooldowns[(int)pattern]=Time.time+Cooldown(pattern);
+            rangedHoldUntil=RangedPattern(pattern)?Time.time+rangedHoldTime:0;
             nextAttack=Time.time+globalCooldown;if(pattern==Pattern.FrostBurst||pattern==Pattern.Stomp)closeTime=0;State=CombatState.Idle;busy=false;PlayLocomotion(false);
         }
         float Cooldown(Pattern p)
         {
             if(p==Pattern.MountedIceBlades)return mountedBlades.cooldown;
-            switch(p){case Pattern.Combo:return combo.cooldown;case Pattern.Crack:return crack.sword.cooldown;case Pattern.IceBlade:return iceBlade.attack.cooldown;case Pattern.FrostBurst:return frostBurst.cooldown;case Pattern.Charge:return charge.attack.cooldown;case Pattern.RideSlash:return rideSlash.attack.cooldown;case Pattern.Stomp:return stomp.cooldown;case Pattern.MultiCharge:return multiCharge.cooldown;default:return globalCooldown;}
+            if(p==Pattern.IcePillars)return pillarCooldown;
+            if(p==Pattern.ExpandingBlade)return waveCooldown;
+            if(p==Pattern.CloneCharge)return cloneCooldown;
+            if(p==Pattern.SummonMinions)return minionCooldown;
+            if(p==Pattern.RemoteSword)return remoteSwordCooldown;
+            switch(p){case Pattern.Combo:return combo.cooldown;case Pattern.Crack:return crack.sword.cooldown;case Pattern.IceBlade:return iceBlade.attack.cooldown;case Pattern.FrostBurst:return frostBurst.cooldown;case Pattern.Charge:return charge.attack.cooldown;case Pattern.RideSlash:return rideSlash.attack.cooldown;case Pattern.Stomp:return stomp.cooldown;default:return globalCooldown;}
         }
-        IEnumerator Stage(CombatState state,float duration,string animation=null)
+        IEnumerator Stage(CombatState state,float duration,string animation=null,FrozenKnightVfx progressVfx=null,float progressFrom=0,float progressTo=1)
         {
             State=state;if(animation!=null)Play(knightAnimator,animation,duration);
-            for(float elapsed=0;elapsed<Mathf.Max(minimumAttackTime,duration);){if(!CombatFeedback.Paused(this))elapsed+=Time.deltaTime;yield return null;}
+            for(float elapsed=0;elapsed<Mathf.Max(minimumAttackTime,duration);)
+            {
+                if(progressVfx)progressVfx.SetWarningProgress(Mathf.Lerp(progressFrom,progressTo,elapsed/Mathf.Max(minimumAttackTime,duration)));
+                if(!CombatFeedback.Paused(this))elapsed+=Time.deltaTime;yield return null;
+            }
+            if(progressVfx)progressVfx.SetWarningProgress(progressTo);
         }
         IEnumerator Recover(float duration,bool groggy=false)
         {
@@ -314,6 +342,12 @@ namespace DogLife
                     shown=next;var attack=attacks[next];swordRoot.localScale=swordScale;
                     effects.Show(fissure?FrozenKnightVfx.Shape.Line:FrozenKnightVfx.Shape.Sector,transform.position,Forward,fissure?crack.length:attack.range,fissure?crack.width:meleeSectorAngle);
                 }
+                if(fissure&&!crackStarted)effects.SetWarningProgress(t/Mathf.Max(.001f,slamImpactTime+crack.delay/length));
+                else if(!fissure&&next>=0&&hit<0)
+                {
+                    float start=next==0?0:windows[next-1].y;
+                    effects.SetWarningProgress(Mathf.InverseLerp(start,windows[next].x,t),next==0);
+                }
                 if(hit!=armed)
                 {
                     swordArea.Disarm();radialArea.Disarm();armed=hit;
@@ -337,10 +371,10 @@ namespace DogLife
             }
             swordArea.Disarm();radialArea.Disarm();crackArea.Disarm();effects.Hide();
         }
-        IEnumerator PlantSword(float duration,CombatState plantState=CombatState.Warning)
+        IEnumerator PlantSword(float duration,CombatState plantState=CombatState.Warning,FrozenKnightVfx progressVfx=null)
         {
             RestoreSwordGrip();swordRoot.localScale=swordScale;plantingSword=true;
-            yield return Stage(plantState,duration,"Plant");
+            yield return Stage(plantState,duration,"Plant",progressVfx,0,.9f);
             // CrossFade가 차지한 시간까지 기다려 검이 바닥에 닿기 전에 판정이 나오지 않게 합니다.
             if(!knightAnimator||!knightAnimator.isActiveAndEnabled)yield break;
             for(float t=0;t<duration;t+=Time.deltaTime)
@@ -354,20 +388,24 @@ namespace DogLife
         {
             effects.Show(FrozenKnightVfx.Shape.Ring,transform.position,Forward,a.range,0);
             if(mounted)Play(horseAnimator,"Rear",a.warning);
-            if(mounted)yield return Stage(CombatState.Warning,a.warning,"MountedReady");else yield return PlantSword(a.warning);
-            yield return Stage(CombatState.Attack,attackLeadTime);
+            float clipTime=0;
+            if(mounted)yield return Stage(CombatState.Warning,a.warning,"MountedStompReady",effects,0,.9f);
+            else {clipTime=StartNativeCast("PushUpper");yield return Stage(CombatState.Warning,clipTime*pushCastMoment,null,effects,0,.9f);}
+            yield return Stage(CombatState.Attack,attackLeadTime,null,effects,.9f,1);
             if(mounted)Play(horseAnimator,"Stomp",a.duration);
             radialArea.transform.SetPositionAndRotation(transform.position,Quaternion.LookRotation(Forward));
             radialArea.ArmSector(this,a.damage,a.knockback,a.lift,a.range,360,hitHeight);effects.Activate();
-            // 비탑승 상태는 검을 꽂은 마지막 자세를 유지하며 폭발시킵니다.
-            yield return Stage(CombatState.Active,a.duration,mounted?"MountedImpact":null);radialArea.Disarm();yield return Recover(a.recovery);
+            // 비탑승 폭발은 밀어내기 상체 동작을 유지하고 하체는 서 있는 자세를 보존합니다.
+            yield return Stage(CombatState.Active,a.duration,mounted?"MountedStompImpact":null);radialArea.Disarm();
+            if(!mounted&&clipTime*(1-pushCastMoment)>attackLeadTime+a.duration)yield return Stage(CombatState.Recovery,clipTime*(1-pushCastMoment)-attackLeadTime-a.duration);
+            yield return Recover(a.recovery);
         }
         IEnumerator SwordFury(){yield return CavalryFury();}
         IEnumerator Charge(RideSettings settings,float amount,float width,float warning,bool leaveTrail)
         {
             Aim(true);effects.Show(FrozenKnightVfx.Shape.Line,transform.position,Forward,settings.attack.range,width);
-            Play(horseAnimator,"Rear",warning);yield return Stage(CombatState.Warning,warning,"MountedReady");
-            yield return Stage(CombatState.Attack,attackLeadTime);
+            Play(horseAnimator,"Rear",warning);yield return Stage(CombatState.Warning,warning,"MountedStompReady",effects,0,.9f);
+            yield return Stage(CombatState.Attack,attackLeadTime,null,effects,.9f,1);
             SetBox(chargeArea,width,settings.attack.width,false);hits.Clear();chargeArea.Arm(this,amount,settings.attack.knockback,settings.attack.lift,hits);
             effects.Activate();Play(horseAnimator,"Gallop");Play(knightAnimator,"MountedCharge");State=CombatState.Active;
             float travelled=0,trailTravel=0;Vector3 trailStart=transform.position;FrozenKnightHazard trail=null;bool trailStarted=false;
@@ -375,7 +413,9 @@ namespace DogLife
             {
                 if(CombatFeedback.Paused(this)){yield return null;continue;}
                 if(leaveTrail&&trailStarted&&!trail){trailStart=transform.position;trailTravel=0;trailStarted=false;}
-                float step=Mathf.Min(settings.speed*Time.deltaTime,settings.attack.range-travelled);float moved=MoveStraight(Forward,step);
+                float step=Mathf.Min(settings.speed*Time.deltaTime,settings.attack.range-travelled);
+                BreakWallsInCharge(Forward,step,width);
+                float moved=MoveStraight(Forward,step);
                 travelled+=moved;trailTravel+=moved;
                 if(leaveTrail&&trailTravel>=mountedFury.trailSpacing)
                 {
@@ -391,6 +431,8 @@ namespace DogLife
         }
         IEnumerator MountedFury()
         {
+            // HP 특수 패턴 시작은 이동 전에 독립된 문장 연출로 알립니다. 이때 피해 판정은 없습니다.
+            yield return ChargeIntroduction();
             State=CombatState.Reposition;effects.Hide();
             Vector3 desired=specialEntry?specialEntry.position:transform.position-Flat(player.transform.position-transform.position)*mountedFury.edgeDistance;
             if(Nav&&NavMesh.SamplePosition(desired,out var point,navSampleRadius,new NavMeshQueryFilter{agentTypeID=agent.agentTypeID,areaMask=agent.areaMask}))
@@ -404,10 +446,19 @@ namespace DogLife
             for(int i=0;i<Mathf.Max(1,mountedFury.count);i++)
             {
                 bool final=i==Mathf.Max(1,mountedFury.count)-1;
+                effects.SetChargeSequence(i,mountedFury.count);
                 yield return Charge(ride,final?mountedFury.finalDamage:mountedFury.damage,final?mountedFury.finalWidth:mountedFury.width,final?mountedFury.finalWarning:mountedFury.warning,true);
                 if(!final)yield return Stage(CombatState.Recovery,mountedFury.delay,"MountedIdle");
             }
             yield return Recover(mountedFury.groggy,true);ClearHazards();
+        }
+        IEnumerator ChargeIntroduction()
+        {
+            Disarm();StopMovement();float duration=mountedFuryIntroduction;
+            effects.SetChargeSequence(0,mountedFury.count);
+            effects.Show(FrozenKnightVfx.Shape.Ring,transform.position,Forward,chargeEmblemRadius,0,FrozenKnightVfx.Theme.RoyalReady);
+            Play(horseAnimator,"Rear",duration);
+            yield return Stage(CombatState.Warning,duration,"MountedReady");effects.Hide();
         }
         FrozenKnightHazard SpawnTrail(Vector3 from,Vector3 to)
         {
@@ -418,23 +469,54 @@ namespace DogLife
         }
         public override bool TryBeginNextPhase()
         {
+            if(PhaseNumber==2&&finaleUsed&&mountedDeath&&!deathCinematicStarted)
+            {
+                deathCinematicStarted=true;StopAllCoroutines();ClearEncounterObjects();ClearCavalryEffects();ClearHazards();Disarm();StopMovement();
+                busy=true;health.invulnerable=true;State=CombatState.Transition;if(effects)effects.Hide();
+                StartCoroutine(DeathCinematic());return true;
+            }
+            if(PhaseNumber==2&&!finaleUsed)
+            {
+                finaleUsed=true;StopAllCoroutines();ClearCavalryEffects();Disarm();StopMovement();busy=true;health.invulnerable=true;
+                CurrentPattern=Pattern.FinalStand;StartCoroutine(FinalStand());return true;
+            }
             if(PhaseNumber!=1||State==CombatState.Transition)return false;
-            StopAllCoroutines();ClearCavalryEffects();RestoreSwordGrip();Disarm();ClearHazards();StopMovement();health.invulnerable=true;busy=true;pendingSpecial=false;State=CombatState.Transition;
+            StopAllCoroutines();ClearEncounterObjects(true);ClearCavalryEffects();RestoreSwordGrip();Disarm();ClearHazards();StopMovement();health.invulnerable=true;busy=true;pendingSpecial=false;State=CombatState.Transition;
             StartCoroutine(Transition());return true;
         }
         IEnumerator Transition()
         {
+            yield return MoveToArenaCenter(true);
+            if(!target||target.Dead)yield break;
+            if(cinematicStage)cinematicStage.Begin(player,transform,true);
             yield return PlantSword(swordFury.prepareTime,CombatState.Transition);leaveSwordPlanted=true;
+            // 검을 꽂는 동작 직후 빙판 확산을 보여준 뒤 군마 탑승으로 연결합니다.
+            Play(knightAnimator,"Idle");
+            if(cinematicStage)cinematicStage.ShowIceField(swordRoot,transform);
+            BeginSwordField();
+            if(swordIcePatch)swordIcePatch.SetGrowthDuration(iceSpreadDuration);
+            yield return new WaitForSeconds(iceSpreadDuration+iceSpreadHold);
+            if(cinematicStage)cinematicStage.ShowMount(transform);
             effects.Show(FrozenKnightVfx.Shape.Ring,transform.position,Forward,frostBurst.range,0,FrozenKnightVfx.Theme.Summon);effects.Activate();
-            yield return Stage(CombatState.Transition,kneelDuration,"Kneel");
-            // 기사는 군마 왼편에서 일어나 기다리고, 군마만 독립적으로 접근합니다.
-            Vector3 standing=riderRoot.position,boarding=transform.position-transform.right*mountSideDistance;
-            Play(knightAnimator,"StandUp",summonDuration);
-            for(float t=0;t<summonDuration;t+=Time.deltaTime){riderRoot.position=Vector3.Lerp(standing,boarding,Mathf.SmoothStep(0,1,t/summonDuration));yield return null;}
-            riderRoot.position=boarding;Play(knightAnimator,"Idle");effects.Hide();
-            Vector3[] route=HorseArrivalRoute(transform.position,true);horseWaiting=false;
-            horseRoot.localScale=horseScale;horseRoot.position=route[0];horseRoot.gameObject.SetActive(true);Play(horseAnimator,"Gallop");
-            for(int i=1;i<route.Length;i++)
+            // 검을 꽂은 뒤 쓰러지지 않고 서서 군마를 기다립니다.
+            Play(knightAnimator,"Idle");effects.Hide();
+            if(!horseRoot.gameObject.activeSelf){horseRoot.position=HorseArrivalRoute(transform.position)[0];horseRoot.gameObject.SetActive(true);}
+            Vector3 destination;Vector3[] route;
+            while(!TryBoardingRoute(out destination,out route))yield return new WaitForSeconds(.5f);
+            Vector3 standing=riderRoot.position,boarding=destination-transform.right*boardingStandDistance;
+            Quaternion riderRotation=riderRoot.rotation;
+            Play(knightAnimator,"Walk");float walkDuration=Vector3.Distance(standing,boarding)/Mathf.Max(.1f,walkSpeed);
+            for(float t=0;t<walkDuration;t+=Time.deltaTime)
+            {
+                riderRoot.position=Vector3.Lerp(standing,boarding,t/walkDuration);
+                riderRoot.rotation=Quaternion.RotateTowards(riderRoot.rotation,Quaternion.LookRotation(Flat(boarding-standing))*Quaternion.Euler(0,180,0),turnSpeed*Time.deltaTime);
+                yield return null;
+            }
+            riderRoot.position=boarding;Play(knightAnimator,"Idle");
+            for(float t=0;t<horseStopDuration;t+=Time.deltaTime){riderRoot.rotation=Quaternion.RotateTowards(riderRoot.rotation,riderRotation,turnSpeed*Time.deltaTime);yield return null;}
+            riderRoot.rotation=riderRotation;horseWaiting=false;
+            horseRoot.localScale=horseScale;Play(horseAnimator,"Gallop");
+            for(int i=0;i<route.Length;i++)
             {
                 while(Vector3.Distance(horseRoot.position,route[i])>.025f)
                 {
@@ -446,22 +528,29 @@ namespace DogLife
                     horseRoot.position=Vector3.MoveTowards(horseRoot.position,route[i],speed*Time.deltaTime);yield return null;
                 }
             }
-            horseRoot.position=transform.position;Play(horseAnimator,"Idle");
+            horseRoot.position=destination;Play(horseAnimator,"Idle");
             Quaternion stopRotation=horseRoot.rotation;
             for(float t=0;t<horseStopDuration;t+=Time.deltaTime){horseRoot.rotation=Quaternion.Slerp(stopRotation,transform.rotation,Mathf.SmoothStep(0,1,t/horseStopDuration));yield return null;}
             horseRoot.rotation=transform.rotation;
             // 왼발을 걸고 몸을 올린 뒤 오른다리를 넘기는 동작과 이동 곡선을 맞춥니다.
-            Play(knightAnimator,"Mount",mountDuration);Vector3 start=riderRoot.position;
-            for(float t=0;t<mountDuration;t+=Time.deltaTime)
+            float boardingDuration=cinematicMount?cinematicMount.length:mountDuration;
+            Play(knightAnimator,cinematicMount?"CinematicMount":"Mount",boardingDuration);Vector3 start=riderRoot.position;
+            for(float t=0;t<boardingDuration;t+=Time.deltaTime)
             {
-                float progress=t/mountDuration,u=Mathf.SmoothStep(0,1,Mathf.InverseLerp(.2f,.85f,progress));
+                float progress=t/boardingDuration,u=Mathf.SmoothStep(0,1,Mathf.InverseLerp(.2f,.85f,progress));
                 riderRoot.position=Vector3.Lerp(start,mountSeat.position,u)+Vector3.up*(Mathf.Sin(u*Mathf.PI)*mountArcHeight);yield return null;
             }
-            riderRoot.position=mountSeat.position;PhaseNumber=2;previous=-1;Array.Clear(cooldowns,0,cooldowns.Length);closeTime=0;
+            riderRoot.position=mountSeat.position;
+            // 탑승 완료 지점을 새 이동 기준으로 삼되 군마/기사/꽂힌 검은 월드 위치를 보존합니다.
+            Vector3 riderPosition=riderRoot.position,horsePosition=horseRoot.position;Quaternion horseRotation=horseRoot.rotation;
+            if(Nav)agent.Warp(destination);else transform.position=destination;
+            horseRoot.SetPositionAndRotation(horsePosition,horseRotation);riderRoot.position=riderPosition;
+            swordRoot.SetPositionAndRotation(plantedSwordPosition,plantedSwordRotation);
+            PhaseNumber=2;previous=-1;Array.Clear(cooldowns,0,cooldowns.Length);closeTime=0;
             health.maxHealth=phase2MaxHP;health.Restore();
-            BeginSwordField();
             yield return Stage(CombatState.Transition,transitionRecovery,"MountedIdle");
             health.invulnerable=false;effects.Hide();Play(horseAnimator,"Idle");State=CombatState.Idle;nextAttack=Time.time+globalCooldown;busy=false;
+            if(cinematicStage)cinematicStage.End();
         }
         Vector3[] HorseArrivalRoute(Vector3 destination,bool fromWaiting=false)
         {
@@ -523,6 +612,21 @@ namespace DogLife
             if(!CombatFeedback.DealDamage(hp,damage,hp.transform.position,direction,1,transform,new Color(.4f,.85f,1),useFullPlayerDamage))return false;
             var motor=hp.GetComponent<PlayerMotor>();if(motor&&(push>0||lift>0))motor.ApplyKnockback(direction,push,lift,knockbackDuration);return true;
         }
+        void BreakWallsInCharge(Vector3 direction,float distance,float width)
+        {
+            if(PhaseNumber!=2)return;
+            Vector3 origin=transform.position+Vector3.up*chargeObstacleHeight;
+            float reach=distance+chargeSkin;
+            // 건물 벽 뒤의 얼음벽까지 깨지지 않도록 먼저 고정 장애물에서 잘라냅니다.
+            foreach(var hit in Physics.SphereCastAll(origin,chargeObstacleRadius,direction,reach,obstacleMask,QueryTriggerInteraction.Ignore))
+                if(!hit.collider.GetComponentInParent<FrozenKnightConstruct>()&&!hit.collider.transform.IsChildOf(transform))reach=Mathf.Min(reach,hit.distance);
+            Vector3 half=new Vector3(width*.5f,hitHeight*.5f,chargeObstacleRadius);
+            foreach(var collider in Physics.OverlapBox(origin+direction*reach*.5f,half+Vector3.forward*(reach*.5f),Quaternion.LookRotation(direction),~0,QueryTriggerInteraction.Ignore))
+            {
+                var wall=collider.GetComponentInParent<FrozenKnightConstruct>();
+                if(wall)wall.ShatterFromCharge(this);
+            }
+        }
         float MoveStraight(Vector3 direction,float distance)
         {
             if(distance<=0)return 0;float allowed=distance;
@@ -531,14 +635,15 @@ namespace DogLife
             if(Nav)agent.Move(direction*allowed);else transform.position+=direction*allowed;return allowed;
         }
         void Aim(bool instant)
-        {if(!player)return;var direction=Flat(player.transform.position-transform.position);transform.rotation=instant?Quaternion.LookRotation(direction):Quaternion.RotateTowards(transform.rotation,Quaternion.LookRotation(direction),turnSpeed*Time.deltaTime);Forward=transform.forward;}
+        {if(!player)return;var direction=Flat(player.transform.position-transform.position);float rate=(State==CombatState.Idle||State==CombatState.Reposition)&&(!Nav||agent.velocity.sqrMagnitude<.1f)?standingTurnSpeed:turnSpeed;transform.rotation=instant?Quaternion.LookRotation(direction):Quaternion.RotateTowards(transform.rotation,Quaternion.LookRotation(direction),rate*Time.deltaTime);Forward=transform.forward;}
         static Vector3 Flat(Vector3 v){v.y=0;return v.sqrMagnitude>.001f?v.normalized:Vector3.forward;}
         void StopMovement(){if(Nav){agent.isStopped=true;agent.ResetPath();agent.velocity=Vector3.zero;}}
         string lastKnight,lastHorse;
         [SerializeField,Min(.01f)] float attackBlendTime=.14f,recoveryBlendTime=.28f,originalAttackBlendTime=.25f;
         void PlayLocomotion(bool moving)
         {
-            Play(knightAnimator,PhaseNumber==1?(moving?"Walk":"Idle"):"MountedIdle");
+            // 방향을 바꿔도 기존 대기/보행 모션을 유지합니다.
+            Play(knightAnimator,PhaseNumber==1?(moving?(introductionRunning&&!introductionSwordDrawn?"UnarmedWalk":"Walk"):"Idle"):"MountedIdle");
             if(PhaseNumber!=2)return;
             // 일반 추적에는 접지가 있는 보행을 사용하고, 돌진의 Gallop과 구분합니다.
             float speed=Nav?agent.velocity.magnitude:0;bool walking=moving&&speed>.08f;
@@ -564,13 +669,16 @@ namespace DogLife
         void ClearHazards(){foreach(var h in hazards)if(h)Destroy(h.gameObject);hazards.Clear();}
         void RestoreSwordGrip()
         {
+            // 비활성화 처리 중에는 부모를 바꿀 수 없으므로 다음 활성화 때 복구합니다.
+            if(!gameObject.activeInHierarchy)return;
             // 중단/사망/페이즈 전환에서도 검이 바닥에 남아 다음 공격을 방해하지 않게 복구합니다.
             if((plantingSword||swordPlanted||retrievingSword)&&swordRoot)
             {swordRoot.SetParent(swordRestParent,false);swordRoot.localPosition=swordRestPosition;swordRoot.localRotation=swordRestRotation;swordRoot.localScale=swordScale;}
             plantingSword=swordPlanted=retrievingSword=false;
         }
-        void Died(){State=CombatState.Dead;StopAllCoroutines();ClearCavalryEffects();RestoreSwordGrip();Disarm();ClearHazards();StopMovement();if(effects)effects.Hide();}
-        void OnDisable(){StopAllCoroutines();ClearCavalryEffects();RestoreSwordGrip();Disarm();ClearHazards();StopMovement();if(effects)effects.Hide();busy=false;}
+        void OnEnable(){RestoreSwordGrip();}
+        void Died(){State=CombatState.Dead;StopAllCoroutines();ClearEncounterObjects();ClearCavalryEffects();RestoreSwordGrip();Disarm();ClearHazards();StopMovement();if(effects)effects.Hide();}
+        void OnDisable(){StopAllCoroutines();if(cinematicStage)cinematicStage.End();ClearEncounterObjects();ClearCavalryEffects();RestoreSwordGrip();Disarm();ClearHazards();StopMovement();if(effects)effects.Hide();busy=false;}
         void OnDestroy(){if(health)health.Died-=Died;}
     }
 }

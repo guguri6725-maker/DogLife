@@ -111,6 +111,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2312820725455085319}
+  - component: {fileID: 8881543523345523246}
   m_Layer: 0
   m_Name: SwordGrip
   m_TagString: Untagged
@@ -134,6 +135,25 @@ Transform:
   - {fileID: 3759399397254338807}
   m_Father: {fileID: 4966466760944472049}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &8881543523345523246
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3339352664410472911}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e4d2c9dea3a707643a5cb3f48284ced5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DogLife.FrozenKnightSwordCore
+  swordMesh: {fileID: 8369119639190289893}
+  hitArea: {fileID: 7308845506922393714}
+  chippedOnce: {fileID: 4300000, guid: c6b88517dc9c2224a937a091cd60783d, type: 2}
+  chippedTwice: {fileID: 4300000, guid: d97c1c4bdb19e4a45a53d73386519c03, type: 2}
+  burstPrefab: {fileID: 2305087544532829438, guid: 61b2aa1483bf16c4c837d17cf270ef75, type: 3}
+  shake: 0.035
+  shakeDuration: 0.25
 --- !u!1 &5558679805507749961
 GameObject:
   m_ObjectHideFlags: 0
@@ -430,6 +450,7 @@ MonoBehaviour:
     bodyLength: 4
     damage: 1
     knockback: 7
+    chargeSpeedMultiplier: 1.2
     warning: 1
     delay: 0.35
     repositionSpeed: 13
@@ -461,6 +482,111 @@ MonoBehaviour:
     plantedSwordDuration: 4.5
   iceBladeSpawnRight: {fileID: 1131184390649969478}
   iceBladeSpawnLeft: {fileID: 2479368997936415159}
+  throneIdle: {fileID: 7400000, guid: d631b2280ef17e7428aed3e4090e0185, type: 2}
+  throneRise: {fileID: 7400000, guid: 7af7b99ad3ce40646b2619288e44a350, type: 2}
+  throneDraw1: {fileID: 7400000, guid: 5a0c736a727a3574d95ddf43d590ca48, type: 2}
+  throneDraw2: {fileID: 7400000, guid: 6701fc03e4c9a4942b31a0d2beffa114, type: 2}
+  cinematicMount: {fileID: 7400000, guid: 8d4fab6c803a543499c3f11e94bffd5a, type: 2}
+  drawGripTime: 0.68
+  sheathedGripOffset: {x: 0.55, y: 1.1, z: -0.65}
+  sheathedBladeDirection: {x: -0.18, y: -0.984, z: 0}
+  swordLocalBladeAxis: {x: -0.6, y: 0.81, z: 0.41}
+  introductionWalkSpeed: 2.1
+  introductionMoveTimeout: 18
+  mountedDeath: {fileID: 7400000, guid: b9d389636b43b9243b42bb473ad9f0d4, type: 2}
+  deathIceEffect: {fileID: 2305087544532829438, guid: 61b2aa1483bf16c4c837d17cf270ef75, type: 3}
+  deathPoseHold: 1.2
+  deathIceMoment: 0.65
+  iceSpreadDuration: 3.2
+  iceSpreadHold: 0.7
+  horseBoardingDistance: 6
+  horseSwordClearance: 3.5
+  boardingStandDistance: 2.4
+  pillarPrefab: {fileID: 693441044798577498, guid: 1dcf9941106c4ae48b88cb462c95d2c8, type: 3}
+  pickupPrefab: {fileID: 693441044798577498, guid: b2b731679b4211042997b8da4258466b, type: 3}
+  corePrefab: {fileID: 693441044798577498, guid: 634564544a2204f45a2f9d2a41c5d9a6, type: 3}
+  spearPrefab: {fileID: 5724585514048282690, guid: 6dc60990e17ed1b4c8bb535901143b65, type: 3}
+  swordCore: {fileID: 8881543523345523246}
+  winterMinionA: {fileID: 4022570490683873696, guid: 2936040d1a8dc174ab04236d0e0a8670, type: 3}
+  winterMinionB: {fileID: 1904964170654621470, guid: d0f7ffc1a23b557428ac944086521383, type: 3}
+  winterMinionC: {fileID: 9109504520841152752, guid: 5f93b9fdf80dda84b8d0a69dcae55119, type: 3}
+  arenaCenter: {fileID: 0}
+  spearHand: {fileID: 4966466760944472049}
+  pillarSeparation: 3.2
+  pillarClearance: 1.35
+  crystalGatherMinimum: 7
+  spearReleaseTime: 0.2
+  spearReleaseDuration: 0.55
+  spearHandOffset: 0.7
+  pillarCount: 3
+  pillarHits: 3
+  maxMinions: 3
+  arenaRadius: 18
+  pillarWarning: 2
+  pillarLifetime: 35
+  pillarCooldown: 16
+  waveWarning: 1.5
+  waveSpeed: 8
+  waveWidth: 0.6
+  waveHeight: 1.5
+  waveDamage: 1
+  waveCooldown: 12
+  jumpClearance: 0.65
+  coldHighHP: 0.7
+  coldLowHP: 0.3
+  coldCrystalCount: 8
+  coldWarning: 4
+  coldDuration: 15
+  coldTick: 1
+  coldDamage: 1
+  crystalSpeed: 0.65
+  crystalImmunity: 3
+  cloneOffset: 3
+  cloneCooldown: 14
+  minionWarning: 2
+  minionCooldown: 20
+  remoteSwordWarning: 1.2
+  remoteSwordRange: 4
+  remoteSwordCooldown: 14
+  finaleSpears: 4
+  coreSpearHits: 3
+  finalePositionAngle: 110
+  finalePositionRadius: 0.75
+  finalePositionMinDistance: 4
+  finaleRetryDelay: 0.5
+  finaleRepositionSpeed: 17
+  finaleRepositionAcceleration: 60
+  coreRadius: 3
+  finalePrepare: 3
+  spearWarning: 2.6
+  spearSpeed: 28
+  spearDamage: 2
+  spearGap: 1.5
+  finaleExplosionWarning: 2
+  encounterRecovery: 2
+  remoteSwingDuration: 0.6
+  remoteReturnDuration: 1
+  finaleMoveTimeout: 6
+  remoteSwordHeight: 0.8
+  spearMarkerLength: 3
+  wallCastMoment: 0.65
+  iceSwordCastMoment: 0.65
+  pushCastMoment: 0.55
+  spinCastMoment: 0.55
+  remoteFirstMoment: 0.38
+  remoteSecondMoment: 0.72
+  rangedMinimumDistance: 7
+  rangedPreferredDistance: 10
+  rangedMaximumDistance: 14
+  retreatDashDistance: 2.5
+  retreatDashDuration: 0.3
+  retreatCooldown: 3
+  rangedHoldTime: 3
+  centerMoveSpeed: 6
+  positionArrivalDistance: 0.6
+  positionRepathTime: 0.35
+  centerSearchRadius: 3
+  standingTurnSpeed: 65
   knightAnimator: {fileID: 6391092630549478513}
   horseAnimator: {fileID: 7618440670158577889}
   riderRoot: {fileID: 468302995987349533}
@@ -500,6 +626,8 @@ MonoBehaviour:
   horseWalkReferenceSpeed: 3.2
   horseWalkMinimumRate: 0.25
   horseWalkMaximumRate: 2.2
+  mountedFuryIntroduction: 2.4
+  chargeEmblemRadius: 3
   closeRange: 5
   closeDwell: 2
   navSampleRadius: 3
@@ -654,24 +782,6 @@ MonoBehaviour:
     cooldown: 10
     knockback: 10
     lift: 3
-  multiCharge:
-    count: 3
-    ride:
-      attack:
-        damage: 2
-        range: 20
-        width: 2.8
-        warning: 1.4
-        duration: 0.35
-        recovery: 2
-        cooldown: 8
-        knockback: 9
-        lift: 0
-      speed: 15
-      deceleration: 0.55
-    delay: 0.6
-    groggy: 3.5
-    cooldown: 14
   mountedFury:
     triggerHP: 0.5
     count: 4
@@ -1030,6 +1140,9 @@ GameObject:
   - component: {fileID: 4951689927088462598}
   - component: {fileID: 3723607491447724142}
   - component: {fileID: 3214954905761278820}
+  - component: {fileID: 1861314816839654769}
+  - component: {fileID: 8121954737896311360}
+  - component: {fileID: 7407064529784187343}
   m_Layer: 0
   m_Name: PlantedSwordIceField
   m_TagString: Untagged
@@ -1104,6 +1217,132 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 911aa72bab04fe5408fd2450370f46da, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DogLife.WinterIcePatch
+--- !u!33 &1861314816839654769
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8329967293547221422}
+  m_Mesh: {fileID: 0}
+--- !u!23 &8121954737896311360
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8329967293547221422}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 0}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &7407064529784187343
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8329967293547221422}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6d1f22c9dcfc501409032ba5068744f2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DogLife.WinterAttackVfx
+  enemy: {fileID: 0}
+  patch: {fileID: 3214954905761278820}
+  spreadCrestWidth: 0.65
+  material: {fileID: 2100000, guid: 59466c149a674924fb12f5011688cfab, type: 2}
+--- !u!1 &9073208518643266664
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1249735544820587725}
+  - component: {fileID: 7308845506922393714}
+  m_Layer: 0
+  m_Name: FinalSwordHitArea
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1249735544820587725
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9073208518643266664}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 0.9999999, y: 0.99999964, z: 0.9999997}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 700546257351755537}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &7308845506922393714
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9073208518643266664}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 0
+  serializedVersion: 3
+  m_Size: {x: 0.31, y: 0.98, z: 0.09}
+  m_Center: {x: 0, y: 0.49, z: 0}
 --- !u!1001 &2258827744317148202
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1557,11 +1796,24 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 1812497409201261623, guid: 2dad4e41e017d6d48be082d1d10026c1, type: 3}
       insertIndex: -1
       addedObject: {fileID: 5477718976107159367}
+    - targetCorrespondingSourceObject: {fileID: -6578758486857477167, guid: 2dad4e41e017d6d48be082d1d10026c1, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1249735544820587725}
     m_AddedComponents: []
   m_SourcePrefab: {fileID: -9137962142385034750, guid: 2dad4e41e017d6d48be082d1d10026c1, type: 3}
+--- !u!4 &700546257351755537 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -6578758486857477167, guid: 2dad4e41e017d6d48be082d1d10026c1, type: 3}
+  m_PrefabInstance: {fileID: 3245785946362762432}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &3759399397254338807 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 1812497409201261623, guid: 2dad4e41e017d6d48be082d1d10026c1, type: 3}
+  m_PrefabInstance: {fileID: 3245785946362762432}
+  m_PrefabAsset: {fileID: 0}
+--- !u!33 &8369119639190289893 stripped
+MeshFilter:
+  m_CorrespondingSourceObject: {fileID: -2797213761830196955, guid: 2dad4e41e017d6d48be082d1d10026c1, type: 3}
   m_PrefabInstance: {fileID: 3245785946362762432}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &6149292279068182883
