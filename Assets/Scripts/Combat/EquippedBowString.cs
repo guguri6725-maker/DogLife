@@ -5,7 +5,7 @@ namespace DogLife
     {
         public float Draw;
         public float size=1;
-        LineRenderer line;
+        [SerializeField] LineRenderer line;
         public void Initialize(Material material,float scale)
         {
             size=scale;var go=new GameObject("Equipped bowstring");go.transform.SetParent(transform,false);
@@ -16,6 +16,8 @@ namespace DogLife
         void Update()
         {
             if(!line)return;
+            // 양 끝과 당기는 지점, 세 점으로 프리팹 활시위도 갱신합니다.
+            line.positionCount=3;
             line.SetPositions(new[]{new Vector3(.12f,.43f,0)*size,new Vector3(.12f+.26f*Draw,0,0)*size,new Vector3(.12f,-.43f,0)*size});
             Draw=Mathf.MoveTowards(Draw,0,Time.deltaTime*4);
         }
@@ -24,6 +26,8 @@ namespace DogLife
     {
         public static void Decorate(GameObject visual,InventoryWeapon item)
         {
+            // 합성 모델은 손잡이와 활시위를 프리팹에서 완성해 두었습니다.
+            if(item.weaponForm==InventoryWeapon.WeaponForm.Synthesized)return;
             float size=item.boneOrigin==InventoryWeapon.BoneOrigin.Humanoid?1.4f:1;
             if(item.weaponCategory==InventoryWeapon.WeaponCategory.Bow)
             {

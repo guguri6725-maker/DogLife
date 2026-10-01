@@ -65,8 +65,10 @@ namespace DogLife
             if(animator)animator.applyRootMotion=false;
         }
         void OnEnable(){State=Phase.Idle;nextAttack=Time.time+1;Forward=transform.forward;}
+        ForestRoom combatRoom;
         void Start()
         {
+            combatRoom=GetComponentInParent<ForestRoom>();
             player=FindFirstObjectByType<PlayerMotor>();if(player){targetHealth=player.GetComponent<CombatHealth>();targetCollider=player.GetComponent<Collider>();var body=GetComponent<Collider>();if(body&&targetCollider)Physics.IgnoreCollision(body,targetCollider);}
             Play("Idle",1);
         }
@@ -100,13 +102,15 @@ namespace DogLife
         }
         void FixedUpdate()
         {
+            // 로딩된 다음 방에서는 대기하고, 문 닫힘 시작 후에만 AI를 실행합니다.
+            if(combatRoom&&!combatRoom.CombatStarted)return;
             if(!health||health.Dead||!player||!targetHealth||targetHealth.Dead){Stop();return;}
             if(CombatFeedback.Paused(this))return;
             if(State==Phase.Idle)
             {
                 float distance=Vector3.Distance(transform.position,player.transform.position);
                 if(distance<attackDistance*SizeScale&&Time.time>=nextAttack&&Visible(transform.position,player.transform.position)){Enter(Phase.Warning);return;}
-                bool moving=distance<detectionRange*SizeScale&&Nav;
+                bool moving=(combatRoom||distance<detectionRange*SizeScale)&&Nav;
                 if(moving)
                 {
                     // Attack reach is not a movement stopping distance: keep repositioning during cooldown.

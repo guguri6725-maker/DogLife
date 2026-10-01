@@ -29,6 +29,7 @@ namespace DogLife
             if (!completed) return false;
             string destination = NextDestination;
             if (string.IsNullOrEmpty(destination)) return false;
+            if(RunEconomy.Instance)RunEconomy.Instance.CarryTo(destination);
             SceneManager.LoadScene(destination); return true;
         }
         // A season-only distribution returns to its title instead of loading an omitted scene.

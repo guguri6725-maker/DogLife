@@ -13,6 +13,13 @@ namespace DogLife
         public float Current { get; private set; }
         bool phaseTransitionPending;
         bool awaitingFinalHit;
+        bool rewardGranted;
+        void GrantReward()
+        {
+            // 최종 사망만 한 번 지급합니다. 페이즈 전환과 구조물 파괴는 보상이 아닙니다.
+            if(rewardGranted||player||practiceTarget)return;rewardGranted=true;
+            if(RunEconomy.Instance)RunEconomy.Instance.Reward(this);
+        }
         public bool Dead => Current <= 0 && !phaseTransitionPending;
         public event Action Died;
         float invulnerableUntil, restoreAt;
@@ -79,7 +86,7 @@ namespace DogLife
                 phaseTransitionPending = true;
                 return;
             }
-            Died?.Invoke();
+            GrantReward();Died?.Invoke();
             if (practiceTarget) restoreAt = Time.time + 2;
             else if (!player) gameObject.SetActive(false);
         }
@@ -95,12 +102,12 @@ namespace DogLife
         public void CompleteDeferredDeath(bool keepBody=false)
         {
             if(!phaseTransitionPending)return;
-            phaseTransitionPending=false;invulnerable=false;Current=0;EndBlink();Died?.Invoke();
+            phaseTransitionPending=false;invulnerable=false;Current=0;EndBlink();GrantReward();Died?.Invoke();
             // 연출 보스는 마지막 자세의 시체를 보존할 수 있습니다.
             if(!player&&!keepBody)gameObject.SetActive(false);
         }
         // 실패한 전장 전체 즉사 기믹 전용입니다. 일반 공격은 Damage를 사용합니다.
-        public void FatalDamage(){if(Dead)return;Current=0;phaseTransitionPending=false;EndBlink();Died?.Invoke();if(!player)gameObject.SetActive(false);}
+        public void FatalDamage(){if(Dead)return;Current=0;phaseTransitionPending=false;EndBlink();GrantReward();Died?.Invoke();if(!player)gameObject.SetActive(false);}
         void BeginBlink()
         {
             EndBlink();blinkRenderers=GetComponentsInChildren<Renderer>(true);

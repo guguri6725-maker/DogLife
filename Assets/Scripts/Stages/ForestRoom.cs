@@ -118,11 +118,14 @@ namespace DogLife
         {
             if (prepareOnLoad && encounter) encounter.SetActive(false);
         }
+        // 미리 로드한 방은 문이 닫히기 시작할 때까지 전투를 대기합니다.
+        public bool CombatStarted { get; private set; }
         public CombatHealth[] Enemies { get; private set; }
-        public void BeginEncounter()
+        public void BeginEncounter(bool startCombat=true)
         {
             var spawner=GetComponent<RoomMonsterSpawner>();
             if(spawner&&!spawner.Prepare())return;
+            CombatStarted |= startCombat;
             encounter.SetActive(true);
             Enemies = encounter.GetComponentsInChildren<CombatHealth>(true);
         }

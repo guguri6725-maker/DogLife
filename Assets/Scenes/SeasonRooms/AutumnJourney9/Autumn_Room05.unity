@@ -2860,6 +2860,8 @@ MonoBehaviour:
   - {fileID: 3527097670973974958, guid: c90c40a4128578a4cad6038508709d87, type: 3}
   - {fileID: 5625532974570081011, guid: 0b595917303394d459698b7a5263a11a, type: 3}
   - {fileID: 5074306360528374385, guid: fed3c24f32341a0469c56e25bba60b6e, type: 3}
+  bossPrefab: {fileID: 0}
+  bossCinematicStage: {fileID: 0}
   spawnCenter: {x: 198.6, y: 0.4, z: 0}
   spawnArea: {x: 18, y: 10}
 --- !u!1 &491388756
@@ -18709,6 +18711,63 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
+--- !u!1001 &8611518434841624185
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 403244606243081809, guid: 22e4f5bd699f4a74b84e21c81b0c8e2e, type: 3}
+      propertyPath: m_Name
+      value: AutumnShop
+      objectReference: {fileID: 0}
+    - target: {fileID: 6756237549899993654, guid: 22e4f5bd699f4a74b84e21c81b0c8e2e, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 196.8
+      objectReference: {fileID: 0}
+    - target: {fileID: 6756237549899993654, guid: 22e4f5bd699f4a74b84e21c81b0c8e2e, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 2.2
+      objectReference: {fileID: 0}
+    - target: {fileID: 6756237549899993654, guid: 22e4f5bd699f4a74b84e21c81b0c8e2e, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 26
+      objectReference: {fileID: 0}
+    - target: {fileID: 6756237549899993654, guid: 22e4f5bd699f4a74b84e21c81b0c8e2e, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6756237549899993654, guid: 22e4f5bd699f4a74b84e21c81b0c8e2e, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6756237549899993654, guid: 22e4f5bd699f4a74b84e21c81b0c8e2e, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6756237549899993654, guid: 22e4f5bd699f4a74b84e21c81b0c8e2e, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6756237549899993654, guid: 22e4f5bd699f4a74b84e21c81b0c8e2e, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6756237549899993654, guid: 22e4f5bd699f4a74b84e21c81b0c8e2e, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6756237549899993654, guid: 22e4f5bd699f4a74b84e21c81b0c8e2e, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 22e4f5bd699f4a74b84e21c81b0c8e2e, type: 3}
 --- !u!33 &8620491208311946026
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -19072,3 +19131,4 @@ SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
   - {fileID: 486782881}
+  - {fileID: 8611518434841624185}

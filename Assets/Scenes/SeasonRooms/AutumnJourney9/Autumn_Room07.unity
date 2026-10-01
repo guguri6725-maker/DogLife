@@ -2981,6 +2981,56 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 394837875}
   m_Mesh: {fileID: 4300000, guid: 47c6b458116857340b85b0b526bd18e0, type: 2}
+--- !u!1 &396387718
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 396387720}
+  - component: {fileID: 396387719}
+  m_Layer: 0
+  m_Name: AutumnFusion
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &396387719
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 396387718}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1177aabb00aada7438d4ed53c46a4ac6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DogLife.EconomyStation
+  kind: 1
+  catalog: {fileID: 11400000, guid: a9101be56b6db1b46954fe9665525395, type: 2}
+  displays: []
+  price: 30
+  interactionDistance: 6
+  displayScale: 0.65
+--- !u!4 &396387720
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 396387718}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 285.6, y: 1, z: -31}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &420312226
 GameObject:
   m_ObjectHideFlags: 0
@@ -3487,6 +3537,8 @@ MonoBehaviour:
   - {fileID: 3527097670973974958, guid: c90c40a4128578a4cad6038508709d87, type: 3}
   - {fileID: 5625532974570081011, guid: 0b595917303394d459698b7a5263a11a, type: 3}
   - {fileID: 5074306360528374385, guid: fed3c24f32341a0469c56e25bba60b6e, type: 3}
+  bossPrefab: {fileID: 0}
+  bossCinematicStage: {fileID: 0}
   spawnCenter: {x: 287.40002, y: 0.4, z: 0}
   spawnArea: {x: 18, y: 10}
 --- !u!1 &491388756
@@ -19548,3 +19600,4 @@ SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
   - {fileID: 486782881}
+  - {fileID: 396387720}

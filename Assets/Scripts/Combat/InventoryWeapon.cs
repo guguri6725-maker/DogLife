@@ -20,6 +20,8 @@ namespace DogLife
         [TextArea] public string obtainPath;
         public Sprite icon;
         public GameObject visualPrefab;
+        [Tooltip("합성 공격에 겹쳐 표시할 장식. 피해 판정은 기존 공격 선을 사용합니다.")]
+        public SynthWeaponStrikeAccent strikeAccentPrefab;
         [Tooltip("필드에 놓을 획득용 프리팹. 이 프리팹도 같은 무기 데이터를 참조합니다.")]
         public GameObject pickupPrefab;
         [Header("스탯 — 확정 여부가 꺼진 수치는 미정")]

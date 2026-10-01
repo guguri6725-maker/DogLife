@@ -49,8 +49,10 @@ namespace DogLife
             visualRenderers=(visualRoot?visualRoot:transform).GetComponentsInChildren<Renderer>(true);
             if(modelAnimator)modelAnimator.applyRootMotion=false;
         }
+        ForestRoom combatRoom;
         void Start()
         {
+            combatRoom=GetComponentInParent<ForestRoom>();
             var player=FindFirstObjectByType<PlayerMotor>();
             if(player)
             {
@@ -74,6 +76,8 @@ namespace DogLife
         }
         void FixedUpdate()
         {
+            // 로딩된 다음 방에서는 대기하고, 문 닫힘 시작 후에만 AI를 실행합니다.
+            if(combatRoom&&!combatRoom.CombatStarted)return;
             if(CombatFeedback.Paused(this)){attackStarted+=Time.fixedDeltaTime;nextAttack+=Time.fixedDeltaTime;return;}
             if(!target||!targetHealth||health.Dead||targetHealth.Dead){CancelAttack();return;}
             if(attacking)
@@ -101,7 +105,7 @@ namespace DogLife
             var delta=target.position-transform.position;float distance=Vector3.ProjectOnPlane(delta,Vector3.up).magnitude;bool clear=ClearSight(delta);
             float effectiveRange=EffectiveAttackRange;
             float stopDistance=effectiveRange*.85f;
-            bool walking=distance<detectionRange&&(distance>stopDistance||!clear);
+            bool walking=(combatRoom||distance<detectionRange)&&(distance>stopDistance||!clear);
             var heading=Vector3.ProjectOnPlane(delta,Vector3.up).normalized;
             if(agent.isActiveAndEnabled&&agent.isOnNavMesh)
             {

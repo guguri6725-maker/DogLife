@@ -80,7 +80,7 @@ namespace DogLife
                 }
                 renderScale.enabled=WorldRenderScale.Scale<.999f;
             }
-            if(!SkillWindow.IsOpen&&(Input.GetKeyDown(KeyCode.Escape)||Input.GetKeyDown(KeyCode.F10)))Toggle();
+            if(!SkillWindow.IsOpen&&!EconomyWindow.BlocksInput&&(Input.GetKeyDown(KeyCode.Escape)||Input.GetKeyDown(KeyCode.F10)))Toggle();
             if(AwaitingConfirmation)
             {
                 float remaining=deadline-Time.unscaledTime;
@@ -94,7 +94,7 @@ namespace DogLife
         public void Toggle(){if(AwaitingConfirmation){Revert();return;}if(IsOpen)Close();else Open();}
         public void Open()
         {
-            if(IsOpen||SkillWindow.IsOpen||Applying||GameGraphicsSettings.Current==null)return;
+            if(IsOpen||SkillWindow.IsOpen||EconomyWindow.IsOpen||Applying||GameGraphicsSettings.Current==null)return;
             if(!EventSystem.current)new GameObject("Settings EventSystem",typeof(EventSystem),typeof(StandaloneInputModule));
             previousTimeScale=Time.timeScale;previousCursor=Cursor.lockState;previousCursorVisible=Cursor.visible;
             draft=GameGraphicsSettings.Current.Copy();

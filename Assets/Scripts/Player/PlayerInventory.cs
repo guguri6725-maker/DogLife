@@ -18,6 +18,22 @@ namespace DogLife
             {int i=ownedWeapons.IndexOf(equippedWeapon);if(i>=0)equippedInstanceId=instanceIds[i];}
         }
         public IReadOnlyList<InventoryWeapon> OwnedWeapons => ownedWeapons;
+        public InventoryWeapon FindInstance(string id){EnsureInstances();int i=instanceIds.IndexOf(id??"");return i>=0?ownedWeapons[i]:null;}
+        // 합성은 두 인스턴스를 한 번에 교체해 UI가 중간 상태를 읽지 않게 합니다.
+        public bool FuseInstances(string first,string second,InventoryWeapon result)
+        {
+            EnsureInstances();int a=instanceIds.IndexOf(first??""),b=instanceIds.IndexOf(second??"");
+            if(a<0||b<0||a==b||!result)return false;
+            bool replace=equippedInstanceId==first||equippedInstanceId==second;
+            int high=Mathf.Max(a,b),low=Mathf.Min(a,b);ownedWeapons.RemoveAt(high);instanceIds.RemoveAt(high);ownedWeapons.RemoveAt(low);instanceIds.RemoveAt(low);
+            ownedWeapons.Add(result);string id=System.Guid.NewGuid().ToString("N");instanceIds.Add(id);
+            if(replace){equippedWeapon=result;equippedInstanceId=id;Apply();}else Changed?.Invoke();return true;
+        }
+        public void RestoreRunInventory(IEnumerable<InventoryWeapon> items,int equippedIndex)
+        {
+            ownedWeapons=new List<InventoryWeapon>(items);instanceIds.Clear();equippedWeapon=null;equippedInstanceId=null;EnsureInstances();
+            if(equippedIndex>=0&&equippedIndex<ownedWeapons.Count){equippedWeapon=ownedWeapons[equippedIndex];equippedInstanceId=instanceIds[equippedIndex];}Apply();
+        }
         public InventoryWeapon EquippedWeapon => equippedWeapon;
         public event System.Action Changed;
         GameObject visual;

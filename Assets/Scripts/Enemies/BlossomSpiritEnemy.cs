@@ -73,8 +73,10 @@ namespace DogLife
             health=GetComponent<CombatHealth>();agent=GetComponent<NavMeshAgent>();agent.updateRotation=false;
             var body=GetComponent<Rigidbody>();body.isKinematic=true;body.constraints=RigidbodyConstraints.FreezeRotation;
         }
+        ForestRoom combatRoom;
         void Start()
         {
+            combatRoom=GetComponentInParent<ForestRoom>();
             var player=FindFirstObjectByType<PlayerMotor>();
             if(player){target=player.transform;targetHealth=player.GetComponent<CombatHealth>();}
             nextAttack=Time.time+.8f;
@@ -108,11 +110,13 @@ namespace DogLife
         }
         void FixedUpdate()
         {
+            // 로딩된 다음 방에서는 대기하고, 문 닫힘 시작 후에만 AI를 실행합니다.
+            if(combatRoom&&!combatRoom.CombatStarted)return;
             if(CombatFeedback.Paused(this)){castStarted+=Time.fixedDeltaTime;dashStarted+=Time.fixedDeltaTime;nextAttack+=Time.fixedDeltaTime;return;}
             if(!target||!targetHealth||!health||health.Dead||targetHealth.Dead){Cancel();return;}
             float distance=Vector3.ProjectOnPlane(target.position-transform.position,Vector3.up).magnitude;
             if(dashing){TickDash();return;}
-            if(distance>detectionRange){Cancel();return;}
+            if(!combatRoom&&distance>detectionRange){Cancel();return;}
             if(distance<dashTriggerDistance&&TryDash())return;
             if(casting)
             {

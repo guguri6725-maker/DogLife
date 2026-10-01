@@ -63,8 +63,10 @@ namespace DogLife
             if(attackCollider){attackCollider.isTrigger=true;attackCollider.enabled=false;attackCollider.radius=attackRadius;}
         }
         void OnEnable(){State=Phase.Idle;elapsed=0;nextAttack=Time.time+1;nextDefense=Time.time;}
+        ForestRoom combatRoom;
         void Start()
         {
+            combatRoom=GetComponentInParent<ForestRoom>();
             player=FindFirstObjectByType<PlayerMotor>();if(player){targetHealth=player.GetComponent<CombatHealth>();targetCollider=player.GetComponent<Collider>();if(body&&targetCollider)Physics.IgnoreCollision(body,targetCollider);}
             Play("Idle",1);
         }
@@ -104,6 +106,8 @@ namespace DogLife
         bool VisibleTarget()=>!Physics.Linecast(transform.position+Vector3.up*.8f,player.transform.position+Vector3.up*.8f,obstacleMask,QueryTriggerInteraction.Ignore);
         void FixedUpdate()
         {
+            // 로딩된 다음 방에서는 대기하고, 문 닫힘 시작 후에만 AI를 실행합니다.
+            if(combatRoom&&!combatRoom.CombatStarted)return;
             if(!health||health.Dead||!player||!targetHealth||targetHealth.Dead){Cancel();return;}
             if(CombatFeedback.Paused(this))return;
             var delta=Vector3.ProjectOnPlane(player.transform.position-transform.position,Vector3.up);float distance=delta.magnitude;
@@ -111,7 +115,7 @@ namespace DogLife
             {
                 if(species==Species.Tortoise&&player.AttackLocked&&distance<defenseSenseRange&&Time.time>=nextDefense&&VisibleTarget()){Enter(Phase.GuardIn);return;}
                 if(distance<attackDistance&&Time.time>=nextAttack&&VisibleTarget()){Face(delta);Enter(species==Species.Mermaid?Phase.Dive:Phase.Warning);return;}
-                bool move=distance<detectionRange&&distance>attackDistance*.7f;
+                bool move=(combatRoom||distance<detectionRange)&&distance>attackDistance*.7f;
                 if(move)Chase(player.transform.position,moveSpeed);else Stop();
                 if(animator)animator.SetBool("Moving",move);return;
             }

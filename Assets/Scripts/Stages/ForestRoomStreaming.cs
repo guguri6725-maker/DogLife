@@ -70,6 +70,8 @@ namespace DogLife
             if (!loadNextOnClear && string.IsNullOrEmpty(LoadError) && rooms.Length > 1) yield return LoadRoom(1);
             if (!string.IsNullOrEmpty(LoadError)) yield break; // 바닥 없는 상태에서 입력을 풀지 않습니다.
             CurrentRoom = 0;
+            if(rooms[0].rearSeal)rooms[0].rearSeal.SetActive(true);
+            if(rooms[0].rearVines)rooms[0].rearVines.Close();
             rooms[0].BeginEncounter();
             body.isKinematic = wasKinematic;
             Hud.motor.enabled = motorEnabled; Hud.weapons.enabled = weaponsEnabled;
@@ -137,7 +139,7 @@ namespace DogLife
                 {
                     yield return spawner.PrepareAsync();
                     if(!spawner.Prepared)Fail("Room monster spawn failed: "+path);
-                    else rooms[index].BeginEncounter();
+                    else rooms[index].BeginEncounter(false);
                 }
             }
         }
@@ -207,6 +209,8 @@ namespace DogLife
             if (room.rearSeal) room.rearSeal.SetActive(true);
             // 뒤쪽 덩굴이 완전히 닫힌 후 이전 방을 해제하여 전환 순간을 가립니다.
             if (room.rearVines) room.rearVines.Close();
+            // 문 닫힘 완료를 기다리지 않고 닫히기 시작한 순간부터 전투합니다.
+            room.BeginEncounter();
             Physics.SyncTransforms();
             // 계절 방은 최초 스폰과 같은 5m 안쪽을 사용해 문턱의 거친 바닥을 피합니다.
             Hud.motor.SetRespawnPoint(new Vector3(room.entryX + (loadNextOnClear ? 5f : 4f), 2.5f, 0));
@@ -216,7 +220,6 @@ namespace DogLife
             if (room.rearVines)
                 while (!room.rearVines.IsClosed) yield return null;
             cleared = false;
-            room.BeginEncounter();
             // 해제가 완료된 후 로드하므로 순간적으로도 세 방을 상주시켜 놓지 않습니다.
             yield return SceneManager.UnloadSceneAsync(roomScenePaths[previous]);
             rooms[previous] = null;

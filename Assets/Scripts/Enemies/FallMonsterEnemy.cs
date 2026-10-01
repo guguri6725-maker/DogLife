@@ -117,8 +117,10 @@ namespace DogLife
             }
         }
         void OnEnable(){CurrentPhase=Phase.Idle;elapsed=0;nextAttack=Time.time+1;previousArmValid=false;}
+        ForestRoom combatRoom;
         void Start()
         {
+            combatRoom=GetComponentInParent<ForestRoom>();
             var player=FindFirstObjectByType<PlayerMotor>();
             if(player){target=player.transform;targetHealth=player.GetComponent<CombatHealth>();targetCollider=player.GetComponent<Collider>();
                 var own=GetComponent<Collider>();if(own&&targetCollider)Physics.IgnoreCollision(own,targetCollider);}
@@ -163,6 +165,8 @@ namespace DogLife
         }
         void FixedUpdate()
         {
+            // 로딩된 다음 방에서는 대기하고, 문 닫힘 시작 후에만 AI를 실행합니다.
+            if(combatRoom&&!combatRoom.CombatStarted)return;
             if(!health||health.Dead||!targetHealth||targetHealth.Dead){Cancel();return;}
             if(CombatFeedback.Paused(this))return;
             float dt=Time.fixedDeltaTime;
@@ -172,7 +176,7 @@ namespace DogLife
                 bool sight=Clear(transform.position+Vector3.up,target.position);
                 if(delta.magnitude<=attackRange&&sight&&Time.time>=nextAttack)
                 {LockedDirection=delta.sqrMagnitude>.001f?delta.normalized:transform.forward;Face(LockedDirection);Enter(Phase.Anticipation);return;}
-                bool walk=delta.magnitude<detectionRange&&(delta.magnitude>Mathf.Max(1,attackRange*.8f)||!sight);
+                bool walk=(combatRoom||delta.magnitude<detectionRange)&&(delta.magnitude>Mathf.Max(1,attackRange*.8f)||!sight);
                 if(Navigable){agent.isStopped=!walk;agent.speed=speed;agent.stoppingDistance=.6f;
                     if(walk&&Time.time>=nextPath){nextPath=Time.time+.25f;NavMeshHit nh;
                         if(NavMesh.SamplePosition(target.position,out nh,3,new NavMeshQueryFilter{agentTypeID=agent.agentTypeID,areaMask=agent.areaMask}))agent.SetDestination(nh.position);}

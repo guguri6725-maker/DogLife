@@ -32,8 +32,10 @@ namespace DogLife
         Vector3 lockedAim;
         Renderer[] healthBarRenderers;
         Vector3 visualScale;
+        ForestRoom combatRoom;
         void Start()
         {
+            combatRoom=GetComponentInParent<ForestRoom>();
             var player = FindFirstObjectByType<PlayerMotor>(); target = player ? player.transform : null;
             body = GetComponent<Rigidbody>(); health = GetComponent<CombatHealth>();
             agent = GetComponent<NavMeshAgent>();
@@ -48,6 +50,8 @@ namespace DogLife
         // 물리 프레임마다 이동, 공격 예고와 실제 공격을 처리합니다.
         void FixedUpdate()
         {
+            // 로딩된 다음 방에서는 대기하고, 문 닫힘 시작 후에만 AI를 실행합니다.
+            if(combatRoom&&!combatRoom.CombatStarted)return;
             if (!target || health.Dead || target.GetComponent<CombatHealth>().Dead) { StopNavigation(); return; }
             var delta = target.position - transform.position;
             float distance = delta.magnitude;
@@ -55,7 +59,7 @@ namespace DogLife
             bool clearSight = !Physics.Raycast(transform.position, delta.normalized, distance, obstacleMask, QueryTriggerInteraction.Ignore);
             float stopDistance = boss ? 7 : ranged ? 6 : 1.3f;
             // 사거리 안이어도 벽에 가려져 있으면 멈추지 않고 돌아가는 길을 찾습니다.
-            bool walking = distance < detectionRange && (distance > stopDistance || !clearSight) && !Windup && !AttackAnimationBusy;
+            bool walking = (combatRoom || distance < detectionRange) && (distance > stopDistance || !clearSight) && !Windup && !AttackAnimationBusy;
             var heading = Vector3.ProjectOnPlane(delta, Vector3.up).normalized;
             if (agent && agent.isActiveAndEnabled && agent.isOnNavMesh)
             {

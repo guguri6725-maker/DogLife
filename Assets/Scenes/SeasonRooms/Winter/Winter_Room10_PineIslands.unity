@@ -1450,6 +1450,8 @@ MonoBehaviour:
   - {fileID: 1568215499616056564, guid: f6b07611ac2998b4c93274a201666171, type: 3}
   - {fileID: 4022570490683873696, guid: 2936040d1a8dc174ab04236d0e0a8670, type: 3}
   - {fileID: 9109504520841152752, guid: 5f93b9fdf80dda84b8d0a69dcae55119, type: 3}
+  bossPrefab: {fileID: 0}
+  bossCinematicStage: {fileID: 0}
   spawnCenter: {x: 378.2, y: 2, z: 0}
   spawnArea: {x: 14, y: 8}
 --- !u!1 &490427580
@@ -4941,6 +4943,56 @@ Transform:
   - {fileID: 257909334}
   m_Father: {fileID: 415567955}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &2028680309
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2028680311}
+  - component: {fileID: 2028680310}
+  m_Layer: 0
+  m_Name: WinterFusion
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &2028680310
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2028680309}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1177aabb00aada7438d4ed53c46a4ac6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DogLife.EconomyStation
+  kind: 1
+  catalog: {fileID: 11400000, guid: a9101be56b6db1b46954fe9665525395, type: 2}
+  displays: []
+  price: 30
+  interactionDistance: 6
+  displayScale: 0.65
+--- !u!4 &2028680311
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2028680309}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 374.4, y: 1, z: -34}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &2068440555
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -5226,3 +5278,4 @@ SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
   - {fileID: 415567955}
+  - {fileID: 2028680311}

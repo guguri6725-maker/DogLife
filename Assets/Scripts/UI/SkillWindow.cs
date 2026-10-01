@@ -26,7 +26,7 @@ namespace DogLife
         // 인벤토리는 현재 게임 씬에 하나만 두고, 열린 상태도 해당 인스턴스에서 읽습니다.
         public static SkillWindow Instance { get; private set; }
         public static bool IsOpen => Instance && Instance.opened;
-        public static bool BlocksGameplayInput => IsOpen || Time.frameCount == inputConsumedFrame || GameSettingsWindow.BlocksGameplayInput;
+        public static bool BlocksGameplayInput => IsOpen || Time.frameCount == inputConsumedFrame || GameSettingsWindow.BlocksGameplayInput || EconomyWindow.BlocksInput;
         static int inputConsumedFrame = -1;
         public SkillCard Selected { get; private set; }
         public SkillCard Dragged { get; private set; }
@@ -84,13 +84,14 @@ namespace DogLife
         }
         void Update()
         {
-            if(GameSettingsWindow.BlocksGameplayInput)return;
+            if(GameSettingsWindow.BlocksGameplayInput||EconomyWindow.BlocksInput)return;
             if (Input.GetKeyDown(KeyCode.E)) SetOpen(!opened);
             else if (opened && Input.GetKeyDown(KeyCode.Escape)) SetOpen(false);
         }
         public void Close() { SetOpen(false); }
         public void SetOpen(bool value)
         {
+            if(value&&EconomyWindow.BlocksInput)return;
             if (Instance != this || opened == value) return;
             opened = value;
             // 닫기 클릭이나 Esc가 같은 프레임의 공격·카메라 입력으로 전달되지 않게 합니다.

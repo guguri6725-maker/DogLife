@@ -17,6 +17,8 @@ MonoBehaviour:
   - {fileID: 7400000, guid: 199af2b3e0b7f56428c996c40f936f91, type: 2}
   - {fileID: 7400000, guid: 7ff6e03449e70874a9b8cf972db39b1c, type: 2}
   - {fileID: 7400000, guid: bf8d3a6b467adc24fbd5450ccbb8c274, type: 2}
+  bowDrawClip: {fileID: 0}
+  bowVisualYawOffset: 0
   strikeTimes:
   - 0.17099999
   - 0.22166665
@@ -27,6 +29,10 @@ MonoBehaviour:
   - 0
   comboLinkNormalized: 0.76
   reach: 1.35
+  attackSpeed: 1.5
+  synthesizedAttackSpeed: 2
   projectileSpeed: 10
-  inputBuffer: 0.32
+  projectileHitRadius: 0.12
+  boomerangHalfThickness: 0.06
+  inputBuffer: 0.1
   effectMaterial: {fileID: 2100000, guid: 45c443755e5791b47a27030dcb8f3d15, type: 2}

@@ -7455,6 +7455,8 @@ MonoBehaviour:
   - {fileID: 1568215499616056564, guid: f6b07611ac2998b4c93274a201666171, type: 3}
   - {fileID: 4022570490683873696, guid: 2936040d1a8dc174ab04236d0e0a8670, type: 3}
   - {fileID: 9109504520841152752, guid: 5f93b9fdf80dda84b8d0a69dcae55119, type: 3}
+  bossPrefab: {fileID: 0}
+  bossCinematicStage: {fileID: 0}
   spawnCenter: {x: 283.4, y: 2, z: 0}
   spawnArea: {x: 14, y: 8}
 --- !u!1 &1506653630
@@ -9305,6 +9307,63 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 8041882341929867571, guid: 2b79fe6a6f177284187b31ec892d402b, type: 3}
   m_PrefabInstance: {fileID: 2109751890}
   m_PrefabAsset: {fileID: 0}
+--- !u!1001 &2132543983
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 403244606243081809, guid: 22e4f5bd699f4a74b84e21c81b0c8e2e, type: 3}
+      propertyPath: m_Name
+      value: WinterShop
+      objectReference: {fileID: 0}
+    - target: {fileID: 6756237549899993654, guid: 22e4f5bd699f4a74b84e21c81b0c8e2e, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 285.6
+      objectReference: {fileID: 0}
+    - target: {fileID: 6756237549899993654, guid: 22e4f5bd699f4a74b84e21c81b0c8e2e, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 2.85
+      objectReference: {fileID: 0}
+    - target: {fileID: 6756237549899993654, guid: 22e4f5bd699f4a74b84e21c81b0c8e2e, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 34.65
+      objectReference: {fileID: 0}
+    - target: {fileID: 6756237549899993654, guid: 22e4f5bd699f4a74b84e21c81b0c8e2e, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6756237549899993654, guid: 22e4f5bd699f4a74b84e21c81b0c8e2e, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6756237549899993654, guid: 22e4f5bd699f4a74b84e21c81b0c8e2e, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6756237549899993654, guid: 22e4f5bd699f4a74b84e21c81b0c8e2e, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6756237549899993654, guid: 22e4f5bd699f4a74b84e21c81b0c8e2e, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6756237549899993654, guid: 22e4f5bd699f4a74b84e21c81b0c8e2e, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6756237549899993654, guid: 22e4f5bd699f4a74b84e21c81b0c8e2e, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 22e4f5bd699f4a74b84e21c81b0c8e2e, type: 3}
 --- !u!1001 &2141104334
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -9384,3 +9443,4 @@ SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
   - {fileID: 1499457933}
+  - {fileID: 2132543983}

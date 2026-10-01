@@ -71,9 +71,9 @@ namespace DogLife
   void Update()
   {
    if(!health||health.Dead||!player||!target||target.Dead){Clear();return;}
-   bool inside=!room||(player.transform.position.x>=room.entryX+entryInset&&player.transform.position.x<=room.exitX);
+   bool inside=!room||room.CombatStarted;
    if(!inside){Clear();return;}
-   if(!engaged){if(Vector3.Distance(player.transform.position,transform.position)>engageRange)return;engaged=true;nextAttack=Time.time+initialDelay;}
+   if(!engaged){if(!room&&Vector3.Distance(player.transform.position,transform.position)>engageRange)return;engaged=true;nextAttack=Time.time+initialDelay;}
    if(CombatFeedback.Paused(this))return;
    TickPatches();
    Vector3 delta=player.transform.position-transform.position;delta.y=0;

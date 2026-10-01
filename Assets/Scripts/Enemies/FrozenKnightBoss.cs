@@ -187,10 +187,10 @@ namespace DogLife
         {
             ResetIntroductionSword();
             if(!health||health.Dead||!target||target.Dead)return;
-            if(room&&player.transform.position.x<room.entryX+entryInset)return;
+            if(room&&!room.CombatStarted)return;
             if(awaitingIntroduction){StartCoroutine(Introduction());return;}
             float distance=GroundDistance(player.transform.position,transform.position);
-            if(!engaged){if(distance>engageRange)return;engaged=true;nextAttack=Time.time+initialDelay;}
+            if(!engaged){if(!room&&distance>engageRange)return;engaged=true;nextAttack=Time.time+initialDelay;}
             if(State==CombatState.Transition)return;
             TickCavalryField();
             // 실제 폭발 범위 안에서 머문 시간을 누적합니다. 다른 공격이 끝나도 대기 시간을 지우지 않습니다.

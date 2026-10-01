@@ -67,11 +67,11 @@ namespace DogLife
   public void BindRoom(ForestRoom value){room=value;}
   void Play(string state,float duration){if(!bodyAnimator)return;bodyAnimator.SetFloat("PhaseSpeed",state=="Idle"?1:1/Mathf.Max(.01f,duration));bodyAnimator.CrossFadeInFixedTime(state,.15f);}
   void Enter(Phase state){State=state;elapsed=0;}
-  bool Inside()=>!room||(player.transform.position.x>=room.entryX+entryInset&&player.transform.position.x<=room.exitX);
+  bool Inside()=>!room||room.CombatStarted;
   void Update()
   {
    if(!health||health.Dead||!player||!target||target.Dead||!Inside()){Clear();return;}
-   if(!engaged){if(Vector3.Distance(player.transform.position,transform.position)>engageRange)return;engaged=true;nextAttack=Time.time+initialDelay;}
+   if(!engaged){if(!room&&Vector3.Distance(player.transform.position,transform.position)>engageRange)return;engaged=true;nextAttack=Time.time+initialDelay;}
    if(CombatFeedback.Paused(this))return;
    if(bound&&Time.time>=boundUntil){bound=false;if(bindingTentacle)bindingTentacle.Throw(binding.throwAnimation);player.ApplyKnockback(player.transform.position-transform.position,binding.throwSpeed,binding.throwLift,binding.throwDuration);}
    elapsed+=Time.deltaTime;

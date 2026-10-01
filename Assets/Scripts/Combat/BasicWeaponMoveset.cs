@@ -16,10 +16,17 @@ namespace DogLife
         [Range(.5f,1f)] public float comboLinkNormalized=1f;
         [Header("플레이 테스트용 동작 수치 — 기획 확정 스탯과 별도")]
         public float reach=2;
+        [Min(.1f),Tooltip("공격 애니메이션과 타격 타이밍에 함께 적용하는 기본 속도")]
+        public float attackSpeed=1f;
+        [Min(.1f),Tooltip("일반형 대비 합성형 공격 속도 배율")]
+        public float synthesizedAttackSpeed=2f;
         public float projectileSpeed=10;
         [SerializeField, Min(.01f), Tooltip("투사체의 충돌 반경 (m)")]
         private float projectileHitRadius=.12f;
         public float ProjectileHitRadius=>Mathf.Max(.01f,projectileHitRadius);
+        [SerializeField, Min(.01f), Tooltip("부메랑 판정의 세로 반두께. 가로 사거리와 별도로 조절합니다.")]
+        private float boomerangHalfThickness=.06f;
+        public float BoomerangHalfThickness=>Mathf.Max(.01f,boomerangHalfThickness);
         public float inputBuffer=.28f;
         public Material effectMaterial;
     }

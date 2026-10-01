@@ -133,7 +133,7 @@ namespace DogLife
         void FixedUpdate()
         {
             if(!health||health.Dead||!player||!targetHealth||targetHealth.Dead){Stop();return;}
-            bool inside=!encounterRoom||(player.transform.position.x>=encounterRoom.entryX+roomEntryInset&&player.transform.position.x<=encounterRoom.exitX);
+            bool inside=!encounterRoom||encounterRoom.CombatStarted;
             if(!inside){if(State!=Phase.Move){Enter(Phase.Move);SpikeCount=0;}Stop();if(animator)animator.SetBool("Moving",false);return;}
             if(!engaged){engaged=true;nextAttack=Mathf.Max(nextAttack,Time.time+1.5f);}
             if(CombatFeedback.Paused(this))return;
@@ -142,8 +142,8 @@ namespace DogLife
                 Vector3 delta=player.transform.position-transform.position;delta.y=0;float distance=delta.magnitude;
                 float angle=Vector3.Angle(visualRoot?visualRoot.forward:Forward,delta);
                 flankClock=distance<flankDistance&&angle>70?flankClock+Time.fixedDeltaTime:Mathf.Max(0,flankClock-Time.fixedDeltaTime);
-                if(distance<detectionRange&&Time.time>=nextAttack&&Visible(transform.position,player.transform.position)){var pattern=Choose(distance,angle);if(pattern!=Pattern.None){Begin(pattern);return;}}
-                if(Nav&&distance<detectionRange)
+                if((encounterRoom||distance<detectionRange)&&Time.time>=nextAttack&&Visible(transform.position,player.transform.position)){var pattern=Choose(distance,angle);if(pattern!=Pattern.None){Begin(pattern);return;}}
+                if(Nav&&(encounterRoom||distance<detectionRange))
                 {
                     agent.isStopped=false;agent.speed=moveSpeed;agent.stoppingDistance=.3f;
                     if(Time.time>=nextPath){nextPath=Time.time+.35f;Vector3 outwards=distance>.1f?-delta.normalized:-Forward;Vector3 p=player.transform.position+(distance<8?Quaternion.AngleAxis(30*orbit,Vector3.up)*outwards:outwards)*6;

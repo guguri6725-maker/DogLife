@@ -40,8 +40,10 @@ namespace DogLife
             if(visualRoot){visualRestPosition=visualRoot.localPosition;visualRestRotation=visualRoot.localRotation;}
             foreach(var bone in GetComponentsInChildren<Transform>())if(bone.name=="Head"){biteHead=bone;break;}
         }
+        ForestRoom combatRoom;
         void Start()
         {
+            combatRoom=GetComponentInParent<ForestRoom>();
             var player=FindFirstObjectByType<PlayerMotor>();
             if(player){target=player.transform;targetHealth=player.GetComponent<CombatHealth>();var own=GetComponent<Collider>();var other=player.GetComponent<Collider>();if(own&&other)Physics.IgnoreCollision(own,other);}
             nextAttack=Time.time+1;
@@ -147,6 +149,8 @@ namespace DogLife
         }
         void FixedUpdate()
         {
+            // 로딩된 다음 방에서는 대기하고, 문 닫힘 시작 후에만 AI를 실행합니다.
+            if(combatRoom&&!combatRoom.CombatStarted)return;
             if(CombatFeedback.Paused(this)){phaseStarted+=Time.fixedDeltaTime;nextAttack+=Time.fixedDeltaTime;return;}
             if(!health||health.Dead||!target||!targetHealth||targetHealth.Dead){Cancel();return;}
             float elapsed=Time.time-phaseStarted;
@@ -176,7 +180,7 @@ namespace DogLife
                 if(elapsed>=retreatTime){Stop();phase=Phase.Orbit;nextAttack=Time.time+Mathf.Max(cooldown,skillDelay);orbitSign=-orbitSign;Animate("Idle");}return;
             }
             Vector3 delta=Vector3.ProjectOnPlane(target.position-transform.position,Vector3.up);float distance=delta.magnitude;
-            if(distance>detectionRange){Stop();Animate("Idle");return;}
+            if(!combatRoom&&distance>detectionRange){Stop();Animate("Idle");return;}
             if(Time.time>=nextAttack&&distance>=1.4f&&distance<=maxJumpDistance&&BeginCrouch())return;
             if(Time.time>=nextPath)
             {
