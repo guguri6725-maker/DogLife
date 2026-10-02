@@ -253,6 +253,7 @@ GameObject:
   - component: {fileID: 1675885764858513443}
   - component: {fileID: 8453651562591258362}
   - component: {fileID: 7768153454086908329}
+  - component: {fileID: 8984575537954354786}
   m_Layer: 0
   m_Name: BoneCrow
   m_TagString: Untagged
@@ -294,7 +295,7 @@ CapsuleCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
@@ -471,6 +472,18 @@ MonoBehaviour:
   fillColor: {r: 0.52, g: 0.29, b: 0.12, a: 1}
   highlightColor: {r: 0.92, g: 0.68, b: 0.35, a: 0.9}
   trailColor: {r: 0.8, g: 0.5, b: 0.24, a: 1}
+--- !u!114 &8984575537954354786
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5074306360528374385}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 710524836a213f346b2f42d6ab9c1aea, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DogLife.MonsterHurtbox
 --- !u!1 &6685384693508816935
 GameObject:
   m_ObjectHideFlags: 0

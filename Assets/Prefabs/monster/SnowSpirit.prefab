@@ -16,6 +16,7 @@ GameObject:
   - component: {fileID: 1335718124906784280}
   - component: {fileID: 6523699120254447394}
   - component: {fileID: 8466656496873623016}
+  - component: {fileID: 5112479779468284702}
   m_Layer: 0
   m_Name: SnowSpirit
   m_TagString: Untagged
@@ -99,7 +100,7 @@ CapsuleCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
@@ -143,6 +144,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::DogLife.WinterMonsterEnemy
   species: 1
   moveSpeed: 1.5
+  repositionDistance: 1.4
+  repositionSpeedMultiplier: 0.75
   detectionRange: 18
   attackDistance: 7
   warningTime: 0.95
@@ -213,6 +216,18 @@ MonoBehaviour:
   fillColor: {r: 0.34, g: 0.62, b: 0.8, a: 1}
   highlightColor: {r: 0.85, g: 0.96, b: 1, a: 1}
   trailColor: {r: 0.94, g: 0.7, b: 0.57, a: 1}
+--- !u!114 &5112479779468284702
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1568215499616056564}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 710524836a213f346b2f42d6ab9c1aea, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DogLife.MonsterHurtbox
 --- !u!1 &3372904159750161563
 GameObject:
   m_ObjectHideFlags: 0
@@ -318,6 +333,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::DogLife.WinterAttackVfx
   enemy: {fileID: 1335718124906784280}
   patch: {fileID: 0}
+  spreadCrestWidth: 0.65
   material: {fileID: 2100000, guid: 59466c149a674924fb12f5011688cfab, type: 2}
 --- !u!1 &6907799243769522294
 GameObject:

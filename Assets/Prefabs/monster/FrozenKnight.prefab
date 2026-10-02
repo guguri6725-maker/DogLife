@@ -305,6 +305,7 @@ GameObject:
   - component: {fileID: 3021579827073819352}
   - component: {fileID: 683834085326172502}
   - component: {fileID: 7210436441414359290}
+  - component: {fileID: 3247791984378235781}
   m_Layer: 0
   m_Name: FrozenKnight
   m_TagString: Untagged
@@ -417,7 +418,7 @@ CapsuleCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
@@ -885,6 +886,18 @@ MonoBehaviour:
   lifetime: 0.36
   minDistance: 0.5
   tint: {r: 0.18, g: 0.7, b: 1, a: 0.2}
+--- !u!114 &3247791984378235781
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6608907050965281763}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 710524836a213f346b2f42d6ab9c1aea, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DogLife.MonsterHurtbox
 --- !u!1 &7510603734064012357
 GameObject:
   m_ObjectHideFlags: 0

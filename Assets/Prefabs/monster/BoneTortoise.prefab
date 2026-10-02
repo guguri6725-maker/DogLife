@@ -271,6 +271,7 @@ GameObject:
   - component: {fileID: 8598235946275468843}
   - component: {fileID: 703346581282555354}
   - component: {fileID: 6123096567909822585}
+  - component: {fileID: 3252827329485468116}
   m_Layer: 0
   m_Name: BoneTortoise
   m_TagString: Untagged
@@ -356,7 +357,7 @@ CapsuleCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
@@ -475,6 +476,18 @@ MonoBehaviour:
   fillColor: {r: 0.2, g: 0.65, b: 0.75, a: 1}
   highlightColor: {r: 0.65, g: 0.95, b: 1, a: 1}
   trailColor: {r: 0.94, g: 0.7, b: 0.57, a: 1}
+--- !u!114 &3252827329485468116
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8958342978356357427}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 710524836a213f346b2f42d6ab9c1aea, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DogLife.MonsterHurtbox
 --- !u!1001 &6542676818495146715
 PrefabInstance:
   m_ObjectHideFlags: 0

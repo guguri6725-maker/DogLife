@@ -177,6 +177,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3577083106911800423}
   - component: {fileID: 2834776764654917119}
+  - component: {fileID: 556360120454354052}
   m_Layer: 0
   m_Name: LowerLegHitCollider
   m_TagString: Untagged
@@ -214,7 +215,7 @@ CapsuleCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
@@ -222,6 +223,18 @@ CapsuleCollider:
   m_Height: 0.48265508
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &556360120454354052
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1865096431852137683}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 710524836a213f346b2f42d6ab9c1aea, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DogLife.MonsterHurtbox
 --- !u!1 &2179350460731524063
 GameObject:
   m_ObjectHideFlags: 0
@@ -232,6 +245,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7277550068899008338}
   - component: {fileID: 3013400252113953550}
+  - component: {fileID: 5398267449814876341}
   m_Layer: 0
   m_Name: LowerLegHitCollider
   m_TagString: Untagged
@@ -269,7 +283,7 @@ CapsuleCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
@@ -277,6 +291,18 @@ CapsuleCollider:
   m_Height: 0.4826546
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &5398267449814876341
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2179350460731524063}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 710524836a213f346b2f42d6ab9c1aea, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DogLife.MonsterHurtbox
 --- !u!1 &2244504072642087732
 GameObject:
   m_ObjectHideFlags: 0
@@ -2607,6 +2633,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2496398990731702881}
   - component: {fileID: 45428402965284192}
+  - component: {fileID: 5505237922376468482}
   m_Layer: 0
   m_Name: HoofHitCollider
   m_TagString: Untagged
@@ -2644,12 +2671,24 @@ SphereCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
   m_Radius: 0.12
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &5505237922376468482
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3003828172100614376}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 710524836a213f346b2f42d6ab9c1aea, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DogLife.MonsterHurtbox
 --- !u!1 &3265285429605358346
 GameObject:
   m_ObjectHideFlags: 0
@@ -2660,6 +2699,7 @@ GameObject:
   m_Component:
   - component: {fileID: 292127209411518176}
   - component: {fileID: 1996301440285539170}
+  - component: {fileID: 2634915174061164866}
   m_Layer: 0
   m_Name: HeadHitCollider
   m_TagString: Untagged
@@ -2697,7 +2737,7 @@ CapsuleCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
@@ -2705,6 +2745,18 @@ CapsuleCollider:
   m_Height: 0.8861545
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &2634915174061164866
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3265285429605358346}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 710524836a213f346b2f42d6ab9c1aea, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DogLife.MonsterHurtbox
 --- !u!1 &3384410271997564950
 GameObject:
   m_ObjectHideFlags: 0
@@ -2715,6 +2767,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4456313967863265219}
   - component: {fileID: 7370088364391935271}
+  - component: {fileID: 8614624560765505993}
   m_Layer: 0
   m_Name: NeckHitCollider
   m_TagString: Untagged
@@ -2752,7 +2805,7 @@ CapsuleCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
@@ -2760,6 +2813,18 @@ CapsuleCollider:
   m_Height: 0.79824615
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &8614624560765505993
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3384410271997564950}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 710524836a213f346b2f42d6ab9c1aea, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DogLife.MonsterHurtbox
 --- !u!1 &3793594529742937052
 GameObject:
   m_ObjectHideFlags: 0
@@ -2770,6 +2835,7 @@ GameObject:
   m_Component:
   - component: {fileID: 6218624855005662185}
   - component: {fileID: 4236555771639301689}
+  - component: {fileID: 2742156499332582168}
   m_Layer: 0
   m_Name: HoofHitCollider
   m_TagString: Untagged
@@ -2807,12 +2873,24 @@ SphereCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
   m_Radius: 0.12
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &2742156499332582168
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3793594529742937052}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 710524836a213f346b2f42d6ab9c1aea, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DogLife.MonsterHurtbox
 --- !u!1 &5204191584143103024
 GameObject:
   m_ObjectHideFlags: 0
@@ -2823,6 +2901,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3485946562199112708}
   - component: {fileID: 5864543178568144955}
+  - component: {fileID: 3642092549969324702}
   m_Layer: 0
   m_Name: LowerLegHitCollider
   m_TagString: Untagged
@@ -2860,7 +2939,7 @@ CapsuleCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
@@ -2868,6 +2947,18 @@ CapsuleCollider:
   m_Height: 0.48265484
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &3642092549969324702
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5204191584143103024}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 710524836a213f346b2f42d6ab9c1aea, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DogLife.MonsterHurtbox
 --- !u!1 &5482187743939525653
 GameObject:
   m_ObjectHideFlags: 0
@@ -2878,6 +2969,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7141375259998870175}
   - component: {fileID: 3613835620697754972}
+  - component: {fileID: 9004963572845179841}
   m_Layer: 0
   m_Name: HoofHitCollider
   m_TagString: Untagged
@@ -2915,12 +3007,24 @@ SphereCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
   m_Radius: 0.12
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &9004963572845179841
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5482187743939525653}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 710524836a213f346b2f42d6ab9c1aea, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DogLife.MonsterHurtbox
 --- !u!1 &5878040890711283820
 GameObject:
   m_ObjectHideFlags: 0
@@ -5251,6 +5355,7 @@ GameObject:
   m_Component:
   - component: {fileID: 382490120616091405}
   - component: {fileID: 38270986731148592}
+  - component: {fileID: 3187712252209670647}
   m_Layer: 0
   m_Name: LowerLegHitCollider
   m_TagString: Untagged
@@ -5288,7 +5393,7 @@ CapsuleCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
@@ -5296,6 +5401,18 @@ CapsuleCollider:
   m_Height: 0.48265475
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &3187712252209670647
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5946266638143286526}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 710524836a213f346b2f42d6ab9c1aea, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DogLife.MonsterHurtbox
 --- !u!1 &6150054259870795493
 GameObject:
   m_ObjectHideFlags: 0
@@ -5306,6 +5423,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8102836465260042374}
   - component: {fileID: 4512925829858645566}
+  - component: {fileID: 593869579852080957}
   m_Layer: 0
   m_Name: HoofHitCollider
   m_TagString: Untagged
@@ -5343,12 +5461,24 @@ SphereCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
   m_Radius: 0.12
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &593869579852080957
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6150054259870795493}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 710524836a213f346b2f42d6ab9c1aea, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DogLife.MonsterHurtbox
 --- !u!1 &6254127271292933254
 GameObject:
   m_ObjectHideFlags: 0
@@ -7772,6 +7902,7 @@ GameObject:
   - component: {fileID: 339966775663927532}
   - component: {fileID: 8690965543073301453}
   - component: {fileID: 6687411527719556433}
+  - component: {fileID: 890580379338221420}
   m_Layer: 0
   m_Name: FloralDeer
   m_TagString: Untagged
@@ -7814,7 +7945,7 @@ CapsuleCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
@@ -7962,6 +8093,25 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65107a6142017774cbdaf4d306258e7d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DogLife.SeasonEnemyHealthBar
+  maxVisibleDistance: 18
+  occlusionMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  fillColor: {r: 0.84, g: 0.42, b: 0.53, a: 1}
+  highlightColor: {r: 1, g: 0.76, b: 0.8, a: 0.9}
+  trailColor: {r: 0.94, g: 0.7, b: 0.57, a: 1}
+--- !u!114 &890580379338221420
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6588122346830710352}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 710524836a213f346b2f42d6ab9c1aea, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DogLife.MonsterHurtbox
 --- !u!1 &7309845208609128884
 GameObject:
   m_ObjectHideFlags: 0

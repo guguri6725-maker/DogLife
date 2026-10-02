@@ -11,6 +11,10 @@ namespace DogLife
   [SerializeField] private float edgeWidth=.14f,warningOpacity=.14f,leafSpeed=1.2f,stormHeight=6,pumpkinSize=.8f,burstHeight=3;
   [SerializeField,Range(12,128)] private int segments=72;
   [SerializeField,Range(16,180)] private int stormLeaves=110;
+  [Header("50% 폭풍 시야 확보")]
+  [SerializeField,Min(.1f)] private float stormPatternHeight=1.6f;
+  [SerializeField,Range(0,1)] private float stormPatternOpacity=.16f;
+  [SerializeField,Range(16,180)] private int stormPatternLeaves=56;
   [Header("Attack timing fill")]
   [SerializeField,Range(0,1)] private float timingFillOpacity=.58f;
   [Header("Boss ornament / weapon trail")]
@@ -60,10 +64,10 @@ namespace DogLife
 
   }
   // Filled area advances toward the boundary; never covers the inner safe circle or safe wedge.
-  void TimingSector(Vector3 p,float inner,float outer,float yaw,float angle,float progress)
+  void TimingSector(Vector3 p,float inner,float outer,float yaw,float angle,float progress,float opacity=-1)
   {
    float r=Mathf.Lerp(inner,outer,Mathf.Clamp01(progress));if(r<=inner)return;
-   Sector(p+Vector3.up*.012f,inner,r,yaw,angle,A(amber,timingFillOpacity));
+   Sector(p+Vector3.up*.012f,inner,r,yaw,angle,A(amber,opacity<0?timingFillOpacity:opacity));
    Sector(p+Vector3.up*.016f,Mathf.Max(inner,r-edgeWidth),r,yaw,angle,A(gold,.95f));
   }
   void Flames(Vector3 p,float inner,float radius,float yaw,float angle,float t)
@@ -191,16 +195,17 @@ namespace DogLife
       Sigil(p,0,cfg.range,0,360,t,active);
       if(active&&kind==HarvestReaperBoss.Pattern.Shockwave)Flames(p,0,cfg.range,0,360,t);
       Sector(p,0,cfg.range,0,360,A(amber,alpha));Ring(p,cfg.range,A(gold,.9f));Ring(p,cfg.range-.4f,A(amber,.6f));
-      TimingSector(p,0,cfg.range,0,360,fill);
+      // 50% 폭풍은 바닥을 읽을 수 있게 얇게 표시하고 가장자리는 유지합니다.
+      TimingSector(p,0,cfg.range,0,360,fill,kind==HarvestReaperBoss.Pattern.Storm?stormPatternOpacity:-1);
       if(active&&kind==HarvestReaperBoss.Pattern.Shockwave){Ring(p,cfg.range*t,A(gold,1-t));Burst(p,cfg.range,t);}
       if(active&&kind==HarvestReaperBoss.Pattern.Storm)for(int band=0;band<5;band++)for(int j=0;j<64;j++)
       {
        float u=j/64f,v=(j+1)/64f,spin=Time.time*leafSpeed*75+band*72;
-       Vector3 a=p+D(spin+u*250)*(cfg.range*(.35f+u*.6f))+Vector3.up*(stormHeight*(u*.75f+band*.05f));
-       Vector3 b=p+D(spin+v*250)*(cfg.range*(.35f+v*.6f))+Vector3.up*(stormHeight*(v*.75f+band*.05f));
+       Vector3 a=p+D(spin+u*250)*(cfg.range*(.35f+u*.6f))+Vector3.up*(stormPatternHeight*(u*.75f+band*.05f));
+       Vector3 b=p+D(spin+v*250)*(cfg.range*(.35f+v*.6f))+Vector3.up*(stormPatternHeight*(v*.75f+band*.05f));
        Line(a,b,.12f+.4f*Mathf.Sin(u*Mathf.PI),A(band%2==0?amber:gold,.24f*Mathf.Sin(u*Mathf.PI)));
       }
-      if(kind==HarvestReaperBoss.Pattern.Storm)for(int i=0;i<stormLeaves;i++){float u=i/(float)stormLeaves,a=i*137.5f+Time.time*leafSpeed*60,r=cfg.range*(.25f+.75f*Mathf.Repeat(u*7,1));Leaf(p+D(a)*r+Vector3.up*(active?Mathf.Repeat(u+Time.time*leafSpeed*.15f,1)*stormHeight:.2f),active?.4f:.23f,a,A(i%3==0?gold:amber,active?.85f:.45f));}
+      if(kind==HarvestReaperBoss.Pattern.Storm)for(int i=0;i<stormPatternLeaves;i++){float u=i/(float)stormPatternLeaves,a=i*137.5f+Time.time*leafSpeed*60,r=cfg.range*(.25f+.75f*Mathf.Repeat(u*7,1));Leaf(p+D(a)*r+Vector3.up*(active?Mathf.Repeat(u+Time.time*leafSpeed*.15f,1)*stormPatternHeight:.2f),active?.4f:.23f,a,A(i%3==0?gold:amber,active?.85f:.45f));}
      }
      else if(kind==HarvestReaperBoss.Pattern.Pumpkins)for(int i=0;i<18;i++)Leaf(p+D(i*20+Time.time*40)*2+Vector3.up*(1+i*.2f),.3f,i*50,A(gold,.65f));
     }

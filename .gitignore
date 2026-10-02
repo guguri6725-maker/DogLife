@@ -84,3 +84,7 @@ ArtSource/**/*.blend1
 # Python tool cache
 Tools/__pycache__/
 *.pyc
+
+# Unity crash/auto-recovery scenes (regenerated locally, not game content)
+/[Aa]ssets/_Recovery/
+/[Aa]ssets/_Recovery.meta

@@ -2315,6 +2315,7 @@ GameObject:
   - component: {fileID: 2725864761194557441}
   - component: {fileID: 7638559692301010472}
   - component: {fileID: 1995740921420429587}
+  - component: {fileID: 3503925433755472652}
   m_Layer: 0
   m_Name: BlossomSpirit
   m_TagString: Untagged
@@ -2354,7 +2355,7 @@ CapsuleCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
@@ -2509,6 +2510,25 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65107a6142017774cbdaf4d306258e7d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DogLife.SeasonEnemyHealthBar
+  maxVisibleDistance: 18
+  occlusionMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  fillColor: {r: 0.84, g: 0.42, b: 0.53, a: 1}
+  highlightColor: {r: 1, g: 0.76, b: 0.8, a: 0.9}
+  trailColor: {r: 0.94, g: 0.7, b: 0.57, a: 1}
+--- !u!114 &3503925433755472652
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5511638507228795931}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 710524836a213f346b2f42d6ab9c1aea, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DogLife.MonsterHurtbox
 --- !u!1 &6298825408454602029
 GameObject:
   m_ObjectHideFlags: 0

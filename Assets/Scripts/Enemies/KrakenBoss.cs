@@ -39,6 +39,9 @@ namespace DogLife
   [SerializeField] private KrakenTentacle tentaclePrefab;
   [SerializeField] private Animator[] restingTentacles;
   [SerializeField] private KrakenWave wavePrefab;
+  [SerializeField,Tooltip("벽 쪽에 자리 잡은 본체는 회전하지 않고 촉수로 조준합니다.")] private bool fixedBodyFacing=true;
+  [SerializeField,Min(3)] private float rearWallClearance=5.5f;
+  public float RearWallClearance=>rearWallClearance;
   [Header("Encounter")][SerializeField,Min(0)] private float engageRange=45,entryInset=3,initialDelay=2,globalCooldown=2,turnSpeed=60,turnSmoothTime=.5f,spawnSampleRadius=3,arenaMargin=2,hitHeight=3,waveArmSpacing=3,waveArmLength=6,waveArmWidth=2,knockbackDuration=.45f;
   [Header("Normal patterns")][SerializeField] private Attack slam=new Attack();
   [SerializeField] private Attack cross=new Attack{length=10,width=2.7f,cooldown=10};
@@ -78,7 +81,7 @@ namespace DogLife
    if(State==Phase.Idle)
    {
     Vector3 d=player.transform.position-transform.position;d.y=0;
-    if(d.sqrMagnitude>1){float y=Mathf.SmoothDampAngle(transform.eulerAngles.y,Mathf.Atan2(d.x,d.z)*Mathf.Rad2Deg,ref yawVelocity,turnSmoothTime,turnSpeed);transform.rotation=Quaternion.Euler(0,y,0);}
+    if(!fixedBodyFacing&&d.sqrMagnitude>1){float y=Mathf.SmoothDampAngle(transform.eulerAngles.y,Mathf.Atan2(d.x,d.z)*Mathf.Rad2Deg,ref yawVelocity,turnSmoothTime,turnSpeed);transform.rotation=Quaternion.Euler(0,y,0);}
     if(!specialUsed&&health.Current/Mathf.Max(1,health.maxHealth)<=fury.triggerHP){specialUsed=true;Begin(Pattern.Fury);return;}
     if(Time.time>=nextAttack){int pick=Choose();if(pick>=0)Begin((Pattern)pick);}return;
    }

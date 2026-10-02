@@ -5,10 +5,11 @@ using UnityEngine.AI;
 
 namespace DogLife
 {
-    // 방 로딩마다 세 마리 조합을 정하고, 스트리밍 준비 중 순차 생성·활성화합니다.
+    // 일반 전투방마다 다섯 마리를 순차 생성합니다. 보스방은 별도 분기를 사용합니다.
     [RequireComponent(typeof(ForestRoom))]
     public sealed class RoomMonsterSpawner : MonoBehaviour
     {
+        public const int MonstersPerRoom = 5;
         public GameObject[] monsterPrefabs;
         [SerializeField,Tooltip("지정된 방은 일반 몬스터 대신 보스 한 마리만 소환합니다.")] private GameObject bossPrefab;
         [SerializeField] FrozenKnightCinematicStage bossCinematicStage;
@@ -21,9 +22,16 @@ namespace DogLife
         public static int[] PickTypes(int count)
         {
             if(count<2)throw new System.ArgumentException("At least two monster types are required.");
-            int a=Random.Range(0,count),b=Random.Range(0,count),c=Random.Range(0,count);
-            if(a==b&&b==c)c=(a+Random.Range(1,count))%count;
-            return new[]{a,b,c};
+            var types=new int[MonstersPerRoom];
+            bool allSame=true;
+            for(int i=0;i<types.Length;i++)
+            {
+                types[i]=Random.Range(0,count);
+                if(types[i]!=types[0])allSame=false;
+            }
+            // 기존처럼 한 종류만 나오는 조합은 피합니다.
+            if(allSame)types[types.Length-1]=(types[0]+Random.Range(1,count))%count;
+            return types;
         }
 
         public bool Prepare()
@@ -55,12 +63,15 @@ namespace DogLife
                     var bossAgent=bossPrefab.GetComponent<NavMeshAgent>();
                     if(!bossAgent){Debug.LogError("Boss needs NavMeshAgent",this);yield break;}
                     var filter=new NavMeshQueryFilter{agentTypeID=bossAgent.agentTypeID,areaMask=bossAgent.areaMask};
+                    // 고정형 크라켄은 뒤쪽 벽 가까운 지정 위치도 사용할 수 있습니다.
+                    var stationaryKraken=bossPrefab.GetComponent<KrakenBoss>();
+                    float rearInset=stationaryKraken?stationaryKraken.RearWallClearance:8f;
                     NavMeshHit nav;bool found=false;Vector3 origin=spawnCenter;
                     for(int attempt=0;attempt<80;attempt++)
                     {
                         Vector3 candidate=spawnCenter+(attempt==0?Vector3.zero:new Vector3(Random.Range(-5f,5f),0,Random.Range(-4f,4f)));
                         if(!NavMesh.SamplePosition(candidate,out nav,3,filter))continue;
-                        if(nav.position.x<room.entryX+8||nav.position.x>room.exitX-8)continue;
+                        if(nav.position.x<room.entryX+8||nav.position.x>room.exitX-rearInset+.01f)continue;
                         int count=Physics.OverlapSphereNonAlloc(nav.position+Vector3.up*3.4f,3.1f,spawnOverlaps,1<<8,QueryTriggerInteraction.Ignore);
                         if(count>0)continue;
                         origin=nav.position;found=true;break;
@@ -78,8 +89,8 @@ namespace DogLife
                 if(monsterPrefabs!=null)foreach(var prefab in monsterPrefabs)if(prefab&&!pool.Contains(prefab))pool.Add(prefab);
                 if(pool.Count<2||!room.encounter){Debug.LogError("Room monster configuration is incomplete",this);yield break;}
                 var types=PickTypes(pool.Count);var positions=new List<Vector3>();
-                // 먼저 세 위치를 모두 검증하므로 실패한 방이 부분 생성/자동 클리어되지 않습니다.
-                for(int i=0;i<3;i++)
+                // 모든 위치를 먼저 검증하므로 실패한 방이 부분 생성/자동 클리어되지 않습니다.
+                for(int i=0;i<types.Length;i++)
                 {
                     var prefab=pool[types[i]];var agent=prefab.GetComponent<NavMeshAgent>();
                     if(!agent){Debug.LogError("Room monster needs a NavMeshAgent: "+prefab.name,this);yield break;}
@@ -102,12 +113,12 @@ namespace DogLife
                         if(overlap)continue;
                         positions.Add(hit.position);found=true;break;
                     }
-                    if(!found){Debug.LogError("Could not find three clear monster spawn positions: "+gameObject.scene.path,this);yield break;}
+                    if(!found){Debug.LogError("Could not find "+types.Length+" clear monster spawn positions: "+gameObject.scene.path,this);yield break;}
                     if(spreadAcrossFrames)yield return null;
                 }
                 room.encounter.SetActive(false);
-                var spawned=new GameObject[3];
-                for(int i=0;i<3;i++)
+                var spawned=new GameObject[types.Length];
+                for(int i=0;i<types.Length;i++)
                 {
                     var prefab=pool[types[i]];
                     var agent=prefab.GetComponent<NavMeshAgent>();

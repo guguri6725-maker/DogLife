@@ -154,6 +154,7 @@ GameObject:
   - component: {fileID: 9182541061850135518}
   - component: {fileID: 2892868202697592190}
   - component: {fileID: 3149577506101157806}
+  - component: {fileID: 2201832524459258926}
   m_Layer: 0
   m_Name: CoralMermaid
   m_TagString: Untagged
@@ -239,7 +240,7 @@ CapsuleCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
@@ -358,6 +359,18 @@ MonoBehaviour:
   fillColor: {r: 0.2, g: 0.65, b: 0.75, a: 1}
   highlightColor: {r: 0.65, g: 0.95, b: 1, a: 1}
   trailColor: {r: 0.94, g: 0.7, b: 0.57, a: 1}
+--- !u!114 &2201832524459258926
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5834487125299016756}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 710524836a213f346b2f42d6ab9c1aea, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DogLife.MonsterHurtbox
 --- !u!1 &7566944291416886156
 GameObject:
   m_ObjectHideFlags: 0

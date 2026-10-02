@@ -17,11 +17,11 @@ namespace DogLife
         void FixedUpdate()
         {
             float step = Mathf.Min(speed * Time.fixedDeltaTime, range - travelled);
-            var hits = Physics.SphereCastAll(transform.position, radius, direction, step, ~0, QueryTriggerInteraction.Ignore);
+            var hits = Physics.SphereCastAll(transform.position, radius, direction, step, ~0, QueryTriggerInteraction.Collide);
             Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
             foreach (var hit in hits)
             {
-                if (owner && hit.transform.IsChildOf(owner)) continue;
+                if (!MonsterHurtbox.Accepts(hit.collider) || (owner && hit.transform.IsChildOf(owner))) continue;
                 var health = hit.collider.GetComponentInParent<CombatHealth>();
                 if (health && health.player == hostile)
                 {

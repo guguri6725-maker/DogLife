@@ -35,6 +35,7 @@ namespace DogLife
         int thrustCount;
         BoneWeaponProjectile activeBoomerang;
         LineRenderer chargeArrow;
+        BowChargeVisual chargeEffect;
         public bool IsCharging=>charging;
         // 활 클립은 옆으로 서는 자세이므로 모델 전체의 방향으로 조준축을 맞춥니다.
         public float VisualYawOffset=>move&&move.bowDrawClip&&item&&item.weaponCategory==InventoryWeapon.WeaponCategory.Bow?move.bowVisualYawOffset:0;
@@ -207,16 +208,27 @@ namespace DogLife
             int layer=animator?animator.GetLayerIndex(DaggerLayer):-1;
             if(layer>=0)animator.SetLayerWeight(layer,0);
         }
-        void ClearChargeVisual(){if(chargeArrow)Destroy(chargeArrow.gameObject);chargeArrow=null;}
+        void ClearChargeVisual()
+        {
+            if(chargeArrow)Destroy(chargeArrow.gameObject);chargeArrow=null;
+            if(chargeEffect)Destroy(chargeEffect.gameObject);chargeEffect=null;
+        }
         void UpdateChargeVisual()
         {
-            if(!chargeArrow){var go=new GameObject("Charged bone arrow");chargeArrow=go.AddComponent<LineRenderer>();chargeArrow.sharedMaterial=move.effectMaterial;chargeArrow.positionCount=5;}
+            if(!chargeArrow){var go=new GameObject("Charged bone arrow");chargeArrow=go.AddComponent<LineRenderer>();chargeArrow.sharedMaterial=move.bowChargeMaterial?move.bowChargeMaterial:move.effectMaterial;chargeArrow.positionCount=5;}
             var pos=weapons.SafeLaunchOrigin(weapons.GetWeaponSocket(item).position);
             var shotDirection=weapons.GetProjectileDirection(pos);var right=Vector3.Cross(Vector3.up,shotDirection).normalized;
+            if(move.bowChargeVisual)
+            {
+                if(!chargeEffect)chargeEffect=Instantiate(move.bowChargeVisual);
+                chargeEffect.transform.SetPositionAndRotation(pos,Quaternion.LookRotation(shotDirection));
+                chargeEffect.Show(ChargeAmount,item.boneOrigin==InventoryWeapon.BoneOrigin.Humanoid,item.weaponForm==InventoryWeapon.WeaponForm.Synthesized);
+            }
             float size=BoneWeaponVfx.SizeFor(item),length=Mathf.Lerp(.5f,1.1f,ChargeAmount)*size;
             var tip=pos+shotDirection*length;
             chargeArrow.SetPositions(new[]{pos-shotDirection*.3f,tip,tip-shotDirection*.25f+right*.16f,tip,tip-shotDirection*.25f-right*.16f});
-            chargeArrow.startWidth=Mathf.Lerp(.06f,.17f,ChargeAmount)*size;chargeArrow.endWidth=.025f*size;
+            // 당기고 있는 화살도 밝게 표시해 발사 전후를 구분합니다.
+            chargeArrow.startWidth=Mathf.Lerp(.12f,.23f,ChargeAmount)*size;chargeArrow.endWidth=.055f*size;
             var color=item.boneOrigin==InventoryWeapon.BoneOrigin.Humanoid?new Color(.8f,.16f,.24f,.85f):new Color(.4f,.85f,1,.85f);chargeArrow.startColor=chargeArrow.endColor=color;
             var bow=inventory.EquippedVisual?inventory.EquippedVisual.GetComponent<EquippedBowString>():null;if(bow)bow.Draw=ChargeAmount;
         }

@@ -14,11 +14,13 @@ namespace DogLife
         readonly HashSet<CombatHealth> outward=new HashSet<CombatHealth>(),inward=new HashSet<CombatHealth>();
         LineRenderer visual;
         Material effectMaterial;
+        BowFlightVisual bowVisual;
         float power=1,speedScale=1;
-        float HitRadius=>item.weaponCategory==InventoryWeapon.WeaponCategory.Bow?.19f*visualScale:.51f*visualScale;
+        // 화살의 판정은 충전 오라/합성 장식 크기와 분리해 바닥까지 늘어나지 않게 합니다.
+        float HitRadius=>item.weaponCategory==InventoryWeapon.WeaponCategory.Bow?move.ProjectileHitRadius:.51f*visualScale;
         Vector3 BoomerangHalfExtents=>new Vector3(HitRadius,move.BoomerangHalfThickness*visualScale,HitRadius);
         public event System.Action Returned;
-        void OnDestroy(){Returned?.Invoke();}
+        void OnDestroy(){if(bowVisual&&Application.isPlaying)bowVisual.Finish();Returned?.Invoke();}
         public static BoneWeaponProjectile Launch(Vector3 position,Vector3 direction,Transform owner,InventoryWeapon item,BasicWeaponMoveset move,Color color,float reach,float charge=0)
         {
             var go=new GameObject(item.weaponCategory==InventoryWeapon.WeaponCategory.Bow?"Bone arrow":"Bone boomerang");go.transform.position=position;
@@ -58,17 +60,30 @@ namespace DogLife
                 gradient.SetKeys(new[]{new GradientColorKey(Color.Lerp(color,Color.white,.65f),0),new GradientColorKey(color,.25f),new GradientColorKey(color,1)},new[]{new GradientAlphaKey(.9f,0),new GradientAlphaKey(.65f,.35f),new GradientAlphaKey(0,1)});
                 trail.colorGradient=gradient;
             }
-            p.Burst(position,Vector3.Cross(Vector3.up,direction),Vector3.up,.2f*p.visualScale);
+            if(bow&&move.bowFlightVisual)
+            {
+                // 장식 프리팹은 피해 판정과 별도로 비행을 표현합니다.
+                p.visual.enabled=false;trail.enabled=false;
+                p.bowVisual=Instantiate(move.bowFlightVisual,go.transform,false);
+                p.bowVisual.Initialize(item.boneOrigin==InventoryWeapon.BoneOrigin.Humanoid,synthesized,charge);
+            }
+            if(bow&&move.bowReleaseVisual)
+                Instantiate(move.bowReleaseVisual,position,Quaternion.LookRotation(direction)).Initialize(item.boneOrigin==InventoryWeapon.BoneOrigin.Humanoid,synthesized,charge);
+            else p.Burst(position,Vector3.Cross(Vector3.up,direction),Vector3.up,.2f*p.visualScale);
             return p;
         }
         void Burst(Vector3 position,Vector3 x,Vector3 y,float radius)
         {
+            if(item.weaponCategory==InventoryWeapon.WeaponCategory.Bow&&move.bowReleaseVisual)
+            {
+                Instantiate(move.bowReleaseVisual,position,Quaternion.LookRotation(forward)).Initialize(item.boneOrigin==InventoryWeapon.BoneOrigin.Humanoid,item.weaponForm==InventoryWeapon.WeaponForm.Synthesized,0,true);return;
+            }
             var ring=BoneWeaponVfx.Ring(position,x,y,radius,tint,effectMaterial,visualScale);
             if(item.strikeAccentPrefab)Instantiate(item.strikeAccentPrefab).Initialize(ring.HitShape,tint);
         }
         bool HitEnemy(Collider collider,Vector3 point)
         {
-            if(collider.transform.IsChildOf(owner))return false;
+            if(!MonsterHurtbox.Accepts(collider)||collider.transform.IsChildOf(owner))return false;
             var health=collider.GetComponentInParent<CombatHealth>();
             if(!health||health.player)return false;
             if((returning?inward:outward).Add(health))
@@ -86,14 +101,14 @@ namespace DogLife
         {
             // Sweep casts can miss colliders already overlapping the turnaround point.
             // 넓고 얇은 부메랑을 구로 검사하면 발사 직후 바닥까지 닿습니다.
-            foreach(var collider in Physics.OverlapBox(transform.position,BoomerangHalfExtents,transform.rotation,~0,QueryTriggerInteraction.Ignore))
+            foreach(var collider in Physics.OverlapBox(transform.position,BoomerangHalfExtents,transform.rotation,~0,QueryTriggerInteraction.Collide))
             {
-                if(collider.transform.IsChildOf(owner)||!collider.GetComponentInParent<CombatHealth>())continue;
+                if(!MonsterHurtbox.Accepts(collider)||collider.transform.IsChildOf(owner)||!collider.GetComponentInParent<CombatHealth>())continue;
                 var point=collider.ClosestPoint(transform.position);var offset=point-transform.position;
                 bool blocked=false;
                 if(!returning&&offset.sqrMagnitude>.000001f)
-                    foreach(var obstruction in Physics.RaycastAll(transform.position,offset.normalized,offset.magnitude,~0,QueryTriggerInteraction.Ignore))
-                        if(!obstruction.transform.IsChildOf(owner)&&!obstruction.collider.GetComponentInParent<CombatHealth>()){blocked=true;break;}
+                    foreach(var obstruction in Physics.RaycastAll(transform.position,offset.normalized,offset.magnitude,~0,QueryTriggerInteraction.Collide))
+                        if(MonsterHurtbox.Accepts(obstruction.collider)&&!obstruction.transform.IsChildOf(owner)&&!obstruction.collider.GetComponentInParent<CombatHealth>()){blocked=true;break;}
                 if(!blocked)HitEnemy(collider,point);
             }
         }
@@ -108,14 +123,14 @@ namespace DogLife
             float length=move.projectileSpeed*speedScale*Time.fixedDeltaTime;
             if(returning&&Vector3.Distance(target,transform.position)<=length+.25f){Destroy(gameObject);return;}
             if(!returning)length=Mathf.Min(length,Mathf.Max(0,reach-distance));
-            // 화살은 캡슐, 부메랑은 비행면에 맞춘 얇은 상자로 벽과 적을 검사합니다.
+            // 화살 중심의 작은 구를 이동 구간 전체로 검사합니다. 뒤쪽 잔상은 충돌하지 않습니다.
             var hits=bow
-                ?Physics.CapsuleCastAll(transform.position-direction*.45f*visualScale,transform.position+direction*.3f*visualScale,HitRadius,direction,length,~0,QueryTriggerInteraction.Ignore)
-                :Physics.BoxCastAll(transform.position,BoomerangHalfExtents,direction,Quaternion.LookRotation(direction,Vector3.up),length,~0,QueryTriggerInteraction.Ignore);
+                ?Physics.SphereCastAll(transform.position,HitRadius,direction,length,~0,QueryTriggerInteraction.Collide)
+                :Physics.BoxCastAll(transform.position,BoomerangHalfExtents,direction,Quaternion.LookRotation(direction,Vector3.up),length,~0,QueryTriggerInteraction.Collide);
             System.Array.Sort(hits,(a,b)=>a.distance.CompareTo(b.distance));
             foreach(var hit in hits)
             {
-                if(hit.transform.IsChildOf(owner))continue;
+                if(!MonsterHurtbox.Accepts(hit.collider)||hit.transform.IsChildOf(owner))continue;
                 var health=hit.collider.GetComponentInParent<CombatHealth>();
                 if(health&&health.player)continue;
                 if(health)

@@ -47,6 +47,9 @@ namespace DogLife
   [SerializeField] private PumpkinSettings pumpkin=new PumpkinSettings();
   [Header("HP specials")][SerializeField] private Attack storm=new Attack{range=22,warning=2.5f,duration=6,recovery=2,knockback=0};
   [SerializeField] private SpecialSettings special=new SpecialSettings();
+  [SerializeField,Min(1f),Tooltip("50% 폭풍 예고가 퍼지는 속도 / 플레이어 기본 이동속도")]
+  private float stormWarningSpeedMultiplier=1.15f;
+  float stormWarningDuration;
   public sealed class Patch { public Vector3 point;public float born,nextTick;public bool exploded; }
   readonly List<Patch> patches=new List<Patch>();
   readonly float[] ready=new float[4];readonly bool[] consumed=new bool[3];readonly List<Pattern> choices=new List<Pattern>(4);
@@ -62,7 +65,7 @@ namespace DogLife
   public PumpkinSettings Pumpkin=>pumpkin;public SpecialSettings Special=>special;
   public Attack CurrentAttack=>CurrentPattern==Pattern.Sweep?sweep:CurrentPattern==Pattern.Cleave?cleave:CurrentPattern==Pattern.Shockwave?shockwave:CurrentPattern==Pattern.Pumpkins?pumpkins:storm;
   public float Progress=>Mathf.Clamp01(elapsed/Mathf.Max(.01f,PhaseDuration));
-  public float PhaseDuration=>State==Phase.Warning?(CurrentPattern==Pattern.SafeWedge?(gathering?special.gatherWarning:special.warning):CurrentAttack.warning):State==Phase.Gap?special.delay:State==Phase.Recovery?CurrentAttack.recovery:CurrentPattern==Pattern.SafeWedge?(gathering?special.gatherDuration:special.explosionDuration):CurrentAttack.duration;
+  public float PhaseDuration=>State==Phase.Warning?(CurrentPattern==Pattern.SafeWedge?(gathering?special.gatherWarning:special.warning):CurrentPattern==Pattern.Storm?stormWarningDuration:CurrentAttack.warning):State==Phase.Gap?special.delay:State==Phase.Recovery?CurrentAttack.recovery:CurrentPattern==Pattern.SafeWedge?(gathering?special.gatherDuration:special.explosionDuration):CurrentAttack.duration;
   public Vector3 Ground=>transform.position+Vector3.up*.06f;
   void Awake(){health=GetComponent<CombatHealth>();var agent=GetComponent<NavMeshAgent>();if(agent)agent.enabled=false;var body=GetComponent<Rigidbody>();if(body){body.isKinematic=true;body.constraints=RigidbodyConstraints.FreezeAll;}if(animator)animator.applyRootMotion=false;}
   void Start(){player=FindFirstObjectByType<PlayerMotor>();if(player){target=player.GetComponent<CombatHealth>();targetCollider=player.GetComponent<Collider>();}if(!room)room=GetComponentInParent<ForestRoom>();nextAttack=Time.time+initialDelay;Forward=transform.forward;Play("Idle",1);}
@@ -126,6 +129,8 @@ namespace DogLife
   }
   void Begin(Pattern pattern)
   {
+   // 대시/슬로우가 아닌 기본 이동속도로 예고 시간을 고정해 중간에 경계 속도가 바뀌지 않습니다.
+   if(pattern==Pattern.Storm)stormWarningDuration=player?storm.range/Mathf.Max(.1f,player.moveSpeed*stormWarningSpeedMultiplier):storm.warning;
    CurrentPattern=pattern;if((int)pattern<4)previous=(int)pattern;closeClock=0;
    // Lock the direction we smoothly reached; never snap to the target at attack start.
    Forward=transform.forward;turnVelocity=0;
