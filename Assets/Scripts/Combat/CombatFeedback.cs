@@ -11,6 +11,8 @@ namespace DogLife
         [SerializeField,Range(0,.15f)] private float heavyStop=.08f;
         [SerializeField,Range(0,30)] private float recoilAngle=13;
         [SerializeField,Min(.05f)] private float recoilDuration=.22f;
+        [SerializeField,Tooltip("비인간형 몬스터의 피격 반응 관절을 직접 연결합니다.")] private Transform recoilBone;
+        [SerializeField,Range(.5f,3)] private float contactEffectScale=1;
         Animator animator;
         NavMeshAgent agent;
         Transform bone;
@@ -22,9 +24,10 @@ namespace DogLife
         void Awake()
         {
             animator=GetComponentInChildren<Animator>();agent=GetComponent<NavMeshAgent>();
-            var bones=GetComponentsInChildren<Transform>();
+            bone=recoilBone;var bones=GetComponentsInChildren<Transform>();
             foreach(string name in new[]{"Spine2","Chest","Spine","Head"})
             {
+                if(bone)break;
                 foreach(var t in bones)if(t.name==name){bone=t;break;}
                 if(bone)break;
             }
@@ -36,7 +39,8 @@ namespace DogLife
             if(!target)return false;
             float before=target.Current;target.Damage(amount,useFullPlayerDamage);
             if(target.Current>=before)return false;
-            if(!target.player)CombatContactVfx.Spawn(contact,direction,tint,power);
+            var targetFeedback=target.GetComponent<CombatFeedback>();
+            if(!target.player)CombatContactVfx.Spawn(contact,direction,tint,power,targetFeedback?targetFeedback.contactEffectScale:1);
             if(!target.Dead&&target.gameObject.activeInHierarchy)
             {
                 var feedback=target.GetComponent<CombatFeedback>();if(!feedback)feedback=target.gameObject.AddComponent<CombatFeedback>();

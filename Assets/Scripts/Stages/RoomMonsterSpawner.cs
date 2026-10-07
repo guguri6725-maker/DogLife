@@ -69,7 +69,10 @@ namespace DogLife
                     NavMeshHit nav;bool found=false;Vector3 origin=spawnCenter;
                     for(int attempt=0;attempt<80;attempt++)
                     {
-                        Vector3 candidate=spawnCenter+(attempt==0?Vector3.zero:new Vector3(Random.Range(-5f,5f),0,Random.Range(-4f,4f)));
+                        Vector3 center=spawnCenter;
+                        // 커진 고정형 보스는 기존 소환점 대신 몸통이 벽 안에 들어오는 지점부터 검사한다.
+                        if(stationaryKraken)center.x=Mathf.Min(center.x,room.exitX-rearInset);
+                        Vector3 candidate=center+(attempt==0?Vector3.zero:new Vector3(Random.Range(-5f,5f),0,Random.Range(-4f,4f)));
                         if(!NavMesh.SamplePosition(candidate,out nav,3,filter))continue;
                         if(nav.position.x<room.entryX+8||nav.position.x>room.exitX-rearInset+.01f)continue;
                         int count=Physics.OverlapSphereNonAlloc(nav.position+Vector3.up*3.4f,3.1f,spawnOverlaps,1<<8,QueryTriggerInteraction.Ignore);

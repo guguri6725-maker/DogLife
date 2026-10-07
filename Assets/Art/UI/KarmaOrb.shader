@@ -38,7 +38,7 @@ Shader "DogLife/UI/Karma Water"
                 float2 p=(i.uv-.5)*2;float d=length(p);float radius=.66;
                 float side=smoothstep(-.015,.015,p.x);
                 float fill=lerp(_LightFill,_DarkFill,side);
-                float3 water=lerp(float3(.18,.73,1),float3(.92,.12,.21),side);
+                float3 water=lerp(float3(.25,.68,.62),float3(.72,.23,.30),side);
                 float pulse=.92+.08*sin(_WaveTime*1.8);
                 float glow=exp(-max(0,d-radius)*12)*smoothstep(.99,.79,d)*(.08+.65*fill*fill)*pulse;
                 float4 result=float4(water,glow);
@@ -62,6 +62,11 @@ Shader "DogLife/UI/Karma Water"
                 float rim=(1-smoothstep(.018,.027,abs(d-(radius+.018))));
                 float3 gold=lerp(float3(.30,.21,.11),float3(.93,.82,.57),saturate(.5+p.y*.7-p.x*.3));
                 result=lerp(result,float4(gold,1),rim);
+                // 얇은 이중 금속 테두리와 눈금으로 유리 유물처럼 읽히도록 합니다.
+                float angle=atan2(p.y,p.x);
+                float outer=1-smoothstep(.006,.013,abs(d-.75));
+                float ticks=pow(saturate(cos(angle*24)),24)*(1-smoothstep(.016,.024,abs(d-.72)));
+                result=lerp(result,float4(gold*.8,1),saturate(outer+ticks));
                 result*=i.color;
                 #ifdef UNITY_UI_CLIP_RECT
                 result.a*=UnityGet2DClipping(i.world.xy,_ClipRect);

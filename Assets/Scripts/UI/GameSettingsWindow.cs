@@ -177,8 +177,9 @@ namespace DogLife
             {
                 bool active=PlayerFramePacing.Limits[i]==draft.fps;
                 fpsButtons[i].interactable=!draft.vsync;
-                fpsButtons[i].GetComponent<Image>().color=active?new Color(.94f,.57f,.64f):new Color(.16f,.25f,.22f);
-                fpsButtons[i].GetComponentInChildren<Text>().color=active?new Color(.04f,.09f,.08f):new Color(.94f,.91f,.81f);
+                // 선택한 항목은 같은 유물 프레임의 밝기와 글자로 구분합니다.
+                fpsButtons[i].GetComponent<Image>().color=active?new Color(1,.95f,.76f):new Color(.55f,.65f,.60f);
+                fpsButtons[i].GetComponentInChildren<Text>().color=active?new Color(1,.91f,.65f):new Color(.85f,.85f,.77f);
             }
         }
     }

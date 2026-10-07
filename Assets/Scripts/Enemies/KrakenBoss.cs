@@ -41,11 +41,15 @@ namespace DogLife
   [SerializeField] private KrakenWave wavePrefab;
   [SerializeField,Tooltip("벽 쪽에 자리 잡은 본체는 회전하지 않고 촉수로 조준합니다.")] private bool fixedBodyFacing=true;
   [SerializeField,Min(3)] private float rearWallClearance=5.5f;
+  [SerializeField,Tooltip("월드 단위의 촉수 시작 위치: 몸통 옆에서 앞으로 뻗습니다.")] private Vector3 slamRootOffset=new Vector3(6,0,7);
+  [SerializeField,Min(0)] private float waveOriginForward=7;
   public float RearWallClearance=>rearWallClearance;
   [Header("Encounter")][SerializeField,Min(0)] private float engageRange=45,entryInset=3,initialDelay=2,globalCooldown=2,turnSpeed=60,turnSmoothTime=.5f,spawnSampleRadius=3,arenaMargin=2,hitHeight=3,waveArmSpacing=3,waveArmLength=6,waveArmWidth=2,knockbackDuration=.45f;
   [Header("Normal patterns")][SerializeField] private Attack slam=new Attack();
   [SerializeField] private Attack cross=new Attack{length=10,width=2.7f,cooldown=10};
   [SerializeField] private CrossSettings surrounding=new CrossSettings();
+  [SerializeField,Min(1)] private float crossMinimumLength=5.5f;
+  readonly List<Vector3> crossOrigins=new List<Vector3>();
   [SerializeField] private Attack capture=new Attack{warning=1.8f,cooldown=12,groundDuration=2};
   [SerializeField] private CaptureSettings binding=new CaptureSettings();
   [SerializeField] private Attack wave=new Attack{warning=2,cooldown=10,knockback=13,lift=2};
@@ -115,15 +119,19 @@ namespace DogLife
    Vector3 aim=player.transform.position;aim.y=transform.position.y;
    if(pattern==Pattern.Slam)
    {
-    Vector3 dir=(aim-transform.position).normalized;if(dir.sqrMagnitude<.01f)dir=Forward;Forward=dir;
-    Configure(0,transform.position,dir,slam.length,slam.width,false,slam,0);
+    Vector3 origin=transform.position+transform.rotation*slamRootOffset;
+    Vector3 dir=(aim-origin).normalized;if(dir.sqrMagnitude<.01f)dir=Forward;Forward=dir;
+    Configure(0,origin,dir,slam.length,slam.width,false,slam,0);
    }
    if(pattern==Pattern.Cross)
    {
+    crossOrigins.Clear();
     for(int i=0;i<Mathf.Max(1,surrounding.count);i++)
     {
      Vector3 dir=Quaternion.Euler(0,360f*i/Mathf.Max(1,surrounding.count),0)*Forward;
-     Vector3 origin=ValidPoint(aim+dir*surrounding.spawnRadius);
+     // 벽 밖의 위치를 플레이어 위치로 대체하면 촉수가 0 길이로 찌그러진다.
+     if(!TryCrossOrigin(aim,dir,out Vector3 origin))continue;
+     crossOrigins.Add(origin);
      Vector3 toward=aim-origin;toward.y=0;float length=Mathf.Min(cross.length,toward.magnitude);
      Configure(i,origin,toward.sqrMagnitude>.01f?toward.normalized:-dir,length,cross.width,false,cross,surrounding.simultaneous?0:i*surrounding.delay);
     }
@@ -131,9 +139,26 @@ namespace DogLife
    if(pattern==Pattern.Capture)Configure(0,ValidPoint(aim),Forward,capture.radius,capture.radius,true,capture,0);
    if(pattern==Pattern.Wave)
    {
-    for(int i=0;i<2;i++)Configure(i,transform.position+Vector3.Cross(Vector3.up,Forward)*(i==0?-waveArmSpacing:waveArmSpacing),Forward,waveArmLength,waveArmWidth,false,wave,0,true);
+    for(int i=0;i<2;i++)Configure(i,transform.position+Forward*waveOriginForward+Vector3.Cross(Vector3.up,Forward)*(i==0?-waveArmSpacing:waveArmSpacing),Forward,waveArmLength,waveArmWidth,false,wave,0,true);
    }
    Enter(Phase.Warning);Play("Command",Duration);
+  }
+  bool TryCrossOrigin(Vector3 aim,Vector3 preferred,out Vector3 origin)
+  {
+   float minimum=Mathf.Min(crossMinimumLength,cross.length),spacing=Mathf.Max(cross.width*1.2f,3);
+   for(int ring=0;ring<2;ring++)for(int step=0;step<32;step++)
+   {
+    int offset=step==0?0:(step+1)/2*(step%2==1?1:-1);
+    float radius=Mathf.Max(minimum+.5f,surrounding.spawnRadius*(ring==0?1:.7f));
+    Vector3 point=aim+Quaternion.Euler(0,offset*22.5f,0)*preferred*radius;
+    if(room&&(point.x<room.entryX+entryInset+arenaMargin||point.x>room.exitX-arenaMargin))continue;
+    if(!NavMesh.SamplePosition(point,out NavMeshHit nav,Mathf.Min(1.25f,spawnSampleRadius),NavMesh.AllAreas))continue;
+    Vector3 delta=nav.position-aim;delta.y=0;if(delta.magnitude<minimum)continue;
+    bool overlaps=false;foreach(var used in crossOrigins)if(Vector3.Distance(used,nav.position)<spacing){overlaps=true;break;}
+    if(overlaps)continue;origin=nav.position;return true;
+   }
+   // 공간이 정말 부족하면 잘못된 촉수를 겹쳐 만들지 않고 해당 발만 생략한다.
+   origin=default;return false;
   }
   KrakenTentacle Get(int index)
   {

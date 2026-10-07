@@ -34,7 +34,7 @@ namespace DogLife
         const float GroundNormalY = .55f;
         readonly System.Collections.Generic.List<Vector3> wallNormals = new System.Collections.Generic.List<Vector3>();
         float dashUntil, nextDash, jumpBuffer, lastGrounded = -10, standingHeight;
-        bool jumpHeld, jumping, jumpReleased;
+        bool jumpHeld, jumping, jumpReleased, suppressCrouchUntilRelease;
         Vector3 knockbackVelocity;
         float knockbackUntil, knockbackDuration;
         public bool IsKnockedBack => Time.time < knockbackUntil;
@@ -69,25 +69,35 @@ namespace DogLife
             if (!readInput) return;
             if (Cursor.lockState != CursorLockMode.Locked) { MoveInput = Vector2.zero; ReleaseJump(); return; }
             MoveInput = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
+            bool crouchHeld = Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.C);
+            if (!crouchHeld) suppressCrouchUntilRelease = false;
             if (Input.GetKeyDown(KeyCode.LeftShift)) RequestDash();
             if (AttackMovementLocked) { MoveInput = Vector2.zero; ClearJumpInput(); return; }
-            SetCrouching(Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.C));
+            SetCrouching(crouchHeld && !suppressCrouchUntilRelease);
             if (Input.GetKeyDown(KeyCode.Space)) RequestJump();
             if (!Input.GetKey(KeyCode.Space)) ReleaseJump();
         }
         public void RequestJump() {
-            if (Crouching || IsKnockedBack || AttackLocked) return;
+            if (IsKnockedBack || AttackLocked || !StandForAction()) return;
             jumpHeld = true; jumpBuffer = Time.time + .12f;
         }
         // 물리 프레임 전에 짧게 눌렀다 놓아도 점프 예약은 유지합니다.
         public void ReleaseJump() { jumpHeld = false; }
         public bool RequestDash() {
             var health=GetComponent<CombatHealth>();
-            if (!isActiveAndEnabled || SkillWindow.BlocksGameplayInput || (health&&health.Dead) || Time.time < nextDash || Crouching || IsKnockedBack) return false;
+            if (!isActiveAndEnabled || SkillWindow.BlocksGameplayInput || (health&&health.Dead) || IsKnockedBack) return false;
+            if (!StandForAction() || Time.time < nextDash) return false;
             dashDirection = MoveDirection.sqrMagnitude > .01f ? MoveDirection.normalized : Facing;
             if(attackCombo)attackCombo.CancelForDash();
             var feedback=GetComponent<CombatFeedback>();if(feedback)feedback.CancelHitStop();
             dashUntil = Time.time + dashDuration; nextDash = Time.time + dashCooldown; return true;
+        }
+        bool StandForAction()
+        {
+            // 머리 위 공간을 먼저 확인하고, 앉기 키를 계속 눌러도 바로 다시 앉지 않게 합니다.
+            if (Crouching && !SetCrouching(false)) return false;
+            suppressCrouchUntilRelease = true;
+            return true;
         }
         public void Face(Vector3 direction) {
             if (attackCombo&&attackCombo.LocksFacing) return;

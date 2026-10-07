@@ -15,7 +15,7 @@ namespace DogLife
         bool counted;
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         static void Warmup(){active=0;material=Resources.Load<Material>("CombatHitFeedback");}
-        public static void Spawn(Vector3 point,Vector3 direction,Color color,float power)
+        public static void Spawn(Vector3 point,Vector3 direction,Color color,float power,float scale=1)
         {
             if(active>=16)return;
             if(!material)material=Resources.Load<Material>("CombatHitFeedback");
@@ -27,6 +27,8 @@ namespace DogLife
             go.transform.position+=normal.normalized*.12f;
             go.transform.rotation=Quaternion.LookRotation(normal);
             var fx=go.AddComponent<CombatContactVfx>();fx.Build(color,power);
+            // 거대 보스도 실제 접촉점의 섬광이 보이도록 대상별 배율만 적용한다.
+            fx.size*=Mathf.Clamp(scale,.5f,3);go.transform.localScale=Vector3.one*fx.size;
         }
         void Build(Color color,float power)
         {

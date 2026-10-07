@@ -28,12 +28,13 @@ namespace DogLife
             var rect=image.rectTransform.rect;
             texture=new RenderTexture(660,Mathf.Max(1,Mathf.RoundToInt(660*rect.height/Mathf.Max(1,rect.width))),24);texture.Create();image.texture=texture;
             var cameraObject=new GameObject("InventoryPreviewCamera");cameraObject.transform.SetParent(stage.transform,false);
-            previewCamera=cameraObject.AddComponent<Camera>();previewCamera.enabled=false;previewCamera.cullingMask=1<<31;previewCamera.clearFlags=CameraClearFlags.SolidColor;previewCamera.backgroundColor=new Color(.025f,.04f,.037f,1);previewCamera.orthographic=true;previewCamera.targetTexture=texture;
+            // 투명 배경으로 Hierarchy의 장비 패널과 자연스럽게 이어집니다.
+            previewCamera=cameraObject.AddComponent<Camera>();previewCamera.enabled=false;previewCamera.cullingMask=1<<31;previewCamera.clearFlags=CameraClearFlags.SolidColor;previewCamera.backgroundColor=Color.clear;previewCamera.orthographic=true;previewCamera.targetTexture=texture;
             var bounds=new Bounds(model.transform.position,Vector3.zero);bool first=true;
             foreach(var renderer in model.GetComponentsInChildren<Renderer>()){if(first){bounds=renderer.bounds;first=false;}else bounds.Encapsulate(renderer.bounds);}
             previewCamera.orthographicSize=Mathf.Max(.5f,bounds.size.y*.64f);
             cameraObject.transform.position=bounds.center+Vector3.back*5;cameraObject.transform.LookAt(bounds.center);
-            var lightObject=new GameObject("InventoryPreviewLight");lightObject.transform.SetParent(stage.transform,false);lightObject.transform.localRotation=Quaternion.Euler(30,-25,0);var light=lightObject.AddComponent<Light>();light.type=LightType.Directional;light.intensity=1.1f;light.cullingMask=1<<31;
+            var lightObject=new GameObject("InventoryPreviewLight");lightObject.transform.SetParent(stage.transform,false);lightObject.transform.localRotation=Quaternion.Euler(30,-25,0);var light=lightObject.AddComponent<Light>();light.type=LightType.Directional;light.intensity=.65f;light.cullingMask=1<<31;
             inventory.Changed+=RefreshWeapon;RefreshWeapon();
         }
         static void SetLayer(GameObject root){foreach(var t in root.GetComponentsInChildren<Transform>(true))t.gameObject.layer=31;}
