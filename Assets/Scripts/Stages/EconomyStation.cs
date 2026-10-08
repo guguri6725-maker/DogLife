@@ -10,6 +10,7 @@ namespace DogLife
         public StationKind kind;
         public WeaponCatalog catalog;
         public Transform[] displays=new Transform[0];
+        public Transform fusionFocus;
         [Min(0)] public int price=30;
         [Min(1)] public float interactionDistance=5;
         [Min(.01f)] public float displayScale=.65f;
@@ -47,16 +48,22 @@ namespace DogLife
             stock.items[index]=null;if(visuals[index])Destroy(visuals[index]);message=item.displayName+" 구매 완료";return true;
         }
         public bool Fuse(string first,string second,RunEconomy wallet,out string message)
+        { InventoryWeapon result;return Fuse(first,second,wallet,out message,out result); }
+        public bool Fuse(string first,string second,RunEconomy wallet,out string message,out InventoryWeapon result)
         {
+            result=null;
             message="같은 계열의 일반 무기 두 개를 선택하세요.";
             if(kind!=StationKind.Fusion||stock==null||stock.used||!wallet||!InReach(wallet.inventory)){message="이 합성방은 이미 사용했거나 너무 멉니다.";return false;}
             var a=wallet.inventory.FindInstance(first);var b=wallet.inventory.FindInstance(second);
             if(!a||!b||first==second||a.weaponForm!=InventoryWeapon.WeaponForm.Basic||b.weaponForm!=InventoryWeapon.WeaponForm.Basic||a.boneOrigin!=b.boneOrigin)return false;
-            InventoryWeapon result=a.weaponCategory==b.weaponCategory?a.sameWeaponEvolution:null;
+            result=a.weaponCategory==b.weaponCategory?a.sameWeaponEvolution:null;
             if(a.weaponCategory!=b.weaponCategory)
-            {var pool=catalog.weapons.Where(w=>w&&w.boneOrigin==a.boneOrigin&&w.weaponForm==InventoryWeapon.WeaponForm.Synthesized).ToArray();if(pool.Length>0)result=pool[Random.Range(0,pool.Length)];}
-            if(!result||!wallet.inventory.FuseInstances(first,second,result)){message="합성 결과 데이터가 연결되지 않았습니다.";return false;}
-            stock.used=true;message=result.displayName+" 합성 완료! 이 방의 합성을 사용했습니다.";return true;
+            {var pool=catalog?catalog.weapons.Where(w=>w&&w.boneOrigin==a.boneOrigin&&w.weaponForm==InventoryWeapon.WeaponForm.Synthesized).ToArray():new InventoryWeapon[0];if(pool.Length>0)result=pool[Random.Range(0,pool.Length)];}
+            if(!result){message="합성 결과 데이터가 연결되지 않았습니다.";return false;}
+            // 인벤토리 변경 이벤트에서 재진입하더라도 같은 방을 중복 사용할 수 없습니다.
+            stock.used=true;
+            if(!wallet.inventory.FuseInstances(first,second,result)){stock.used=false;message="합성 재료를 다시 선택하세요.";return false;}
+            message=result.displayName+" 합성 완료! 이 방의 합성을 사용했습니다.";return true;
         }
     }
 }

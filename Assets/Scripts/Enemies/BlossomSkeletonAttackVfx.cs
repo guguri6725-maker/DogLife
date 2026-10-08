@@ -10,6 +10,7 @@ namespace DogLife
         public Material material;
         public Vector3[] grips, tips;
         public float duration=1.65f, swingStart=.95f, impactTime=1.25f;
+        readonly List<Vector4> uv=new List<Vector4>(2048);
         Mesh mesh;
         MeshRenderer meshRenderer;
         CombatHealth health;
@@ -59,6 +60,8 @@ namespace DogLife
         {
             int n=vertices.Count;vertices.Add(a);vertices.Add(b);vertices.Add(c);vertices.Add(d);
             for(int i=0;i<4;i++)colors.Add(color);
+            // 궤적의 가장자리는 부드럽게, 꽃잎 표면은 결이 보이도록 구분합니다.
+            uv.Add(new Vector4(0,0,4,0));uv.Add(new Vector4(0,1,4,0));uv.Add(new Vector4(1,1,4,0));uv.Add(new Vector4(1,0,4,0));
             triangles.Add(n);triangles.Add(n+1);triangles.Add(n+2);triangles.Add(n);triangles.Add(n+2);triangles.Add(n+3);
         }
         void Petal(Vector3 p,Vector3 a,Vector3 b,Color color)
@@ -67,7 +70,7 @@ namespace DogLife
             vertices.Add(p);vertices.Add(p-a);vertices.Add(p-a*.25f+b*.7f);
             vertices.Add(p+a*.6f+b);vertices.Add(p+a*.35f);
             vertices.Add(p+a*.6f-b);vertices.Add(p-a*.25f-b*.7f);
-            for(int i=0;i<7;i++)colors.Add(color);
+            for(int i=0;i<7;i++){colors.Add(color);uv.Add(new Vector4(i==0?.5f:Mathf.Repeat(i*.37f,1),i==0?.5f:Mathf.Repeat(i*.23f,1),3,0));}
             for(int i=0;i<6;i++){triangles.Add(n);triangles.Add(n+1+i);triangles.Add(n+1+(i+1)%6);}
         }
         // 편집기 미리보기에서도 동일한 시간 기반 연출을 검사합니다.
@@ -81,16 +84,17 @@ namespace DogLife
                 meshRenderer=GetComponent<MeshRenderer>();if(!meshRenderer)meshRenderer=gameObject.AddComponent<MeshRenderer>();
                 meshRenderer.sharedMaterial=material;meshRenderer.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;meshRenderer.receiveShadows=false;
             }
-            vertices.Clear();colors.Clear();triangles.Clear();
+            vertices.Clear();colors.Clear();triangles.Clear();uv.Clear();
             float end=Mathf.Min(time,impactTime),start=Mathf.Max(swingStart,time-.19f);
             for(int i=0;i<32&&start<end;i++)
             {
                 float t0=Mathf.Lerp(start,end,i/32f),t1=Mathf.Lerp(start,end,(i+1)/32f);
                 Vector3 g0=Sample(grips,t0),g1=Sample(grips,t1),p0=Sample(tips,t0),p1=Sample(tips,t1);
                 float alpha=Mathf.Pow((i+1)/32f,1.4f)*Mathf.Clamp01((impactTime+.19f-time)/.19f);
-                float taper=Mathf.Sin(Mathf.PI*(i+.5f)/32f);
+                float taper=Mathf.Sin(Mathf.PI*(i+.5f)/32f);int ribbonStart=uv.Count;
                 Quad(Vector3.Lerp(g0,p0,1-.46f*taper),p0,p1,Vector3.Lerp(g1,p1,1-.46f*taper),new Color(1,.22f,.5f,alpha*.55f*taper));
                 Quad(Vector3.Lerp(g0,p0,.92f),p0,p1,Vector3.Lerp(g1,p1,.92f),new Color(1,.78f,.87f,alpha*.65f*taper));
+                for(int k=ribbonStart;k<uv.Count;k++){Vector4 tex=uv[k];tex.x=(i+tex.x)/32f;uv[k]=tex;}
             }
             // 공격 중에만 짧게 흩어지고 사라지는 꽃잎을 표시합니다.
             for(int i=0;i<38;i++)
@@ -116,7 +120,7 @@ namespace DogLife
                     Quad(center+v0*radius,center+v0*(radius+.12f),center+v1*(radius+.12f),center+v1*radius,new Color(1,.65f,.82f,1-impactAge/.3f));
                 }
             }
-            mesh.Clear();mesh.SetVertices(vertices);mesh.SetColors(colors);mesh.SetTriangles(triangles,0);mesh.RecalculateBounds();meshRenderer.enabled=vertices.Count>0;
+            mesh.Clear();mesh.SetVertices(vertices);mesh.SetColors(colors);mesh.SetUVs(0,uv);mesh.SetTriangles(triangles,0);mesh.RecalculateBounds();meshRenderer.enabled=vertices.Count>0;
         }
         void Clear(){if(meshRenderer)meshRenderer.enabled=false;}
         void OnDisable(){Clear();}

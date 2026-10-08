@@ -28,6 +28,12 @@ Shader "DogLife/Fracturing Ice"
     float light=.4+.6*abs(dot(n,normalize(float3(.3,1,.5))));
     float fresnel=pow(1-saturate(abs(dot(n,normalize(_WorldSpaceCameraPos-i.world)))),3);
     float3 ice=_Tint.rgb*light+fresnel*float3(.2,.4,.55)+pow(saturate(1-nearest),8)*.13;
+    // 깊은 청색 얼음 속 결, 절단면 반사와 작은 기포를 겹쳐 재질의 두께를 표현합니다.
+    float3 view=normalize(_WorldSpaceCameraPos-i.world);
+    float spec=pow(saturate(abs(dot(n,normalize(view+normalize(float3(.3,1,.5)))))),56);
+    float layers=sin(i.local.y*31+sin(i.local.x*12+i.local.z*9)*2)*.5+.5;
+    float bubbles=pow(saturate(hash(floor(uv*9)).x-.82)/.18,5);
+    ice=lerp(ice*.78,ice, layers*.25+.65)+spec*float3(.45,.6,.7)+bubbles*.055;
     ice=lerp(ice,float3(.015,.07,.12),dark*.95)+rim*float3(.65,.85,1);
     return float4(ice,1);
    }

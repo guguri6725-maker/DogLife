@@ -120,6 +120,8 @@ namespace DogLife
         bool plantingSword,swordPlanted,retrievingSword;
         Vector3 horseWaitingPosition;
         Quaternion horseWaitingRotation;
+        Quaternion ridingModelRotation;
+        [SerializeField,Min(1)] float mountedSeatRotationSharpness=14;
         bool horseWaiting;
         float nextAttack,nextPath,closeTime;
         bool busy,engaged,pendingSpecial;
@@ -141,6 +143,8 @@ namespace DogLife
             var body=GetComponent<Rigidbody>();body.isKinematic=true;body.constraints=RigidbodyConstraints.FreezeRotation;
             agent.updateRotation=false;agent.updateUpAxis=false;
             horseScale=horseRoot.localScale;swordScale=swordRoot.localScale;
+            // 모델의 기존 정면 축을 보존하면서 안장의 기울기를 따라갑니다.
+            ridingModelRotation=riderRoot.localRotation;
             swordRestParent=swordRoot.parent;swordRestPosition=swordRoot.localPosition;swordRestRotation=swordRoot.localRotation;
             horseRoot.gameObject.SetActive(false);knightAnimator.applyRootMotion=false;horseAnimator.applyRootMotion=false;
             health.Died+=Died;nextAttack=Time.time+initialDelay;
@@ -165,7 +169,12 @@ namespace DogLife
         {
             UpdateIntroductionSword();
             // 탑승 위치 보정 후 검의 월드 위치를 고정해야 검이 군마를 따라 움직이지 않습니다.
-            if(PhaseNumber==2&&mountSeat&&riderRoot)riderRoot.position=mountSeat.position;
+            if(PhaseNumber==2&&mountSeat&&riderRoot)
+            {
+                riderRoot.position=mountSeat.position;
+                riderRoot.rotation=Quaternion.Slerp(riderRoot.rotation,mountSeat.rotation*ridingModelRotation,
+                    1-Mathf.Exp(-mountedSeatRotationSharpness*Time.deltaTime));
+            }
             else if(horseWaiting)horseRoot.SetPositionAndRotation(horseWaitingPosition,horseWaitingRotation);
             if(iceFieldActive&&swordIcePatch)swordIcePatch.transform.position=iceFieldPosition;
             // 손을 놓아도 검은 월드 위치를 유지하고, 회수 동작에서 다시 손잡이를 잡습니다.
@@ -537,8 +546,15 @@ namespace DogLife
             Play(knightAnimator,cinematicMount?"CinematicMount":"Mount",boardingDuration);Vector3 start=riderRoot.position;
             for(float t=0;t<boardingDuration;t+=Time.deltaTime)
             {
-                float progress=t/boardingDuration,u=Mathf.SmoothStep(0,1,Mathf.InverseLerp(.2f,.85f,progress));
-                riderRoot.position=Vector3.Lerp(start,mountSeat.position,u)+Vector3.up*(Mathf.Sin(u*Mathf.PI)*mountArcHeight);yield return null;
+                // 손을 먼저 짚고 몸을 올린 뒤 다리를 넘깁니다. 클립의 접촉 구간과 같은 곡선입니다.
+                float progress=t/boardingDuration;
+                float approach=Mathf.SmoothStep(0,1,Mathf.InverseLerp(0,.22f,progress));
+                float cross=Mathf.SmoothStep(0,1,Mathf.InverseLerp(.42f,.80f,progress));
+                float rise=Mathf.SmoothStep(0,1,Mathf.InverseLerp(.28f,.84f,progress));
+                Vector3 seat=mountSeat.position;
+                Vector3 position=Vector3.Lerp(start,seat,.26f*approach+.74f*cross);
+                position.y=Mathf.Lerp(start.y,seat.y,rise)+Mathf.Sin(rise*Mathf.PI)*mountArcHeight;
+                riderRoot.position=position;yield return null;
             }
             riderRoot.position=mountSeat.position;
             // 탑승 완료 지점을 새 이동 기준으로 삼되 군마/기사/꽂힌 검은 월드 위치를 보존합니다.
@@ -643,12 +659,17 @@ namespace DogLife
         void PlayLocomotion(bool moving)
         {
             // 방향을 바꿔도 기존 대기/보행 모션을 유지합니다.
-            Play(knightAnimator,PhaseNumber==1?(moving?(introductionRunning&&!introductionSwordDrawn?"UnarmedWalk":"Walk"):"Idle"):"MountedIdle");
-            if(PhaseNumber!=2)return;
+            if(PhaseNumber!=2)
+            {
+                Play(knightAnimator,moving?(introductionRunning&&!introductionSwordDrawn?"UnarmedWalk":"Walk"):"Idle");
+                return;
+            }
             // 일반 추적에는 접지가 있는 보행을 사용하고, 돌진의 Gallop과 구분합니다.
             float speed=Nav?agent.velocity.magnitude:0;bool walking=moving&&speed>.08f;
             Play(horseAnimator,walking?"Walk":"Idle");
-            if(walking)horseAnimator.speed=Mathf.Clamp(speed/horseWalkReferenceSpeed,horseWalkMinimumRate,horseWalkMaximumRate);
+            Play(knightAnimator,walking?"MountedWalk":"MountedIdle");
+            // 말과 기사의 보행 클립 길이/배속을 같이 맞춰 보폭마다 반동이 어긋나지 않습니다.
+            if(walking)knightAnimator.speed=horseAnimator.speed=Mathf.Clamp(speed/horseWalkReferenceSpeed,horseWalkMinimumRate,horseWalkMaximumRate);
         }
         void Play(Animator animator,string state,float duration=0)
         {
@@ -663,7 +684,14 @@ namespace DogLife
             float blend=state=="Idle"||state=="MountedIdle"?recoveryBlendTime:attackBlendTime;
             if(state=="1타2타"||state=="3타"||state=="내려찍기_정면")blend=originalAttackBlendTime;
             if(duration>0)blend=Mathf.Min(blend,duration*.25f);
-            animator.CrossFadeInFixedTime(state,blend,0,0);
+            float offset=0;
+            if(animator==knightAnimator&&(state=="MountedIdle"||state=="MountedWalk"||state=="MountedCharge"))
+            {
+                string horseState=state=="MountedWalk"?"Walk":state=="MountedCharge"?"Gallop":"Idle";
+                var gait=horseAnimator.GetCurrentAnimatorStateInfo(0);
+                if(!horseAnimator.IsInTransition(0)&&gait.IsName(horseState))offset=Mathf.Repeat(gait.normalizedTime,1)*length;
+            }
+            animator.CrossFadeInFixedTime(state,blend,0,offset);
         }
         void Disarm(){if(swordArea)swordArea.Disarm();if(chargeArea)chargeArea.Disarm();if(crackArea)crackArea.Disarm();if(radialArea)radialArea.Disarm();}
         void ClearHazards(){foreach(var h in hazards)if(h)Destroy(h.gameObject);hazards.Clear();}

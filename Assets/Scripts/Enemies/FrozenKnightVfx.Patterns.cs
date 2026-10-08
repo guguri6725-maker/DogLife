@@ -42,11 +42,14 @@ namespace DogLife
             Vector3 a=p+rotation*new Vector3(-w*.5f,0,-depth*.5f),b=p+rotation*new Vector3(w*.5f,0,-depth*.5f);
             Vector3 c=p+rotation*new Vector3(w*.4f,h*.76f,-depth*.35f),d=p+rotation*new Vector3(-w*.28f,h*.68f,-depth*.35f);
             Vector3 tip=p+rotation*new Vector3(w*.1f,h,0),back=rotation*Vector3.forward*depth;
-            Quad(a,b,c,d,Ink(iceTint,alpha));Quad(d,c,tip,tip,Ink(Color.Lerp(iceTint,Color.white,.5f),alpha));
-            Quad(a,a+back,b+back,b,Ink(iceTint*.65f,alpha));Quad(a,d,d+back,a+back,Ink(iceTint*.6f,alpha));
-            Quad(b,b+back,c+back,c,Ink(Color.Lerp(iceTint,Color.white,.2f),alpha));Quad(a+back,d+back,c+back,b+back,Ink(iceTint*.8f,alpha));
-            Quad(d,d+back,tip+back*.5f,tip,Ink(Color.white,alpha*.7f));Quad(c,tip,tip+back*.5f,c+back,Ink(Color.white,alpha*.8f));
+            IceFace(a,b,c,d,Ink(iceTint,alpha));IceFace(d,c,tip,tip,Ink(Color.Lerp(iceTint,Color.white,.5f),alpha));
+            IceFace(a,a+back,b+back,b,Ink(iceTint*.65f,alpha));IceFace(a,d,d+back,a+back,Ink(iceTint*.6f,alpha));
+            IceFace(b,b+back,c+back,c,Ink(Color.Lerp(iceTint,Color.white,.2f),alpha));IceFace(a+back,d+back,c+back,b+back,Ink(iceTint*.8f,alpha));
+            IceFace(d,d+back,tip+back*.5f,tip,Ink(Color.white,alpha*.7f));IceFace(c,tip,tip+back*.5f,c+back,Ink(Color.white,alpha*.8f));
         }
+        // 얼음 면에는 별도 표면 모드를 주어 내부 결 및 시선 방향 광택을 계산합니다.
+        void IceFace(Vector3 a,Vector3 b,Vector3 c,Vector3 d,Color tint)
+        {SoftSurface(a,b,c,d,tint,5,0);}
         void Hoofprint(Vector3 p,float size,Color color)
         {
             Arc(p,size,-135,135,.07f,color);
@@ -172,7 +175,7 @@ namespace DogLife
                 float u=j/40f,v=(j+1)/40f,r=radius*(.2f+band*.135f),spin=age*65+band*61;
                 Vector3 a=c+Radial(spin+u*270,r)+Vector3.up*(.3f+Mathf.Sin(u*Mathf.PI)*4);
                 Vector3 b=c+Radial(spin+v*270,r)+Vector3.up*(.3f+Mathf.Sin(v*Mathf.PI)*4);
-                Quad(a,b,b+Vector3.up*.45f,a+Vector3.up*.45f,Ink(iceTint,.28f*Mathf.Sin(u*Mathf.PI)));
+                SoftSurface(a,b,b+Vector3.up*.45f,a+Vector3.up*.45f,Ink(iceTint,.28f*Mathf.Sin(u*Mathf.PI)),4,band);
             }
             var camera=Camera.main;Vector3 right=camera?camera.transform.right:Vector3.right,up=camera?camera.transform.up:Vector3.up;
             for(int i=0;i<240;i++)
@@ -207,7 +210,7 @@ namespace DogLife
             if(warningProgress<0)return;
             float p=warningProgress;if(p<=0)return;
             // 고정된 전체 경고 위에 밝은 얼음색을 덧씌웁니다. 안전한 안쪽 고리는 채우지 않습니다.
-            Vector3 c=center+Vector3.up*.012f;Color fill=new Color(.55f,.88f,1,active?.42f:.55f);
+            Vector3 c=center+Vector3.up*.012f;Color fill=new Color(.55f,.88f,1,active?.18f:.55f);
             if(shape==Shape.Line)
             {
                 Vector3 side=Vector3.Cross(Vector3.up,direction).normalized*width*.5f,end=c+direction*(length*p);

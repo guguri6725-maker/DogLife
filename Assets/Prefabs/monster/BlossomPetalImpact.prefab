@@ -2385,6 +2385,7 @@ GameObject:
   - component: {fileID: 334891786622847207}
   - component: {fileID: 2538089917644674604}
   - component: {fileID: 543583649310727316}
+  - component: {fileID: 119465946369279672}
   m_Layer: 0
   m_Name: BlossomPetalImpact
   m_TagString: Untagged
@@ -2406,6 +2407,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 5393606359054103195}
+  - {fileID: 5357821335015915691}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!198 &2538089917644674604
@@ -4767,3 +4769,86 @@ ParticleSystemRenderer:
   m_MeshWeighting1: 1
   m_MeshWeighting2: 1
   m_MeshWeighting3: 1
+--- !u!114 &119465946369279672
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4925676189533972614}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9dadf6e796e015540bfc28988d7783ae, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DogLife.SpringParticleAccent
+  pollen: {fileID: 3097769971869411589}
+  dust: {fileID: 0}
+  pollenCount: 24
+  dustCount: 0
+--- !u!1001 &3779130628414764156
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 334891786622847207}
+    m_Modifications:
+    - target: {fileID: 8244657755971938285, guid: f0294c5ea9b47d14ea1ff4a1ac6f446b, type: 3}
+      propertyPath: m_Name
+      value: PollenAccent
+      objectReference: {fileID: 0}
+    - target: {fileID: 9090768008226796759, guid: f0294c5ea9b47d14ea1ff4a1ac6f446b, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9090768008226796759, guid: f0294c5ea9b47d14ea1ff4a1ac6f446b, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9090768008226796759, guid: f0294c5ea9b47d14ea1ff4a1ac6f446b, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9090768008226796759, guid: f0294c5ea9b47d14ea1ff4a1ac6f446b, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 9090768008226796759, guid: f0294c5ea9b47d14ea1ff4a1ac6f446b, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9090768008226796759, guid: f0294c5ea9b47d14ea1ff4a1ac6f446b, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9090768008226796759, guid: f0294c5ea9b47d14ea1ff4a1ac6f446b, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9090768008226796759, guid: f0294c5ea9b47d14ea1ff4a1ac6f446b, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9090768008226796759, guid: f0294c5ea9b47d14ea1ff4a1ac6f446b, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9090768008226796759, guid: f0294c5ea9b47d14ea1ff4a1ac6f446b, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: f0294c5ea9b47d14ea1ff4a1ac6f446b, type: 3}
+--- !u!198 &3097769971869411589 stripped
+ParticleSystem:
+  m_CorrespondingSourceObject: {fileID: 2202073476285603193, guid: f0294c5ea9b47d14ea1ff4a1ac6f446b, type: 3}
+  m_PrefabInstance: {fileID: 3779130628414764156}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &5357821335015915691 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 9090768008226796759, guid: f0294c5ea9b47d14ea1ff4a1ac6f446b, type: 3}
+  m_PrefabInstance: {fileID: 3779130628414764156}
+  m_PrefabAsset: {fileID: 0}

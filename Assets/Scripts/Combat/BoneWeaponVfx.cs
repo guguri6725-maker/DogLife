@@ -15,8 +15,8 @@ namespace DogLife
             fx.line=go.AddComponent<LineRenderer>();fx.line.sharedMaterial=material;fx.line.positionCount=points.Length;fx.line.SetPositions(points);fx.line.numCapVertices=5;fx.line.numCornerVertices=4;fx.line.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;fx.line.receiveShadows=false;
             fx.tint=color;fx.birth=Time.time;fx.width=size;fx.lifetime=life;fx.line.startWidth=size;fx.line.endWidth=size*.15f;fx.line.startColor=fx.line.endColor=color;return fx;
         }
-        // 각 기본형의 범위를 기준으로 합성형만 두 배 확대합니다.
-        public static float SizeFor(InventoryWeapon item)=>(item.boneOrigin==InventoryWeapon.BoneOrigin.Humanoid?1.4f:1f)*(item.weaponForm==InventoryWeapon.WeaponForm.Synthesized?2f:1f);
+        // 동물형/인간형은 같은 사거리를 사용하고 합성형만 일반형의 1.5배로 확대합니다.
+        public static float SizeFor(InventoryWeapon item)=>item.weaponForm==InventoryWeapon.WeaponForm.Synthesized?1.5f:1f;
         public static BoneWeaponVfx Strike(Vector3 center,Vector3 forward,float reach,InventoryWeapon.WeaponCategory category,int step,Color color,Material material,float scale=1f,bool secondStrike=false)
         {
             if(category==InventoryWeapon.WeaponCategory.Spear&&step<2)

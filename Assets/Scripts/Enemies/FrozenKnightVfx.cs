@@ -27,6 +27,7 @@ namespace DogLife
         readonly List<Vector3> vertices=new List<Vector3>(1200);
         readonly List<Color> colors=new List<Color>(1200);
         readonly List<int> triangles=new List<int>(2400);
+        readonly List<Vector4> effectUV=new List<Vector4>(1200);
         readonly Queue<Vector3> ribbonBases=new Queue<Vector3>(),ribbonTips=new Queue<Vector3>();
         readonly Queue<float> ribbonTimes=new Queue<float>();
         int slashIndex;
@@ -69,6 +70,7 @@ namespace DogLife
         void Quad(Vector3 a,Vector3 b,Vector3 c,Vector3 d,Color color)
         {
             int i=vertices.Count;vertices.Add(a);vertices.Add(b);vertices.Add(c);vertices.Add(d);for(int n=0;n<4;n++)colors.Add(color);
+            for(int n=0;n<4;n++)effectUV.Add(Vector4.zero);
             triangles.Add(i);triangles.Add(i+1);triangles.Add(i+2);triangles.Add(i);triangles.Add(i+2);triangles.Add(i+3);
         }
         void Stroke(Vector3 a,Vector3 b,float thickness,Color color)
@@ -79,12 +81,14 @@ namespace DogLife
             for(int j=0;j<6;j++){Vector3 ray=Radial(j*60,size);Stroke(p,p+ray,edgeWidth*.23f,color);Vector3 branch=p+ray*.6f;Stroke(branch,branch+Quaternion.AngleAxis(50,Vector3.up)*ray*.25f,edgeWidth*.16f,color);Stroke(branch,branch+Quaternion.AngleAxis(-50,Vector3.up)*ray*.25f,edgeWidth*.16f,color);}
         }
         Vector3 Radial(float degrees,float radius)=>Quaternion.AngleAxis(degrees,Vector3.up)*direction*radius;
-        void Clear(){vertices.Clear();triangles.Clear();colors.Clear();}
+        void Clear(){vertices.Clear();triangles.Clear();colors.Clear();effectUV.Clear();}
         void Submit(Mesh mesh)
         {
-            mesh.Clear();mesh.SetVertices(vertices);mesh.SetColors(colors);mesh.SetTriangles(triangles,0);mesh.RecalculateBounds();
+            if(mesh==areaMesh)DrawAtmosphere();
+            mesh.Clear();mesh.SetVertices(vertices);mesh.SetColors(colors);mesh.SetUVs(0,effectUV);mesh.SetTriangles(triangles,0);mesh.RecalculateBounds();
             // 상시 빙판은 공격 경고보다 낮은 강도로 그려 전장 전체의 무늬가 판정을 가리지 않게 합니다.
-            surfaceProperties.SetFloat("_SurfaceDetail",mesh==areaMesh&&(detailedIceSurface||FuryVisual)&&shape==Shape.Ring?(theme==Theme.SwordField?.28f:1):0);
+            bool frozenImpact=active&&(theme==Theme.Burst||theme==Theme.Stomp||theme==Theme.ColdField);
+            surfaceProperties.SetFloat("_SurfaceDetail",mesh==areaMesh&&(detailedIceSurface||FuryVisual||frozenImpact)&&shape==Shape.Ring?(theme==Theme.SwordField?.28f:frozenImpact?.45f:1):0);
             surfaceProperties.SetVector("_FieldOrigin",new Vector4(origin.x,origin.y,origin.z,length));
             Graphics.DrawMesh(mesh,Matrix4x4.identity,frostMaterial,gameObject.layer,null,0,surfaceProperties,ShadowCastingMode.Off,false,null,LightProbeUsage.Off);
         }
@@ -206,7 +210,7 @@ namespace DogLife
                 for(int i=1;i<a.Length;i++)
                 {
                     float fade=Mathf.Clamp01(1-(Time.time-times[i])/Mathf.Max(.01f,ribbonLifetime));
-                    Color c=new Color(.3f,.65f,.9f,fade*(slashIndex==1?.5f:.36f));int start=colors.Count;Quad(a[i-1],b[i-1],b[i],a[i],c);
+                    Color c=new Color(.3f,.65f,.9f,fade*(slashIndex==1?.5f:.36f));int start=colors.Count;SoftSurface(a[i-1],b[i-1],b[i],a[i],c,4,i*.37f);
                     // 검 끝으로 갈수록 흰 청색이 강해지는 넓은 잔상과 얇은 얼음날을 겹칩니다.
                     colors[start+1]=colors[start+2]=new Color(.82f,.95f,1,fade*(slashIndex==1?.9f:.75f));
                     Vector3 inset0=(a[i-1]-b[i-1]).normalized*swordCoreWidth,inset1=(a[i]-b[i]).normalized*swordCoreWidth;

@@ -25,11 +25,11 @@ namespace DogLife
         {
             var go=new GameObject(item.weaponCategory==InventoryWeapon.WeaponCategory.Bow?"Bone arrow":"Bone boomerang");go.transform.position=position;
             var p=go.AddComponent<BoneWeaponProjectile>();p.owner=owner;p.item=item;p.move=move;p.forward=direction.normalized;p.tint=color;p.reach=reach;p.visualScale=BoneWeaponVfx.SizeFor(item);
-            // 투사체도 합성형의 최대 비행 거리만 두 배로 늘립니다.
+            // 활/부메랑의 비행 거리도 근접 공격과 동일한 일반 1배, 합성 1.5배를 사용합니다.
             bool synthesized=item.weaponForm==InventoryWeapon.WeaponForm.Synthesized;
             p.effectMaterial=synthesized&&item.strikeAccentPrefab&&item.strikeAccentPrefab.surfaceMaterial
                 ?item.strikeAccentPrefab.surfaceMaterial:move.effectMaterial;
-            if(synthesized)p.reach*=2f;
+            p.reach*=BoneWeaponVfx.SizeFor(item);
             p.visual=go.AddComponent<LineRenderer>();p.visual.sharedMaterial=p.effectMaterial;p.visual.useWorldSpace=false;p.visual.startWidth=.07f*p.visualScale;p.visual.endWidth=.025f*p.visualScale;p.visual.startColor=p.visual.endColor=color;p.visual.numCapVertices=4;
             bool bow=item.weaponCategory==InventoryWeapon.WeaponCategory.Bow;
             if(bow){p.power=1+charge;p.speedScale=Mathf.Lerp(.8f,1.4f,charge);p.visualScale*=Mathf.Lerp(1,1.5f,charge);}

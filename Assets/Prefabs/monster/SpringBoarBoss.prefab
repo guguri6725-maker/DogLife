@@ -333,6 +333,8 @@ MonoBehaviour:
   heavyStop: 0.08
   recoilAngle: 13
   recoilDuration: 0.22
+  recoilBone: {fileID: 0}
+  contactEffectScale: 1
 --- !u!114 &3092940998404043534
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -568,7 +570,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DogLife.SpringBoarVfx
   boss: {fileID: 164451114213953849}
-  material: {fileID: 2100000, guid: 397cb80df475dd24fb30bd1c007a47c6, type: 2}
+  material: {fileID: 2100000, guid: f3b9133dca036dc45a8ee9b0ef995158, type: 2}
+  pollenCount: 28
+  dustOpacity: 0.32
   Ivory: {r: 0.97, g: 0.92, b: 0.82, a: 1}
   Blush: {r: 0.91, g: 0.73, b: 0.77, a: 1}
   Deep: {r: 0.43, g: 0.34, b: 0.31, a: 1}

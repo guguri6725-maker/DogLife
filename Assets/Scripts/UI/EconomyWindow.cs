@@ -13,8 +13,13 @@ namespace DogLife
         public Image[] itemIcons;
         public Button[] buyButtons;
         public Button fuseButton;
+        public WeaponFusionSequence fusionSequencePrefab;
+        public GameObject fusionPresentation;
+        public Text fusionStatus,fusionActionLabel;
+        WeaponFusionSequence sequence;
+        bool opened;
         public static EconomyWindow Instance {get;private set;}
-        public static bool IsOpen=>Instance&&Instance.panel&&Instance.panel.activeSelf;
+        public static bool IsOpen=>Instance&&Instance.opened;
         static int consumed=-1;
         public static bool BlocksInput=>IsOpen||consumed==Time.frameCount;
         EconomyStation station,nearest;
@@ -23,7 +28,8 @@ namespace DogLife
         float scanAt;
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void ResetState(){Instance=null;consumed=-1;}
-        void Awake(){Instance=this;panel.SetActive(false);}
+        void Awake(){Instance=this;panel.SetActive(false);if(fusionPresentation)fusionPresentation.SetActive(false);}
+        void OnDisable(){if(opened)Close();}
         void OnDestroy(){if(Instance!=this)return;if(IsOpen)Close();Instance=null;}
         void Update()
         {
@@ -31,7 +37,12 @@ namespace DogLife
             var health=wallet.inventory.GetComponent<CombatHealth>();
             if(health&&health.Dead){if(IsOpen)Close();prompt.text="";return;}
             goldLabel.text="G  "+wallet.Gold;
-            if(IsOpen){if(Input.GetKeyDown(KeyCode.Escape)||Input.GetKeyDown(KeyCode.F))Close();return;}
+            if(IsOpen)
+            {
+                if(sequence){fusionStatus.text=sequence.Status;fusionActionLabel.text=sequence.Completed?"확인":"건너뛰기";if(Input.GetKeyDown(KeyCode.Escape))FusionAction();}
+                else if(Input.GetKeyDown(KeyCode.Escape)||Input.GetKeyDown(KeyCode.F))Close();
+                return;
+            }
             if(SkillWindow.IsOpen||GameSettingsWindow.IsOpen){prompt.text="";return;}
             if(Time.unscaledTime>=scanAt)
             {
@@ -46,15 +57,34 @@ namespace DogLife
         {
             if(IsOpen||SkillWindow.IsOpen||GameSettingsWindow.IsOpen||!target||!target.InReach(wallet.inventory))return;
             station=target;previousScale=Time.timeScale;previousCursor=Cursor.lockState;previousVisible=Cursor.visible;
+            opened=true;
             Time.timeScale=0;Cursor.lockState=CursorLockMode.None;Cursor.visible=true;consumed=Time.frameCount;
             panel.SetActive(true);prompt.text="";bool shop=station.kind==EconomyStation.StationKind.Shop;
             shopPanel.SetActive(shop);fusionPanel.SetActive(!shop);title.text=shop?"뼈 상점":"영혼의 합성";message.text=shop?"구매한 무기는 가방에 들어갑니다.":"같은 계열의 일반 무기 2개 · 비용 없음 · 방당 1회";
             first=null;second=null;Cycle(true,1);Cycle(false,1);Refresh();
         }
         public void Close()
-        {if(!IsOpen)return;panel.SetActive(false);Time.timeScale=previousScale;Cursor.lockState=previousCursor;Cursor.visible=previousVisible;consumed=Time.frameCount;station=null;}
+        {if(!opened)return;opened=false;if(sequence){sequence.Release();Destroy(sequence.gameObject);sequence=null;}if(fusionPresentation)fusionPresentation.SetActive(false);panel.SetActive(false);Time.timeScale=previousScale;Cursor.lockState=previousCursor;Cursor.visible=previousVisible;consumed=Time.frameCount;station=null;}
         public void Buy(int index){if(!station)return;string text;station.Buy(index,wallet,out text);message.text=text;Refresh();}
-        public void Fuse(){if(!station)return;string text;station.Fuse(first,second,wallet,out text);message.text=text;Refresh();}
+        public void Fuse()
+        {
+            if(!station||sequence)return;
+            var a=wallet.inventory.FindInstance(first);var b=wallet.inventory.FindInstance(second);
+            string text;InventoryWeapon result;
+            // 재료/결과 교환은 한 번만 확정하고 연출은 확정된 결과를 보여줍니다.
+            bool success=station.Fuse(first,second,wallet,out text,out result);message.text=text;Refresh();
+            if(!success||!fusionSequencePrefab||!fusionPresentation)return;
+            var focus=station.fusionFocus;
+            sequence=Instantiate(fusionSequencePrefab,focus?focus.position:station.transform.position+Vector3.up*1.2f,Quaternion.identity);
+            sequence.Begin(a,b,result);panel.SetActive(false);fusionPresentation.SetActive(true);
+        }
+        public void FusionAction()
+        {
+            if(!sequence)return;
+            if(!sequence.Completed){sequence.Skip();return;}
+            sequence.Release();Destroy(sequence.gameObject);sequence=null;
+            fusionPresentation.SetActive(false);panel.SetActive(true);Refresh();
+        }
         public void NextFirst(){Cycle(true,1);Refresh();}public void PreviousFirst(){Cycle(true,-1);Refresh();}
         public void NextSecond(){Cycle(false,1);Refresh();}public void PreviousSecond(){Cycle(false,-1);Refresh();}
         void Cycle(bool a,int direction)

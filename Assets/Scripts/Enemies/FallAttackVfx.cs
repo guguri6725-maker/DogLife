@@ -15,10 +15,17 @@ namespace DogLife
         [SerializeField] Transform sporeOrigin,leftWingTip,rightWingTip;
         [SerializeField,Min(.05f)] float trailLifetime=.28f;
         [SerializeField,Range(16,180)] int maxParticles=112;
+        [Header("입체 포자 / 흙먼지 / 잔광")]
+        [SerializeField,Range(8,32)] int sporeCloudLayers=18;
+        [SerializeField,Range(0,1)] float sporeCloudOpacity=.62f;
+        [SerializeField,Range(.1f,2)] float dustScale=1.3f;
+        [SerializeField,Range(0,1)] float trailOpacity=.48f;
+        Camera viewCamera;
         Mesh mesh;MeshRenderer surface;CombatHealth health;Transform visual;
         readonly List<Vector3> vertices=new List<Vector3>(4096);
         readonly List<Color> colors=new List<Color>(4096);
         readonly List<int> indices=new List<int>(6144);
+        readonly List<Vector4> uv=new List<Vector4>(4096);
         readonly List<Vector3> warningPoints=new List<Vector3>(112);
         struct Stroke { public Vector3 a,b;public float time; }
         readonly List<Stroke> strokes=new List<Stroke>(32);
@@ -36,9 +43,16 @@ namespace DogLife
         void Triangle(Vector3 a,Vector3 b,Vector3 c,Color color)
         {
             int n=vertices.Count;vertices.Add(transform.InverseTransformPoint(a));vertices.Add(transform.InverseTransformPoint(b));vertices.Add(transform.InverseTransformPoint(c));
-            colors.Add(color);colors.Add(color);colors.Add(color);indices.Add(n);indices.Add(n+1);indices.Add(n+2);
+            colors.Add(color);colors.Add(color);colors.Add(color);uv.Add(Vector4.zero);uv.Add(Vector4.zero);uv.Add(Vector4.zero);indices.Add(n);indices.Add(n+1);indices.Add(n+2);
         }
         void Quad(Vector3 a,Vector3 b,Vector3 c,Vector3 d,Color color){Triangle(a,b,c,color);Triangle(a,c,d,color);}
+        // 공유 셰이더로 연기와 잔상을 부드럽게 표현하며 경고 도형은 기존 모양을 유지합니다.
+        void SoftQuad(Vector3 a,Vector3 b,Vector3 c,Vector3 d,Color color,float mode,float seed)
+        {
+            int n=uv.Count;Quad(a,b,c,d,color);
+            uv[n]=new Vector4(0,0,mode,seed);uv[n+1]=new Vector4(1,0,mode,seed);uv[n+2]=new Vector4(1,1,mode,seed);
+            uv[n+3]=uv[n];uv[n+4]=uv[n+2];uv[n+5]=new Vector4(0,1,mode,seed);
+        }
         // 경계선과 같은 외곽으로 채워 표시와 실제 캡슐 폭의 차이를 없앱니다.
         void FillAttackOutline(Color tint)
         {
@@ -66,16 +80,23 @@ namespace DogLife
                 Quad(a,a+along*size*.015f,b+along*size*.015f,b,Alpha(brightColor,c.a*.38f));
             }
         }
-        void Puff(Vector3 p,float radius,Color c)
+        void Puff(Vector3 p,float radius,Color c,float mode=2,float seed=0)
         {
-            // 중앙에서 가장자리까지 알파가 줄어드는 겹친 안개 조각입니다.
-            var cam=Camera.main;if(!cam)return;
-            var right=cam.transform.right;var up=cam.transform.up;
-            for(int i=0;i<12;i++)
+            if(!viewCamera)return;
+            var right=viewCamera.transform.right*radius;var up=viewCamera.transform.up*radius;
+            SoftQuad(p-right-up,p+right-up,p+right+up,p-right+up,c,mode,seed);
+        }
+        void SporeVolume(Vector3 center,float progress)
+        {
+            // 큰 구름은 낮게 깔고 작은 포자만 떠올려 몸체와 회피 경계가 보이게 합니다.
+            float fade=Mathf.SmoothStep(0,1,Mathf.Clamp01(progress*8))*(1-Mathf.SmoothStep(.82f,1,progress));
+            for(int i=0;i<sporeCloudLayers;i++)
             {
-                float a=i*Mathf.PI/6,b=(i+1)*Mathf.PI/6;int n=vertices.Count;
-                Triangle(p,p+(right*Mathf.Cos(a)+up*Mathf.Sin(a))*radius,p+(right*Mathf.Cos(b)+up*Mathf.Sin(b))*radius,c);
-                colors[n+1]=Alpha(c,0);colors[n+2]=Alpha(c,0);
+                float a=i*2.399963f+Time.time*.18f,r=enemy.Radius*(.18f+.53f*Mathf.Repeat(i*.618f,1));
+                float size=Mathf.Min(enemy.Radius-r,enemy.Radius*(.28f+.07f*(i%3)));
+                Vector3 at=center+new Vector3(Mathf.Cos(a)*r,.4f+.12f*(i%4),Mathf.Sin(a)*r);
+                Puff(at,size, new Color(.54f,.65f,.23f,sporeCloudOpacity*fade),2,i*3.27f);
+                Puff(at+Vector3.up*(.35f+.2f*Mathf.Sin(Time.time+i)),.035f+(i%3)*.013f,new Color(.64f,.64f,.21f,.6f*fade),3,i);
             }
         }
         void BurrowMark(Vector3 center,float sink)
@@ -136,8 +157,8 @@ namespace DogLife
                 float gravity=f.kind==2?.12f:f.kind==3?-.1f:2.2f;
                 var p=f.position+f.velocity*age-Vector3.up*(gravity*age*age);
                 var tint=Alpha(f.tint,f.tint.a*Mathf.Clamp01(age/.07f)*Mathf.Pow(1-t,1.3f));
-                if(f.kind==2){Puff(p,f.size*(1+age*2.3f),tint);continue;}
-                if(f.kind==3){Puff(p,f.size*2,tint);continue;}
+                if(f.kind==2){Puff(p,f.size*dustScale*(1+age*2.3f),tint,2,f.spin);continue;}
+                if(f.kind==3){Puff(p,f.size*2,tint,3,f.spin);continue;}
                 float angle=f.spin+age*(f.kind==1?11:6);var along=new Vector3(Mathf.Cos(angle),Mathf.Sin(angle),.25f).normalized;
                 var side=Vector3.Cross(along,Vector3.forward).normalized;
                 if(f.kind==1){var tip=p+along*f.size;Triangle(p-along*f.size,tip,p+side*f.size*.2f,tint);Triangle(p-along*f.size,p-side*f.size*.15f,tip,Alpha(brightColor,tint.a*.5f));}
@@ -152,7 +173,8 @@ namespace DogLife
             bool warning=ready||phase==FallMonsterEnemy.Phase.Attack||active;
             bool entered=phase!=previousPhase;
             if(entered&&phase==FallMonsterEnemy.Phase.Anticipation){strokes.Clear();wingStrokes.Clear();nextEmission=0;}
-            vertices.Clear();colors.Clear();indices.Clear();
+            vertices.Clear();colors.Clear();indices.Clear();uv.Clear();
+            if(!viewCamera)viewCamera=Camera.main;
             var center=enemy.WarningCenter+Vector3.up*.085f;
             float progress=ready?enemy.Progress:1;
             var tint=Alpha(leafColor,active?warningOpacity*.75f:warningOpacity);
@@ -196,8 +218,8 @@ namespace DogLife
             for(int i=1;i<strokes.Count;i++)
             {
                 var a=strokes[i-1];var b=strokes[i];float fade=1-(Time.time-a.time)/trailLifetime;
-                Quad(a.a,a.b,b.b,b.a,Alpha(leafColor,fade*.22f));
-                Quad(Vector3.Lerp(a.a,a.b,.92f),a.b,b.b,Vector3.Lerp(b.a,b.b,.92f),Alpha(brightColor,fade*.65f));
+                SoftQuad(a.a,a.b,b.b,b.a,Alpha(leafColor,fade*trailOpacity),4,i*.31f);
+                SoftQuad(Vector3.Lerp(a.a,a.b,.92f),a.b,b.b,Vector3.Lerp(b.a,b.b,.92f),Alpha(brightColor,fade*.65f),4,i*.31f);
             }
             // 네 패턴은 서로 다른 위치와 시점에서 입자를 방출합니다. 기존 피해 판정은 건드리지 않습니다.
             if(pattern==FallMonsterEnemy.Pattern.ArmSweep&&active&&strokes.Count>0&&Time.time>=nextEmission)
@@ -218,6 +240,7 @@ namespace DogLife
                 float a=seed*2.399963f;var dir=new Vector3(Mathf.Cos(a),0,Mathf.Sin(a));
                 Emit(center+dir*.4f,dir*.75f+Vector3.up*.06f,2,.65f,1.25f,new Color(.55f,.62f,.19f,.20f));
             }
+            if(pattern==FallMonsterEnemy.Pattern.Spores&&active)SporeVolume(center,enemy.Progress);
             if(pattern==FallMonsterEnemy.Pattern.CrowDash)
             {
                 if(active&&leftWingTip&&rightWingTip)
@@ -232,12 +255,14 @@ namespace DogLife
                 {
                     var a=wingStrokes[i-1];var b=wingStrokes[i];float fade=1-(Time.time-a.time)/trailLifetime;
                     var width=Vector3.up*.055f*fade;
-                    Quad(a.a-width,a.a+width,b.a+width,b.a-width,Alpha(brightColor,.5f*fade));
-                    Quad(a.b-width,a.b+width,b.b+width,b.b-width,Alpha(brightColor,.5f*fade));
+                    SoftQuad(a.a-width*3,a.a+width*3,b.a+width*3,b.a-width*3,Alpha(leafColor,trailOpacity*fade),4,i*.2f);
+                    SoftQuad(a.b-width*3,a.b+width*3,b.b+width*3,b.b-width*3,Alpha(leafColor,trailOpacity*fade),4,i*.2f);
+                    SoftQuad(a.a-width,a.a+width,b.a+width,b.a-width,Alpha(brightColor,.65f*fade),4,i*.2f);
+                    SoftQuad(a.b-width,a.b+width,b.b+width,b.b-width,Alpha(brightColor,.65f*fade),4,i*.2f);
                 }
             }
             RenderFlecks();previousPhase=phase;
-            mesh.Clear();mesh.SetVertices(vertices);mesh.SetColors(colors);mesh.SetTriangles(indices,0);mesh.RecalculateBounds();surface.enabled=vertices.Count>0;
+            mesh.Clear();mesh.SetVertices(vertices);mesh.SetColors(colors);mesh.SetUVs(0,uv);mesh.SetTriangles(indices,0);mesh.RecalculateBounds();surface.enabled=vertices.Count>0;
         }
         void Clear(){strokes.Clear();wingStrokes.Clear();flecks.Clear();if(surface)surface.enabled=false;}
         void OnDisable(){Clear();}

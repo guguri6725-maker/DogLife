@@ -45,7 +45,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DogLife.BlossomSkeletonAttackVfx
   animator: {fileID: 2632514584691797415}
-  material: {fileID: 2100000, guid: edc8c095b32dfb74f8022f32f6198325, type: 2}
+  material: {fileID: 2100000, guid: f3b9133dca036dc45a8ee9b0ef995158, type: 2}
   grips:
   - {x: 0.25499994, y: 0.3999998, z: -0.054999948}
   - {x: 0.25501555, y: 0.39935082, z: -0.054407954}
@@ -458,6 +458,8 @@ MonoBehaviour:
   heavyStop: 0.08
   recoilAngle: 13
   recoilDuration: 0.22
+  recoilBone: {fileID: 0}
+  contactEffectScale: 1
 --- !u!114 &3890771407015584568
 MonoBehaviour:
   m_ObjectHideFlags: 0
