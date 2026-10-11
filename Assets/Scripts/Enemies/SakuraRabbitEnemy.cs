@@ -30,6 +30,7 @@ namespace DogLife
         Quaternion visualRestRotation,headRestRotation;
         Transform biteHead;
         bool biteVisualActive;
+        int biteSoundCount;
         bool Navigable=>agent&&agent.isActiveAndEnabled&&agent.isOnNavMesh;
         float Offset=>agent?agent.baseOffset:.35f;
         void Awake()
@@ -114,7 +115,7 @@ namespace DogLife
                 CombatFeedback.DealDamage(targetHealth,damage,contact,target.position-transform.position,.8f,transform,new Color(1,.65f,.8f,1));
                 if(targetHealth.Current<before&&!targetHealth.Dead&&visualRoot)
                 {
-                    phase=Phase.Bite;phaseStarted=Time.time;biteVisualActive=true;
+                    phase=Phase.Bite;phaseStarted=Time.time;biteVisualActive=true;biteSoundCount=0;
                     biteSide=Vector3.ProjectOnPlane(transform.position-target.position,Vector3.up).normalized;
                     if(biteSide.sqrMagnitude<.01f)biteSide=-target.forward;
                     if(biteHead)headRestRotation=biteHead.localRotation;
@@ -156,7 +157,7 @@ namespace DogLife
             float elapsed=Time.time-phaseStarted;
             if(phase==Phase.Crouch)
             {
-                Stop();Face(landingPoint-transform.position);if(elapsed>=crouchTime){phase=Phase.Air;phaseStarted=Time.time;agent.updatePosition=false;Animate("Jump");if(jumpPetals)jumpPetals.Play();}return;
+                Stop();Face(landingPoint-transform.position);if(elapsed>=crouchTime){GameAudio.Play("Rabbit_Leap",transform.position,.7f,follow:transform);phase=Phase.Air;phaseStarted=Time.time;agent.updatePosition=false;Animate("Jump");if(jumpPetals)jumpPetals.Play();}return;
             }
             if(phase==Phase.Air)
             {
@@ -206,6 +207,8 @@ namespace DogLife
             if(!biteVisualActive||!visualRoot)return;
             if(!target||!targetHealth||targetHealth.Dead||!health||health.Dead){RestoreBiteVisual();return;}
             float t=Mathf.Clamp01((Time.time-phaseStarted)/Mathf.Max(.3f,biteDuration));
+            if(Time.timeScale>0&&biteSoundCount<2&&t>=.27f+biteSoundCount*.275f)
+            {biteSoundCount++;GameAudio.Play("Rabbit_Bite",visualRoot.position,.65f);}
             float blend=Mathf.SmoothStep(0,1,t/.2f)*(1-Mathf.SmoothStep(0,1,(t-.75f)/.25f));
             Vector3 rest=visualRoot.parent.TransformPoint(visualRestPosition);
             Vector3 mount=target.position+biteSide*.38f+Vector3.up*.30f;

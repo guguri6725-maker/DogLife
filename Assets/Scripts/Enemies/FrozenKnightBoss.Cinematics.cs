@@ -29,10 +29,11 @@ namespace DogLife
             yield return null;
             if(cinematicStage)cinematicStage.BeginDeath(player,transform);
             Play(horseAnimator,"Idle");horseAnimator.Update(0);horseAnimator.speed=0;
-            Play(knightAnimator,"MountedDeath");
-            float duration=mountedDeath.length;bool emitted=false;
+            StormSound(false);Play(knightAnimator,"MountedDeath");
+            float duration=mountedDeath.length;bool emitted=false,deathSoundPlayed=false;
             for(float t=0;t<duration;t+=Time.deltaTime)
             {
+                if(!deathSoundPlayed&&t>=duration*.25f){deathSoundPlayed=true;BossSound("Death_Fall",riderRoot);}
                 if(!emitted&&t>=duration*deathIceMoment)
                 {
                     emitted=true;

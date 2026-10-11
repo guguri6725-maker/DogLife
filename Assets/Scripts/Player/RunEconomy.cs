@@ -12,6 +12,7 @@ namespace DogLife
         public static RunEconomy Instance {get;private set;}
         static List<InventoryWeapon> carried;
         static int carriedGold, equippedIndex;
+        static float carriedKarma;
         static string destination;
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void ResetRun(){Instance=null;carried=null;destination=null;}
@@ -24,7 +25,10 @@ namespace DogLife
         void Start()
         {
             if(carried!=null&&gameObject.scene.path==destination)
-            {gold=carriedGold;inventory.RestoreRunInventory(carried,equippedIndex);}
+            {
+                gold=carriedGold;inventory.RestoreRunInventory(carried,equippedIndex);
+                var karma=inventory.GetComponent<PlayerKarma>();if(karma)karma.SetValue(carriedKarma);
+            }
             carried=null;destination=null;
         }
         void OnDestroy(){if(Instance==this)Instance=null;}
@@ -34,6 +38,7 @@ namespace DogLife
         {
             if(!inventory)return;
             carried=new List<InventoryWeapon>(inventory.OwnedWeapons);carriedGold=gold;destination=scene;equippedIndex=-1;
+            var karma=inventory.GetComponent<PlayerKarma>();carriedKarma=karma?karma.Value:0;
             for(int i=0;i<carried.Count;i++)if(inventory.GetInstanceId(i)==inventory.EquippedInstanceId)equippedIndex=i;
         }
         public void Reward(CombatHealth target)

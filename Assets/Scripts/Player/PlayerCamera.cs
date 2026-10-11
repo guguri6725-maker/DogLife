@@ -23,6 +23,9 @@ namespace DogLife
         readonly Collider[] overlaps = new Collider[64];
         Vector3 lastClearPosition;
         bool hasClearPosition;
+        float impactShake,impactEnds,impactDuration;
+        public void AddImpactShake(float strength,float duration)
+        { impactShake=Mathf.Clamp(strength,0,1);impactDuration=Mathf.Max(.01f,duration);impactEnds=Time.time+impactDuration; }
 
         // 화면 가까운 면의 모서리까지 포함해 가장자리로 벽 밖이 보이지 않게 합니다.
         float CollisionRadius()
@@ -126,8 +129,15 @@ namespace DogLife
             var position = ClearPosition(anchor, pivot + back * armLength, radius);
             // 연출 복귀 보간과 방 경계 보정 뒤의 최종 위치도 다시 검사합니다.
             position = ClearPosition(anchor, Vector3.Lerp(cinematicFrom, position, blend), radius);
+            var water=target.GetComponentInParent<PlayerWaterMovement>();
+            if(water&&water.Submerged)position=ClipSegment(anchor,water.ConstrainCamera(position),radius);
             // 이동과 시점 회전은 즉시 반영하고, 충돌로 줄어든 거리의 복귀만 위에서 보간합니다.
             transform.SetPositionAndRotation(position,Quaternion.Slerp(cinematicRotation,rotation,blend));
+            if(Time.time<impactEnds)
+            {
+                float strength=impactShake*Mathf.Clamp01((impactEnds-Time.time)/impactDuration);
+                transform.rotation*=Quaternion.Euler(Mathf.Sin(Time.time*67)*strength,Mathf.Sin(Time.time*83)*strength*.5f,Mathf.Sin(Time.time*59)*strength*.65f);
+            }
             if (IsClear(position, radius)) { lastClearPosition = position; hasClearPosition = true; }
         }
         void OnDisable() { armInitialized = false; hasClearPosition = false; armVelocity = shoulderVelocity = 0; CaptureCursor(false); }

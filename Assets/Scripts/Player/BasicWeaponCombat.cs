@@ -22,6 +22,8 @@ namespace DogLife
         float ComboLinkTime=>started+move.attacks[step].length*move.comboLinkNormalized/AttackSpeed;
         float ComboGrace=>Mathf.Min(.1f,continuationGrace)/AttackSpeed;
         bool queued,struck,secondStruck;
+        bool attackSoundPlayed,secondarySoundPlayed;
+        int thrustSounds;
         Vector3 direction;
         [SerializeField,Range(0,.15f),Tooltip("실제 타격 직후에만 방향을 고정하는 시간")] private float strikeFacingLock=.045f;
         float facingLockedUntil;
@@ -31,6 +33,7 @@ namespace DogLife
         [SerializeField] private float bowChargeSeconds=1.2f;
         [SerializeField] private float spearThrustInterval=.08f;
         bool charging;
+        GameAudio.Handle chargeSound;
         float chargeStarted,shotCharge;
         int thrustCount;
         BoneWeaponProjectile activeBoomerang;
@@ -74,13 +77,13 @@ namespace DogLife
             foreach(var candidate in movesets)if(candidate&&candidate.category==item.weaponCategory){move=candidate;break;}
             if(!move||move.attacks==null||move.attacks.Length==0)return;
             Begin(0);
-            if(item&&item.weaponCategory==InventoryWeapon.WeaponCategory.Bow){charging=true;chargeStarted=Time.time;shotCharge=0;}
+            if(item&&item.weaponCategory==InventoryWeapon.WeaponCategory.Bow){charging=true;chargeStarted=Time.time;shotCharge=0;chargeSound=GameAudio.Play("BowCharge",transform.position,.55f,GameAudio.WeaponPitch(item),follow:transform);}
         }
         public void ReleaseAttack()
         {
             if(!charging)return;
             if(Interrupted||inventory.EquippedWeapon!=item){Cancel();return;}
-            shotCharge=ChargeAmount;charging=false;
+            shotCharge=ChargeAmount;charging=false;chargeSound.Stop();
             weapons.RefreshAimDirection();direction=weapons.AimDirection;if(motor)motor.FaceForAttack(direction);
             // 분리된 발사 클립은 처음부터 재생하고 해당 클립의 타격 시간에 화살을 발사합니다.
             float releaseOffset=move.bowDrawClip?0:move.attacks[0].length*.45f;
@@ -97,6 +100,7 @@ namespace DogLife
             direction=weapons.AimDirection;
             if(motor)motor.FaceForAttack(direction);
             step=index;queued=false;queuedUntil=0;struck=false;secondStruck=false;thrustCount=0;started=Time.time;endsAt=started+move.attacks[index].length/AttackSpeed;
+            attackSoundPlayed=secondarySoundPlayed=false;thrustSounds=0;
             // Animator 전체 속도가 아니라 공격 상태의 배율만 변경합니다.
             animator.SetFloat(AttackSpeedParameter,AttackSpeed);
             if(motor&&LocksMovement)motor.StopForAttack();
@@ -139,6 +143,7 @@ namespace DogLife
                 UpdateChargeVisual();return;
             }
             bool flurry=item.weaponCategory==InventoryWeapon.WeaponCategory.Spear&&step==2;
+            UpdateAttackAudio(flurry);
             if(flurry)
             {
                 while(thrustCount<12&&AttackElapsed>=move.strikeTimes[step]+thrustCount*spearThrustInterval){thrustCount++;Strike();}
@@ -151,6 +156,8 @@ namespace DogLife
         }
         void Strike()
         {
+            if(item.weaponCategory==InventoryWeapon.WeaponCategory.Axe)
+                GameAudio.Play("AxeGround",transform.position,step==2?.9f:.55f,GameAudio.WeaponPitch(item));
             // 각 타격 직전에 최신 조준을 읽고, 판정과 이펙트에 같은 방향을 사용합니다.
             weapons.RefreshAimDirection();direction=weapons.AimDirection;
             if(motor)motor.FaceForAttack(direction);
@@ -189,8 +196,22 @@ namespace DogLife
                 weapons.ApplyVisibleMelee(item,origin,effect.HitShape,!thrust,power,effect.ImpactShape);
             }
         }
+        void UpdateAttackAudio(bool flurry)
+        {
+            float lead=move.attackAudioLeadTimes!=null&&step<move.attackAudioLeadTimes.Length?Mathf.Max(0,move.attackAudioLeadTimes[step]):0;
+            if(flurry)
+            {
+                while(thrustSounds<12&&AttackElapsed>=Mathf.Max(0,move.strikeTimes[step]+thrustSounds*spearThrustInterval-lead))
+                { thrustSounds++;GameAudio.WeaponAttack(item,step,transform.position); }
+            }
+            else if(!attackSoundPlayed&&AttackElapsed>=Mathf.Max(0,move.strikeTimes[step]-lead))
+            { attackSoundPlayed=true;GameAudio.WeaponAttack(item,step,transform.position); }
+            if(!secondarySoundPlayed&&move.secondaryStrikeTimes!=null&&step<move.secondaryStrikeTimes.Length&&move.secondaryStrikeTimes[step]>0&&AttackElapsed>=Mathf.Max(0,move.secondaryStrikeTimes[step]-lead))
+            { secondarySoundPlayed=true;GameAudio.WeaponAttack(item,step,transform.position); }
+        }
         public void Cancel()
         {
+            chargeSound.Stop();
             bool restoreBowFacing=move&&move.bowDrawClip&&item&&item.weaponCategory==InventoryWeapon.WeaponCategory.Bow;
             facingLockedUntil=0;
             queued=false;queuedUntil=0;

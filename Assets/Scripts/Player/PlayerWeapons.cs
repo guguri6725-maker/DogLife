@@ -61,9 +61,10 @@ namespace DogLife
                 meleeDamaged.Add(target);
                 Color tint=equipped.boneOrigin==InventoryWeapon.BoneOrigin.Humanoid?new Color(.8f,.24f,.3f,1):new Color(.5f,.85f,1,1);
                 float feedbackPower=attackCombo&&attackCombo.ComboStep==3&&equipped.weaponCategory!=InventoryWeapon.WeaponCategory.Spear?Mathf.Max(1.5f,power):power;
-                if(CombatFeedback.DealDamage(target,equipped.damage*power,point,point-origin,feedbackPower,transform,tint)&&target.Dead)
+                if(CombatFeedback.DealDamage(target,equipped.damage*power,point,point-origin,feedbackPower,transform,tint))
                 {
-                    var karma=GetComponent<PlayerKarma>();if(karma)karma.RecordDefeat(target,equipped);
+                    GameAudio.WeaponHit(equipped,point);
+                    if(target.Dead){var karma=GetComponent<PlayerKarma>();if(karma)karma.RecordDefeat(target,equipped);}
                 }
             }
         }

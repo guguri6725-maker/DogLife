@@ -18,6 +18,9 @@ namespace DogLife
         public float bowVisualYawOffset;
         public float[] strikeTimes;
         public float[] secondaryStrikeTimes;
+        [Header("공격음 타이밍")]
+        [Tooltip("타격보다 먼저 휘두르는 소리를 재생할 시간. 공격 속도에 맞춰 함께 조정됩니다.")]
+        public float[] attackAudioLeadTimes;
         [Range(.5f,1f)] public float comboLinkNormalized=1f;
         [Header("플레이 테스트용 동작 수치 — 기획 확정 스탯과 별도")]
         public float reach=2;

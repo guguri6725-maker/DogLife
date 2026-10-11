@@ -23,7 +23,7 @@ namespace DogLife
         public void Initialize(FrozenKnightBoss source,Kind value,PlayerMotor target,int count,float duration,float moveSpeed=0,float protection=0)
         {
             owner=source;kind=value;player=target;requiredHits=Mathf.Max(1,count);lifetime=duration;speed=moveSpeed;shield=protection;
-            hits=0;born=Time.time;health.maxHealth=requiredHits;health.Restore();size=visual.localScale;
+            if(value==Kind.Pillar)GameAudio.Play("WinterBoss_IceWall_Rise",transform.position,.65f);hits=0;born=Time.time;health.maxHealth=requiredHits;health.Restore();size=visual.localScale;
             body.enabled=value!=Kind.Pickup;visual.localScale=Vector3.zero;
         }
         public override bool BlocksDamage(float amount)
@@ -31,7 +31,7 @@ namespace DogLife
             if(kind==Kind.Pickup)return true;
             if(kind==Kind.Core&&!spearDamage)return true;
             if(Time.time<nextHit&&!spearDamage)return true;
-            nextHit=Time.time+hitDebounce;hits++;
+            nextHit=Time.time+hitDebounce;hits++;if(hits>=requiredHits&&kind==Kind.Pillar)GameAudio.Play("WinterBoss_IceWall_Break",transform.position,.7f);
             visual.DOKill();visual.localPosition=visualRest;
             visual.DOPunchPosition(new Vector3(hitShake,.025f,hitShake*.6f),hitDuration,8,.55f);
             fractureTween?.Kill();fractureTween=DOTween.To(()=>fracture,v=>fracture=v,Mathf.Clamp01(hits/(float)requiredHits),hitDuration).SetEase(Ease.OutCubic);
@@ -48,7 +48,7 @@ namespace DogLife
         public void ShatterFromCharge(FrozenKnightBoss source)
         {
             if(source!=owner||source.PhaseNumber!=2||!IsPillar||Broken)return;
-            hits=requiredHits;
+            hits=requiredHits;GameAudio.Play("WinterBoss_IceWall_Break",transform.position,.7f);
             if(burstPrefab){var burst=Instantiate(burstPrefab,body.bounds.center,Quaternion.identity);burst.Play(FrozenIceBurst.Mode.Shatter,body.bounds.size,null);}
             body.enabled=false;health.FatalDamage();
         }
@@ -61,7 +61,7 @@ namespace DogLife
             if(kind!=Kind.Pickup)return;
             if(player&&Vector3.Distance(player.transform.position,transform.position)<pickupRadius)
             {
-                player.GetComponent<CombatHealth>().GrantFrostProtection(shield);
+                GameAudio.Play("WinterBoss_Crystal_Get",player.transform.position,.65f);player.GetComponent<CombatHealth>().GrantFrostProtection(shield);
                 if(burstPrefab){var burst=Instantiate(burstPrefab,transform.position,Quaternion.identity);burst.Play(FrozenIceBurst.Mode.Absorb,Vector3.one,player.transform);}
                 Destroy(gameObject);return;
             }

@@ -65,7 +65,7 @@ namespace DogLife
             yield return PlantSword(swordFury.prepareTime);
             effects.Show(FrozenKnightVfx.Shape.Ring,transform.position,Forward,cavalryFury.outerRadius,cavalryFury.safeRadius);
             yield return Stage(CombatState.Warning,cavalryFury.gatherWarning,null,effects);
-            outerFuryActive=true;nextOuterFuryTick=Time.time;effects.Activate();horseWaiting=false;horseRoot.gameObject.SetActive(true);
+            StormSound(true);outerFuryActive=true;nextOuterFuryTick=Time.time;effects.Activate();horseWaiting=false;horseRoot.gameObject.SetActive(true);
             Vector3 center=transform.position;float baseAngle=transform.eulerAngles.y,currentChargeSpeed=cavalryFury.chargeSpeed;
             for(int i=0;i<Mathf.Max(1,cavalryFury.charges);i++)
             {
@@ -92,7 +92,7 @@ namespace DogLife
                 box.center=new Vector3(0,hitHeight*.5f/scale.y,0);
                 chargeArea.transform.SetPositionAndRotation(horseRoot.position,horseRoot.rotation);
                 chargeArea.Arm(this,cavalryFury.damage,cavalryFury.knockback,0);
-                horseWarningVfx.Activate();Play(horseAnimator,"Gallop");State=CombatState.Active;
+                horseWarningVfx.Activate();Play(horseAnimator,"Gallop");State=CombatState.Active;BossSound("Charge_Start",horseRoot);BossSound("Charge_Pass",horseRoot,.65f);
                 for(float travelled=0;travelled<distance;)
                 {
                     if(CombatFeedback.Paused(this)){yield return null;continue;}
@@ -106,7 +106,7 @@ namespace DogLife
                 currentChargeSpeed*=cavalryFury.chargeSpeedMultiplier;
                 chargeArea.Disarm();horseWarningVfx.Hide();Play(horseAnimator,"Idle");yield return Stage(CombatState.Recovery,cavalryFury.delay);
             }
-            outerFuryActive=false;effects.Hide();horseWarningVfx.Hide();chargeArea.Disarm();
+            StormSound(false);outerFuryActive=false;effects.Hide();horseWarningVfx.Hide();chargeArea.Disarm();
             yield return MoveUnriddenHorse(horseWaitingPosition,cavalryFury.repositionSpeed);
             horseWaitingPosition=horseRoot.position;horseWaitingRotation=horseRoot.rotation;horseWaiting=true;Play(horseAnimator,"Idle");
             yield return Recover(swordFury.recovery);
@@ -230,7 +230,7 @@ namespace DogLife
         }
         void ClearCavalryEffects()
         {
-            outerFuryActive=false;iceFieldActive=false;leaveSwordPlanted=false;
+            StormSound(false);outerFuryActive=false;iceFieldActive=false;leaveSwordPlanted=false;
             if(horseWarningVfx)horseWarningVfx.Hide();if(swordFieldVfx)swordFieldVfx.Hide();if(swordIcePatch)swordIcePatch.Clear();
         }
     }

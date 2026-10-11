@@ -34,7 +34,7 @@ namespace DogLife
         }
         public void ReceiveSpear()
         {
-            if(!active||Broken)return;hits++;
+            if(!active||Broken)return;hits++;GameAudio.Play(Broken?"WinterBoss_SwordCore_Break":"WinterBoss_SwordCore_Hit",Center,.85f);
             var bounds=surface.bounds;
             if(burstPrefab){var fx=Instantiate(burstPrefab,bounds.center,Quaternion.identity);fx.Play(Broken?FrozenIceBurst.Mode.Shatter:FrozenIceBurst.Mode.Chip,bounds.size,null);}
             swordMesh.transform.DOKill();swordMesh.transform.localPosition=rest;

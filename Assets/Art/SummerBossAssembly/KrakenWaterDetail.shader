@@ -28,8 +28,35 @@ Shader "DogLife/Kraken Living Water"
    fixed4 frag(v2f i):SV_Target
    {
     fixed4 c=i.color;float kind=i.uv.z;
+    if(kind>6.5){
+     float2 uv=i.uv.xy;float2 disc=uv*2-1;float r=length(disc);
+     if(kind<7.5){
+      float rim=smoothstep(.65,.87,r)*(1-smoothstep(.9,1,r));
+      float glint=pow(saturate(1-length(disc-float2(-.32,.37))/.4),3);
+      c.rgb+=glint*.45;c.a*=saturate(rim*.78+glint*.8+saturate(1-r)*.055);
+     }else if(kind<8.5){
+      float soft=pow(saturate(1-abs(uv.x*2-1)),1.6);
+      c.a*=soft*(.65+.35*noise(i.world.xz*5-_Time.y));
+     }else{
+      float3 p=i.world*.9;float n=detail(p.xz+p.y*.37+_Time.y*float2(-.12,.09));
+      float veins=pow(saturate(1-abs(sin(p.x*2.4+p.z*1.7+p.y*2+n*5+_Time.y))),10);
+      float3 normal=normalize(cross(ddy(i.world),ddx(i.world)));
+      float fresnel=pow(1-abs(dot(normal,normalize(_WorldSpaceCameraPos-i.world))),2);
+      c.rgb=lerp(c.rgb,float3(.55,.91,.88),veins*.4);c.a*=.4+veins*.4+fresnel*.35;
+     }
+     return c;
+    }
+    if(kind>3.5){
+     float2 p=i.world.xz;float n=detail(p*1.4+float2(-.18,.11)*_Time.y);
+     float veins=pow(saturate(1-abs(sin(p.x*2.7+p.y*1.9+n*6+_Time.y*.8))),9);
+     float fine=noise(p*13-_Time.y*.35);
+     if(kind<4.5){c.rgb*=.78+.3*n;c.a*=.82+.18*n;}
+     else if(kind<5.5){c.rgb=lerp(c.rgb,float3(.62,.88,.88),veins*.33);c.a*=.65+.3*n;}
+     else{c.rgb*=.85+.15*fine;c.a*=.65+.35*smoothstep(.2,.7,n+fine*.25);}
+     return c;
+    }
     // 판정 경계와 채워지는 선딜 표시는 별도 모드로 선명하게 유지한다.
-    if(kind<.5){UNITY_APPLY_FOG(i.fogCoord,c);return c;}
+    if(kind<.5){return c;}
     float2 flow=(i.world.xz+i.world.y*float2(.37,.51))*_DetailScale+float2(-.32,.17)*_Time.y;
     float n=detail(flow),fine=noise(flow*9+_Time.y*.25);
     if(kind>2.5)
@@ -43,6 +70,7 @@ Shader "DogLife/Kraken Living Water"
      // 크기가 다른 거품 덩어리와 작은 구멍을 겹쳐 포말의 밀도를 만든다.
      float density=smoothstep(.28,.7,n),bubbles=smoothstep(.27,.54,fine);
      c.a*=lerp(.45,1,density)*lerp(.7,1,bubbles)*lerp(1,.9,_Breakup);
+     c.a*=smoothstep(0,.16,i.uv.x)*smoothstep(1,.84,i.uv.x)*(1-smoothstep(.5,1,i.uv.y+(.5-fine)*.28));
      c.rgb=lerp(c.rgb,float3(.9,.96,.93),density*.65)*(.82+.18*fine);
     }
     else

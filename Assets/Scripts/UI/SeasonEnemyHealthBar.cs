@@ -13,14 +13,18 @@ namespace DogLife
         Transform player;
         float visibilityAlpha=1;
         CombatHealth health;
+        SpringBoarPhaseTransition boarPhase;
         Collider body;
         Transform head;
+        Transform worldAnchor;
+        public void SetWorldAnchor(Transform value){worldAnchor=value;}
         float trail=1,last=1,delay;
         Vector3 screen;
         bool visible;
         void Awake()
         {
             health=GetComponent<CombatHealth>();body=GetComponent<Collider>();
+            boarPhase=GetComponent<SpringBoarPhaseTransition>();
             var motor=FindFirstObjectByType<PlayerMotor>();if(motor)player=motor.transform;
             foreach(var t in GetComponentsInChildren<Transform>())if(t.name=="Head"){head=t;break;}
         }
@@ -32,15 +36,16 @@ namespace DogLife
             if(distance>=maxVisibleDistance){visible=false;return;}
             visibilityAlpha=Mathf.Clamp01((maxVisibleDistance-distance)/3f);
             float value=Mathf.Clamp01(health.Current/Mathf.Max(1,health.maxHealth));
+            if(boarPhase&&boarPhase.Transitioning) value=boarPhase.HealthReveal;
             if(value<last)delay=Time.time+.22f;
             if(value>last)trail=value;
             last=value;if(Time.time>delay)trail=Mathf.MoveTowards(trail,value,Time.deltaTime*1.3f);
             float y=body?body.bounds.max.y:transform.position.y+1;
             if(head)y=Mathf.Max(y,head.position.y+.4f);
-            screen=camera.WorldToScreenPoint(new Vector3(transform.position.x,y+.25f,transform.position.z));
+            screen=camera.WorldToScreenPoint(worldAnchor?worldAnchor.position+Vector3.up:new Vector3(transform.position.x,y+.25f,transform.position.z));
             visible=screen.z>0&&screen.x>=0&&screen.x<=Screen.width&&screen.y>=0&&screen.y<=Screen.height;
             // 화면 위에 그리는 HP바도 실제 카메라와 몸 사이에 벽이 있으면 숨깁니다.
-            if(visible)visible=!Occluded(camera.transform.position,body?body.bounds.center:transform.position+Vector3.up);
+            if(visible)visible=!Occluded(camera.transform.position,worldAnchor?worldAnchor.position:body?body.bounds.center:transform.position+Vector3.up);
         }
         bool Occluded(Vector3 origin,Vector3 target)
         {

@@ -6,6 +6,8 @@ namespace DogLife
     public sealed class SpringBoarVfx:MonoBehaviour
     {
         public SpringBoarBoss boss;
+        public SpringBoarPhaseTwo phaseTwo;
+        public SpringBoarDeath death;
         [SerializeField] private Material material;
         [Header("꽃가루 / 흙먼지 디테일")]
         [SerializeField,Range(8,48)] int pollenCount=28;
@@ -22,7 +24,7 @@ namespace DogLife
         Transform view;
         static readonly Vector2[] PetalOutline={new Vector2(0,0),new Vector2(-.24f,.20f),new Vector2(-.38f,.48f),new Vector2(-.35f,.73f),new Vector2(-.20f,.94f),new Vector2(-.07f,1),new Vector2(0,.88f),new Vector2(.07f,1),new Vector2(.20f,.94f),new Vector2(.35f,.73f),new Vector2(.38f,.48f),new Vector2(.24f,.20f)};
         public void Initialize(Material mat){material=mat;if(surface)surface.sharedMaterial=mat;}
-        void Awake(){mesh=new Mesh{name="Spring sakura petals and bone warning"};mesh.MarkDynamic();GetComponent<MeshFilter>().sharedMesh=mesh;surface=GetComponent<MeshRenderer>();surface.sharedMaterial=material;surface.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;surface.receiveShadows=false;if(boss)health=boss.GetComponent<CombatHealth>();}
+        void Awake(){mesh=new Mesh{name="Spring sakura petals and bone warning",indexFormat=UnityEngine.Rendering.IndexFormat.UInt32};mesh.MarkDynamic();GetComponent<MeshFilter>().sharedMesh=mesh;surface=GetComponent<MeshRenderer>();surface.sharedMaterial=material;surface.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;surface.receiveShadows=false;if(boss)health=boss.GetComponent<CombatHealth>();}
         static Color A(Color color,float alpha){color.a=alpha;return color;}
         void Tri(Vector3 a,Vector3 b,Vector3 c,Color color){int n=vertices.Count;vertices.Add(transform.InverseTransformPoint(a));vertices.Add(transform.InverseTransformPoint(b));vertices.Add(transform.InverseTransformPoint(c));colors.Add(color);colors.Add(color);colors.Add(color);uv.Add(Vector4.zero);uv.Add(Vector4.zero);uv.Add(Vector4.zero);indices.Add(n);indices.Add(n+1);indices.Add(n+2);}
         void Quad(Vector3 a,Vector3 b,Vector3 c,Vector3 d,Color color){Tri(a,b,c,color);Tri(a,c,d,color);}
@@ -233,9 +235,108 @@ namespace DogLife
                     Petals(p+forward*3,2,2,.5f);
                 }
             }
+            if(phaseTwo&&phaseTwo.Active)DrawPhaseTwo();
+            if(death&&death.Dying)
+            {
+                float t=death.Progress;
+                var contact=death.Contact;contact.y=death.transform.position.y+.12f;
+                if(t>.18f&&t<.4f)Atmosphere(contact+death.transform.forward*2,1,Mathf.Sin(Mathf.InverseLerp(.18f,.4f,t)*Mathf.PI)*.4f);
+                if(t>.65f){float p=Mathf.InverseLerp(.65f,1,t);ImpactCrown(contact,4,p,Mathf.Sin(p*Mathf.PI)*.65f);Petals(contact,4,2,(1-p)*.55f);}
+            }
             mesh.Clear();mesh.SetVertices(vertices);mesh.SetColors(colors);mesh.SetUVs(0,uv);mesh.SetTriangles(indices,0);mesh.RecalculateBounds();
+        }
+        void DrawPhaseTwo()
+        {
+            foreach(var h in phaseTwo.Hazards)
+            {
+                var p=h.origin+Vector3.up*.11f;float t=h.Progress;
+                if(h.effect==SpringBoarPhaseTwo.Effect.Roots&&!phaseTwo.Special&&phaseTwo.RibAnchor)
+                {
+                    float stretch=h.age<h.warning?t*.18f:Mathf.Sin(h.AttackProgress*Mathf.PI);
+                    var root=phaseTwo.RibAnchor.position+h.forward*.8f;
+                    var tip=Vector3.Lerp(root+h.forward*1.2f,p+h.forward*h.range,stretch);
+                    RibBranch(root,tip,.22f,Mathf.Clamp01(stretch*6));
+                }
+                if(h.age<h.warning)
+                {
+                    if(h.shape==SpringBoarPhaseTwo.Shape.Lane)
+                    {
+                        var side=Vector3.Cross(Vector3.up,h.forward)*h.width;var end=p+h.forward*h.range;
+                        Quad(p-side,p+side,end+side,end-side,A(Blush,.12f));
+                        var fill=p+h.forward*h.range*t;
+                        Quad(p-side,p+side,fill+side,fill-side,A(Blush,.30f));
+                        Line(p-side,end-side,.1f,A(Ivory,.8f));Line(p+side,end+side,.1f,A(Ivory,.8f));
+                        for(int j=1;j<8;j++)Sakura(p+h.forward*(h.range*j/8),.24f,.6f,0);
+                    }
+                    else
+                    {
+                        float angle=h.shape==SpringBoarPhaseTwo.Shape.Circle?360:h.angle;
+                        Warning(p,h.forward,h.range,angle,t);
+                        // A filled area, not just a timing outline. Geometry matches Hazard.Contains.
+                        for(int i=0;i<48;i++)Tri(p,p+Dir(h.forward,-angle*.5f+angle*i/48)*h.range*t,p+Dir(h.forward,-angle*.5f+angle*(i+1)/48)*h.range*t,A(Blush,.32f));
+                        Cracks(p,h.forward,h.range,angle,t,.55f);
+                    }
+                    if(h.effect==SpringBoarPhaseTwo.Effect.Spike)Sakura(p,.55f+t*.25f,.8f,t*35);
+                }
+                else
+                {
+                    float a=h.AttackProgress,fade=1-a;
+                    switch(h.effect)
+                    {
+                        case SpringBoarPhaseTwo.Effect.Spike:
+                            float alive=1-Mathf.Clamp01((h.age-h.warning-h.active)/.65f);
+                            BoneSpike(p,Mathf.SmoothStep(0,1,Mathf.Min(1,a*4)),alive,h.group);Shards(p,a,h.range);break;
+                        case SpringBoarPhaseTwo.Effect.Roots:
+                            float grow=Mathf.Clamp01(a/h.propagation);
+                            Cracks(p,h.forward,h.range,h.angle,grow,fade);
+                            for(int lane=-1;lane<=1;lane++)for(int j=1;j<=2;j++)
+                            {float distance=j/2f;var q=p+Dir(h.forward,lane*h.angle*.28f)*(h.range*distance);float rise=Mathf.Clamp01((grow-distance+.2f)/.2f);if(rise>0){BoneSpike(q,rise*(.65f+j*.07f),fade,j+lane+3);RibBranch(p+Vector3.up*.2f,q,.28f,fade*.8f);}}
+                            Petals(p+h.forward*h.range*.5f,h.range*.3f,4,fade);break;
+                        case SpringBoarPhaseTwo.Effect.Sweep:
+                            for(int k=0;k<12;k++)
+                            {
+                                float angle=-h.angle*.5f+h.angle*a-k*2.5f;
+                                Vector3 u=Dir(h.forward,angle),v=Dir(h.forward,angle+4);
+                                Quad(p+u*(h.range-1.3f)+Vector3.up*2,p+u*h.range+Vector3.up*2,p+v*h.range+Vector3.up*2,p+v*(h.range-1.3f)+Vector3.up*2,A(k<2?Ivory:Blush,(1-k/12f)*.65f));
+                            }Petals(p+h.forward*4,3,3,fade);break;
+                        case SpringBoarPhaseTwo.Effect.Lift:
+                            for(int k=0;k<16;k++)for(int sign=-1;sign<=1;sign+=2)
+                            {
+                                float r=Mathf.Max(0,a-k*.016f)*1.4f,s=r-.08f;
+                                var side=Vector3.Cross(Vector3.up,h.forward)*sign;
+                                var u=p+h.forward*Mathf.Cos(r)*h.range+Vector3.up*(1+Mathf.Sin(r)*6)+side;
+                                var v=p+h.forward*Mathf.Cos(s)*h.range+Vector3.up*(1+Mathf.Sin(s)*6)+side;
+                                Quad(u-side*.5f,u+side*.5f,v+side*.5f,v-side*.5f,A(k<2?Ivory:Blush,(1-k/16f)*.65f));
+                            }Petals(p+h.forward*4,3,6,fade);break;
+                        case SpringBoarPhaseTwo.Effect.Slam:
+                            SoftWave(p,h.range*a,1.3f,fade);ImpactCrown(p,h.range,a,fade);Shards(p,a,h.range);Petals(p,h.range,4,fade);break;
+                    }
+                }
+            }
+            var center=phaseTwo.transform.position;
+            if(phaseTwo.Charging){Petals(center,4,3,.85f);Atmosphere(center,4,.8f);}
+            if(phaseTwo.Pulse>0)Petals(center+Vector3.up*4,2,1,phaseTwo.Pulse);
+            if(phaseTwo.Special)Petals(center+Vector3.up*2,5,5,.7f);
+            if(phaseTwo.Stunned)for(int i=0;i<5;i++)Sakura(center+Vector3.up*5+Dir(phaseTwo.transform.forward,Time.time*65+i*72)*1.7f,.4f,.8f,i*20);
+        }
+        void RibBranch(Vector3 root,Vector3 tip,float width,float alpha)
+        {
+            for(int j=0;j<12;j++)
+            {
+                float t=j/12f,u=(j+1)/12f;
+                Vector3 a=Vector3.Lerp(root,tip,t)+Vector3.up*Mathf.Sin(t*Mathf.PI)*1.3f,b=Vector3.Lerp(root,tip,u)+Vector3.up*Mathf.Sin(u*Mathf.PI)*1.3f;
+                var tangent=(b-a).normalized;var side=Vector3.Cross(tangent,Vector3.up).normalized;var up=Vector3.Cross(side,tangent);
+                for(int k=0;k<6;k++)
+                {
+                    float x=k*Mathf.PI/3,y=(k+1)*Mathf.PI/3;
+                    Vector3 p=side*Mathf.Cos(x)+up*Mathf.Sin(x),q=side*Mathf.Cos(y)+up*Mathf.Sin(y);
+                    Surface(a+p*width*(1-t),a+q*width*(1-t),b+q*width*(1-u),b+p*width*(1-u),A(Color.Lerp(Deep,Ivory,t),alpha),5,j);
+                }
+                if(j%3==0)Blossom(a,view?view.right:Vector3.right,view?view.up:Vector3.up,.27f,alpha,j*33);
+            }
         }
         void OnDisable(){if(mesh)mesh.Clear();}
         void OnDestroy(){if(mesh)Destroy(mesh);}
     }
 }
+

@@ -48,7 +48,7 @@ namespace DogLife
             expires=Time.time+(moving?distance/Mathf.Max(.01f,speed):duration);
             var box=(BoxCollider)damageArea.Shape;box.size=new Vector3(width,height,length);box.center=Vector3.up*(moving?0:height*.5f);
             // 이동하는 얼음검은 시각 메시의 실제 위치와 크기에 판정을 맞춥니다.
-            if(moving&&projectileVisual)FitBladeCollider(box);
+            if(moving&&projectileVisual){GameAudio.Play("WinterBoss_IceBlade_Fire",transform.position,.65f);FitBladeCollider(box);}
             effects.Show(FrozenKnightVfx.Shape.Line,projectileVisual?transform.position:transform.position-transform.forward*length*.5f,transform.forward,length,width,projectileVisual?FrozenKnightVfx.Theme.BladeFlight:FrozenKnightVfx.Theme.IceTrail);effects.Activate();
             damageArea.Arm(source,damage,push,lift,null,tick,false,slowMultiplier,slowDuration);
         }
@@ -98,6 +98,7 @@ namespace DogLife
         }
         void FinishProjectile(Vector3? groundContact=null)
         {
+            if(moving&&projectileVisual)GameAudio.Play("WinterBoss_IceBlade_Break",transform.position,.5f);
             if(!projectileVisual||!bladeTip||iceDuration<=0){Destroy(gameObject);return;}
             damageArea.Disarm();moving=false;prepared=false;effects.Hide();
             Vector3 ground=transform.position;

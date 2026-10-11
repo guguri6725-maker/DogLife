@@ -44,7 +44,9 @@ namespace DogLife.EditorTools
                 root.AddComponent<CombatFeedback>();var bar=root.AddComponent<SeasonEnemyHealthBar>();var so=new SerializedObject(bar);so.FindProperty("maxVisibleDistance").floatValue=55;so.ApplyModifiedPropertiesWithoutUndo();
                 PrefabUtility.SaveAsPrefabAsset(root,"Assets/Prefabs/monster/SpringBoarBoss.prefab");
             }finally{Object.DestroyImmediate(root);}
-            AssetDatabase.SaveAssets();return "SpringBoarBoss: scale 10, 11 animations, 1800 HP";
+            AssetDatabase.SaveAssets();
+            if(AssetDatabase.LoadAssetAtPath<GameObject>(Art+"/Phase1/Models/SpringBoarPhase1.fbx")) SpringBoarPhaseBuilder.Build();
+            return "SpringBoarBoss: scale 10, 11 animations, phase-one attacks / skeletal phase transition";
         }
     }
 }

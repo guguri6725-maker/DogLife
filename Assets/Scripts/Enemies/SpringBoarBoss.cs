@@ -8,11 +8,11 @@ namespace DogLife
         public enum Pattern { Charge, Tusk, Slam, Spikes, None }
         public enum Phase { Move, Warning, Attack, Stunned, Recovery }
         [Header("이동 / 패턴 간격 (월드 단위)")]
-        [SerializeField] private float moveSpeed=2.5f, detectionRange=42, cooldown=2.5f, recoveryTime=1.1f;
+        [SerializeField] private float moveSpeed=2.5f, detectionRange=42, cooldown=1.25f, recoveryTime=.55f;
         [SerializeField] private float flankDistance=8, flankDelay=2;
         [Header("광폭 돌진")]
         [SerializeField] private float scrapeTime=2.2f, chargeSpeed=22, chargeDuration=2.8f, wallStunTime=2.5f;
-        [SerializeField,Min(1)] private float chargeMaxDistance=18, chargeCooldown=12;
+        [SerializeField,Min(1)] private float chargeMaxDistance=18, chargeCooldown=1;
         [SerializeField,Min(0)] private float roomEntryInset=3;
         [SerializeField] private float bodyRadius=2.3f, hornOffset=4.1f, chargeHitRadius=2.4f;
         [Header("송곳니 올려치기")]
@@ -20,7 +20,8 @@ namespace DogLife
         [SerializeField] private float launchSpeed=12, launchLift=6;
         [Header("내려찍기")]
         [SerializeField] private float slamRadius=9, slamWarning=1.35f, slamTime=1.1f;
-        [Header("체력 50% 이하 뼈 가시")]
+        [Header("뼈 가시 해금 체력")]
+        [SerializeField,Range(0,1)] private float spikeHealthThreshold=.8f;
         [SerializeField,Range(3,5)] private int spikeCount=5;
         [SerializeField] private float spikeWarning=1.1f, spikeLifetime=2.2f, spikeRadius=1.25f;
         [Header("연결")]
@@ -34,6 +35,9 @@ namespace DogLife
         readonly RaycastHit[] wallHits=new RaycastHit[64];
         readonly Vector3[] spikes=new Vector3[5];
         float elapsed,nextAttack,nextPath,flankClock,orbit=1,chargeWarningLength=30;bool hit;Pattern previous=Pattern.Spikes;
+        GameAudio.Handle chargeSound;
+        bool attackSoundPlayed;
+        int scrapeSounds;
         public Pattern AttackPattern {get;private set;}
         public Phase State {get;private set;}
         public Vector3 Forward {get;private set;}=Vector3.forward;
@@ -48,7 +52,7 @@ namespace DogLife
         public float SpikeRadius=>spikeRadius;
         public int SpikeCount {get;private set;}
         public Vector3 SpikePoint(int i)=>spikes[i];
-        public bool Enraged=>health&&health.Current<=health.maxHealth*.5f;
+        public bool Enraged=>health&&health.Current<=health.maxHealth*spikeHealthThreshold;
         bool Nav=>agent&&agent.isActiveAndEnabled&&agent.isOnNavMesh;
         void Awake()
         {
@@ -56,6 +60,7 @@ namespace DogLife
             agent.updateRotation=false;agent.updateUpAxis=false;
             var rb=GetComponent<Rigidbody>();rb.isKinematic=true;rb.constraints=RigidbodyConstraints.FreezeRotation;
             if(animator)animator.applyRootMotion=false;
+            if(!GetComponent<SpringBoarFootstepAudio>())gameObject.AddComponent<SpringBoarFootstepAudio>();
         }
         void Start()
         {
@@ -83,7 +88,7 @@ namespace DogLife
             if(flankClock>=flankDelay&&distance<=slamRadius)return Pattern.Slam;
             bool tuskEligible=distance<=tuskRange&&angle<=tuskAngle*.65f;
             if(tuskEligible&&previous!=Pattern.Tusk)return Pattern.Tusk;
-            bool chargeEligible=Time.time>=nextCharge&&previous!=Pattern.Charge&&distance>tuskRange&&distance<=chargeMaxDistance;
+            bool chargeEligible=Time.time>=nextCharge&&previous!=Pattern.Charge&&distance<=chargeMaxDistance;
             bool slamEligible=distance<=slamRadius&&previous!=Pattern.Slam;
             bool spikeEligible=Enraged&&previous!=Pattern.Spikes;
             int count=(chargeEligible?1:0)+(slamEligible?1:0)+(spikeEligible?1:0);
@@ -122,6 +127,10 @@ namespace DogLife
         }
         void Enter(Phase phase)
         {
+            chargeSound.Stop();attackSoundPlayed=false;scrapeSounds=0;
+            if(phase==Phase.Stunned)GameAudio.Play("Boar_Wall_Impact",transform.position,1);
+            if(phase==Phase.Warning&&AttackPattern==Pattern.Spikes)GameAudio.Play("Boar_Roar",transform.position,.8f,follow:transform);
+            if(phase==Phase.Attack&&AttackPattern==Pattern.Charge)chargeSound=GameAudio.Play("Boar_Charge",transform.position,.85f,follow:transform);
             if(State==Phase.Attack&&AttackPattern==Pattern.Charge)nextCharge=Time.time+chargeCooldown;
             State=phase;elapsed=0;hit=false;Stop();
             if(phase==Phase.Move){nextAttack=Time.time+cooldown;orbit=-orbit;Play("Idle",1,true);return;}
@@ -157,10 +166,20 @@ namespace DogLife
                 return;
             }
             elapsed+=Time.fixedDeltaTime;
-            if(State==Phase.Warning){if(elapsed>=Duration())Enter(Phase.Attack);return;}
+            if(State==Phase.Warning)
+            {
+                if(AttackPattern==Pattern.Charge&&scrapeSounds<3&&Progress>=.12f+scrapeSounds*.28f)
+                {scrapeSounds++;GameAudio.Play("Boar_Scrape",transform.position,.65f,follow:transform);}
+                if(elapsed>=Duration())Enter(Phase.Attack);return;
+            }
             if(State==Phase.Stunned||State==Phase.Recovery){if(elapsed>=Duration())Enter(Phase.Move);return;}
             if(AttackPattern==Pattern.Charge){Charge();return;}
             float t=Progress;
+            if(!attackSoundPlayed&&t>=(AttackPattern==Pattern.Tusk?.32f:AttackPattern==Pattern.Slam?.30f:.08f))
+            {
+                attackSoundPlayed=true;
+                GameAudio.Play(AttackPattern==Pattern.Tusk?"Boar_Tusk_Uppercut":AttackPattern==Pattern.Slam?"Boar_Ground_Slam":"Boar_Bone_Spike",AttackPattern==Pattern.Spikes&&SpikeCount>0?spikes[0]:transform.position,.9f);
+            }
             if(!hit&&(AttackPattern==Pattern.Tusk?t>=.32f&&t<=.70f:AttackPattern==Pattern.Slam?t>=.30f&&t<=.8f:t>=.08f))TryHit();
             if(elapsed>=Duration())Enter(Phase.Recovery);
         }
@@ -194,6 +213,6 @@ namespace DogLife
             hit=true;Vector3 direction=player.transform.position-transform.position;
             if(CombatFeedback.DealDamage(targetHealth,damage,targetCollider.ClosestPoint(transform.position),direction,1.5f,transform,new Color(1,.45f,.65f),true)&&!targetHealth.Dead)player.ApplyKnockback(direction,push,lift,.65f);
         }
-        void OnDisable(){Stop();SpikeCount=0;}
+        void OnDisable(){chargeSound.Stop();Stop();SpikeCount=0;}
     }
 }

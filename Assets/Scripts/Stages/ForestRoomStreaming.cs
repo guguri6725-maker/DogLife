@@ -153,6 +153,10 @@ namespace DogLife
 
         void Update()
         {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if(Input.GetKeyDown(KeyCode.L)&&Time.timeScale>0&&!SkillWindow.BlocksGameplayInput)
+                RequestBossTestJump();
+#endif
             if (!Ready || !string.IsNullOrEmpty(LoadError) || Hud.health.Dead || Hud.completed) return;
             // 이전 방 해제 중 연속 처치가 발생해도 세 번째 방 로딩을 동시에 시작하지 않습니다.
             if (Busy) return;
@@ -200,6 +204,48 @@ namespace DogLife
             yield return LoadRoom(CurrentRoom + 1);
             Busy = !string.IsNullOrEmpty(LoadError);
         }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        // Test shortcut uses the same geometry/spawner pipeline as normal room progression.
+        public bool RequestSummerBossTestJump()
+        {
+            return RequestBossTestJump();
+        }
+        public bool RequestBossTestJump()
+        {
+            if(!Ready||Busy||!string.IsNullOrEmpty(LoadError))return false;
+            int index=System.Array.FindIndex(roomScenePaths,p=>p!=null&&
+                (p.EndsWith("/Summer_Room04.unity",System.StringComparison.OrdinalIgnoreCase)||
+                 p.EndsWith("/Winter_Room04.unity",System.StringComparison.OrdinalIgnoreCase)));
+            if(index<0)return false;
+            StartCoroutine(JumpToSummerBoss(index));return true;
+        }
+        IEnumerator JumpToSummerBoss(int target)
+        {
+            Busy=true;
+            foreach(var boss in FindObjectsByType<KrakenPhaseOne>(FindObjectsSortMode.None))boss.CancelEncounter();
+            var motor=Hud.motor;var body=motor.GetComponent<Rigidbody>();
+            motor.enabled=false;Hud.weapons.enabled=false;body.linearVelocity=Vector3.zero;body.isKinematic=true;
+            Hud.health.invulnerable=true;Hud.objective="Loading boss test...";
+            foreach(var projectile in FindObjectsByType<CombatProjectile>(FindObjectsSortMode.None))Destroy(projectile.gameObject);
+            for(int i=0;i<rooms.Length;i++){
+                var scene=SceneManager.GetSceneByPath(roomScenePaths[i]);
+                if(scene.isLoaded)yield return SceneManager.UnloadSceneAsync(scene);
+                rooms[i]=null;
+            }
+            yield return LoadRoom(target);
+            if(!string.IsNullOrEmpty(LoadError))yield break;
+            CurrentRoom=target;cleared=false;Hud.completed=false;var room=Current;
+            Vector3 spawn=new Vector3(room.entryX+5,2.5f,0);
+            motor.SetRespawnPoint(spawn);motor.Respawn();motor.transform.position=spawn;
+            var camera=Camera.main?Camera.main.GetComponent<PlayerCamera>():null;
+            if(camera)camera.minimumWorldX=room.entryX+1;
+            Hud.health.Restore();Hud.health.invulnerable=false;
+            body.isKinematic=false;body.useGravity=true;motor.enabled=true;Hud.weapons.enabled=true;
+            if(room.rearSeal)room.rearSeal.SetActive(true);if(room.rearVines)room.rearVines.Close();
+            Physics.SyncTransforms();room.BeginEncounter();Busy=false;
+        }
+#endif
 
         IEnumerator Advance()
         {

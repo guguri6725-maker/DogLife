@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using UnityEngine;
 
 namespace DogLife
@@ -42,6 +42,7 @@ namespace DogLife
             Current = maxHealth;
             CacheFlashRenderers();
         }
+        public void RefreshVisuals() { CacheFlashRenderers(); }
         void CacheFlashRenderers()
         {
             // 피격 반짝임은 모델에만 적용합니다. 포자·범위 표시의 색과 알파는 유지합니다.
@@ -72,7 +73,9 @@ namespace DogLife
             if(awaitingFinalHit)amount=Mathf.Max(amount,Current);
             // 플레이어는 공격 종류와 관계없이 유효한 피격 한 번에 하트 한 칸을 잃습니다.
             if (player && !useFullPlayerDamage) amount = 1;
+            float beforeDamage=Current;
             Current = Mathf.Max(Mathf.Min(minimumHealth, Current), Current - amount);
+            if(player&&Current<beforeDamage)GameAudio.Variant("Hurt",transform.position,.85f);
             flashUntil = Time.time + .12f;
             if (player)
             {

@@ -20,7 +20,7 @@ namespace DogLife
 
         public void OpenOptions()
         {
-            if (loading) return;
+            if (loading || StoryBook.BlocksInput) return;
             var settings = GameSettingsWindow.Instance;
             if (settings) settings.Open();
         }
@@ -53,7 +53,14 @@ namespace DogLife
             }
             loading = true;
             startButton.interactable = false;
-            StartCoroutine(LoadSpring());
+            if(StoryBook.Instance)StoryBook.Instance.BeginNewGame(()=>StartCoroutine(LoadSpring()));
+            else StartCoroutine(LoadSpring());
+        }
+
+        public void OpenMemories()
+        {
+            if(loading||GameSettingsWindow.BlocksGameplayInput)return;
+            if(StoryBook.Instance)StoryBook.Instance.OpenGallery();
         }
 
         IEnumerator LoadSpring()

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using UnityEngine;
 namespace DogLife
 {
@@ -11,10 +11,11 @@ namespace DogLife
         void Awake(){effect=GetComponent<FrozenKnightVfx>();}
         FrozenKnightBoss owner;FrozenKnightSwordCore core;float speed,damage,remaining;
         public void Launch(FrozenKnightBoss source,FrozenKnightSwordCore crystal,float velocity,float amount,float distance)
-        {owner=source;core=crystal;speed=velocity;damage=amount;remaining=distance;launched=true;transform.localScale=Vector3.one;if(effect){effect.Show(FrozenKnightVfx.Shape.Line,transform.position,transform.forward,3,.4f,FrozenKnightVfx.Theme.BladeFlight);effect.Activate();}}
+        {GameAudio.Play("WinterBoss_Spear_Throw",transform.position,.75f);owner=source;core=crystal;speed=velocity;damage=amount;remaining=distance;launched=true;transform.localScale=Vector3.one;if(effect){effect.Show(FrozenKnightVfx.Shape.Line,transform.position,transform.forward,3,.4f,FrozenKnightVfx.Theme.BladeFlight);effect.Activate();}}
         // 예고 중에는 창만 커지고 충돌 판정은 발사 순간부터 시작합니다.
         public void Prepare(FrozenKnightBoss source,float progress)
         {
+            if(!owner)GameAudio.Play("WinterBoss_Spear_Form",transform.position,.6f);
             if(!owner&&effect)effect.Show(FrozenKnightVfx.Shape.Ring,transform.position,transform.forward,.6f,0,FrozenKnightVfx.Theme.BladeCharge);
             owner=source;transform.localScale=Vector3.one*Mathf.SmoothStep(.05f,1,progress);
             if(effect){effect.MovePose(transform.position,transform.forward);effect.SetWarningProgress(progress);}

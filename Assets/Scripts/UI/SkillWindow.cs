@@ -91,9 +91,11 @@ namespace DogLife
         public void Close() { SetOpen(false); }
         public void SetOpen(bool value)
         {
+            if(value&&StoryBook.BlocksInput)return;
             if(value&&EconomyWindow.BlocksInput)return;
             if (Instance != this || opened == value) return;
             opened = value;
+            GameAudio.Play(value?"BagOpen":"BagClose",Vector3.zero,.6f,ui:true);
             // 닫기 클릭이나 Esc가 같은 프레임의 공격·카메라 입력으로 전달되지 않게 합니다.
             inputConsumedFrame = Time.frameCount;
             windowRoot.SetActive(value);

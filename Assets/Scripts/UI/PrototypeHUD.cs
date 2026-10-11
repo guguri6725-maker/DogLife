@@ -26,7 +26,7 @@ namespace DogLife
         // 클리어 상태일 때 설정된 다음 씬으로 이동합니다.
         public bool ContinueToNextStage()
         {
-            if (!completed) return false;
+            if (!completed || StoryBook.BlocksInput || StoryBook.AwaitingClear) return false;
             string destination = NextDestination;
             if (string.IsNullOrEmpty(destination)) return false;
             if(RunEconomy.Instance)RunEconomy.Instance.CarryTo(destination);
@@ -39,7 +39,7 @@ namespace DogLife
         void OnGUI()
         {
             // 스킬창 위로 기존 즉시 모드 HUD가 겹치지 않게 합니다.
-            if (SkillWindow.IsOpen || GameSettingsWindow.IsOpen) return;
+            if (SkillWindow.IsOpen || GameSettingsWindow.IsOpen || StoryBook.IsOpen || StoryBook.AwaitingClear) return;
             if (title == null) { title = new GUIStyle(GUI.skin.label) { fontSize = 24, fontStyle = FontStyle.Bold }; body = new GUIStyle(GUI.skin.label) { fontSize = 16 }; }
             if (health.Dead || completed)
             {

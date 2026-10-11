@@ -19,10 +19,11 @@ namespace DogLife
         public static GameSettingsWindow Instance => instance;
         static int consumedFrame=-1;
         public static bool IsOpen => instance&&instance.panel.activeSelf;
-        public static bool BlocksGameplayInput => IsOpen||Time.frameCount==consumedFrame;
+        public static bool BlocksGameplayInput => IsOpen||Time.frameCount==consumedFrame||StoryBook.BlocksInput;
         public bool AwaitingConfirmation { get; private set; }
         public bool Applying { get; private set; }
         GraphicsPreferences draft, previous;
+        AudioSettingsPanel audioSettings;
         float previousTimeScale, elapsed, deadline;
         CursorLockMode previousCursor;
         bool previousCursorVisible;
@@ -44,6 +45,7 @@ namespace DogLife
             instance=this;DontDestroyOnLoad(gameObject);panel.SetActive(false);confirmation.SetActive(false);
             for(int i=0;i<fpsButtons.Length;i++){int choice=i;fpsButtons[i].onClick.AddListener(()=>SelectLimit(choice));}
             for(int i=0;i<optionButtons.Length;i++){int choice=i;optionButtons[i].onClick.AddListener(()=>CycleOption(choice/2,choice%2==0?-1:1));}
+            audioSettings=gameObject.AddComponent<AudioSettingsPanel>();audioSettings.Initialize(panel);
             SceneManager.activeSceneChanged+=SceneChanged;
         }
         IEnumerator Start()
@@ -80,7 +82,7 @@ namespace DogLife
                 }
                 renderScale.enabled=WorldRenderScale.Scale<.999f;
             }
-            if(!SkillWindow.IsOpen&&!EconomyWindow.BlocksInput&&(Input.GetKeyDown(KeyCode.Escape)||Input.GetKeyDown(KeyCode.F10)))Toggle();
+            if(!StoryBook.BlocksInput&&!SkillWindow.IsOpen&&!EconomyWindow.BlocksInput&&(Input.GetKeyDown(KeyCode.Escape)||Input.GetKeyDown(KeyCode.F10)))Toggle();
             if(AwaitingConfirmation)
             {
                 float remaining=deadline-Time.unscaledTime;
@@ -94,10 +96,11 @@ namespace DogLife
         public void Toggle(){if(AwaitingConfirmation){Revert();return;}if(IsOpen)Close();else Open();}
         public void Open()
         {
+            if(StoryBook.BlocksInput)return;
             if(IsOpen||SkillWindow.IsOpen||EconomyWindow.IsOpen||Applying||GameGraphicsSettings.Current==null)return;
             if(!EventSystem.current)new GameObject("Settings EventSystem",typeof(EventSystem),typeof(StandaloneInputModule));
             previousTimeScale=Time.timeScale;previousCursor=Cursor.lockState;previousCursorVisible=Cursor.visible;
-            draft=GameGraphicsSettings.Current.Copy();
+            draft=GameGraphicsSettings.Current.Copy();audioSettings.Begin();
             panel.SetActive(true);Time.timeScale=0;Cursor.lockState=CursorLockMode.None;Cursor.visible=true;
             consumedFrame=Time.frameCount;elapsed=0;frames=0;liveFps.text="FPS 측정 중";RefreshSelection();
         }
@@ -106,7 +109,7 @@ namespace DogLife
             if(Applying)return;
             if(AwaitingConfirmation){Revert();return;}
             if(!panel.activeSelf)return;
-            panel.SetActive(false);Time.timeScale=previousTimeScale;
+            GameAudio.Revert();panel.SetActive(false);Time.timeScale=previousTimeScale;
             Cursor.lockState=previousCursor;Cursor.visible=previousCursorVisible;consumedFrame=Time.frameCount;
             if(EventSystem.current)EventSystem.current.SetSelectedGameObject(null);
         }
@@ -148,19 +151,19 @@ namespace DogLife
             Applying=false;
             if(GameGraphicsSettings.DisplayChanged(previous,draft))
             {AwaitingConfirmation=true;deadline=Time.unscaledTime+15;confirmation.SetActive(true);}
-            else {GameGraphicsSettings.Commit(draft);RefreshSelection();selectionLabel.text="적용 및 저장 완료";}
+            else {GameGraphicsSettings.Commit(draft);GameAudio.Commit();RefreshSelection();selectionLabel.text="적용 및 저장 완료";}
         }
         public void Keep()
         {
             if(!AwaitingConfirmation)return;
-            AwaitingConfirmation=false;confirmation.SetActive(false);GameGraphicsSettings.Commit(draft);RefreshSelection();selectionLabel.text="적용 및 저장 완료";
+            AwaitingConfirmation=false;confirmation.SetActive(false);GameGraphicsSettings.Commit(draft);GameAudio.Commit();RefreshSelection();selectionLabel.text="적용 및 저장 완료";
         }
         public void Revert(){if(AwaitingConfirmation&&!Applying)StartCoroutine(RevertRoutine());}
         IEnumerator RevertRoutine()
         {
             AwaitingConfirmation=false;Applying=true;confirmation.SetActive(false);
             GameGraphicsSettings.ApplyGraphics(previous);yield return GameGraphicsSettings.ApplyDisplay(previous);
-            draft=previous.Copy();Applying=false;RefreshSelection();selectionLabel.text="이전 설정으로 복원했습니다.";
+            GameAudio.Revert();audioSettings.Begin();draft=previous.Copy();Applying=false;RefreshSelection();selectionLabel.text="이전 설정으로 복원했습니다.";
         }
         void RefreshSelection()
         {

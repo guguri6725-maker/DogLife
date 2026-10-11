@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
@@ -34,6 +34,11 @@ namespace DogLife
         [SerializeField,Min(.1f)] float finalePositionMinDistance=4,finaleRetryDelay=.5f;
         [SerializeField,Min(1)] float finaleRepositionSpeed=17,finaleRepositionAcceleration=60;
         bool finalePositionChanged;
+        [Header("최후 발악 — 잠식하는 눈보라")]
+        [SerializeField,Min(1)] float finaleBlizzardSeconds=40,finaleBlizzardHeight=7;
+        [SerializeField,Range(.3f,2)] float finaleBlizzardDensity=1;
+        [SerializeField,Min(.1f)] float finaleBlizzardFadeSeconds=2;
+        FrozenKnightVfx finaleBlizzard;
         [SerializeField,Min(.1f)] float coreRadius=3,finalePrepare=3,spearWarning=2.2f,spearSpeed=7,spearDamage=2,spearGap=1.5f,finaleExplosionWarning=2;
         [Header("신규 패턴 동작 / 후딜레이")]
         [SerializeField,Min(.1f)] float encounterRecovery=2,remoteSwingDuration=.6f,remoteReturnDuration=1,finaleMoveTimeout=6;
@@ -70,6 +75,7 @@ namespace DogLife
         void AddCandidate(Pattern pattern){if(previous!=(int)pattern&&Time.time>=cooldowns[(int)pattern])candidates.Add(pattern);}
         void ClearEncounterObjects(bool preserveWalls=false)
         {
+            if(finaleBlizzard){finaleBlizzard.ReleaseFinaleBlizzard();finaleBlizzard=null;}
             if(target)target.FrostProtectionPaused=false;
             // 페이즈 전환에는 벽을 남기고, 최후 발악/사망/방 해제에서는 모두 정리합니다.
             for(int i=encounterObjects.Count-1;i>=0;i--)
@@ -82,6 +88,7 @@ namespace DogLife
         }
         IEnumerator IcePillars()
         {
+            BossSound("Frost_Charge");
             // 양 페이즈에서 같은 파괴 가능한 기둥 프리팹을 사용합니다.
             effects.Show(FrozenKnightVfx.Shape.Ring,GroundPoint(swordRoot.position),Forward,3,0,FrozenKnightVfx.Theme.SwordConjure);
             float clipTime=StartNativeCast(PhaseNumber==1?"IceWallFull":"IceWallMounted");
@@ -129,7 +136,7 @@ namespace DogLife
             effects.Show(FrozenKnightVfx.Shape.Ring,origin,Forward,arenaRadius,0,FrozenKnightVfx.Theme.Crack);
             float clipTime=StartNativeCast("Spin3Sword");
             yield return Stage(CombatState.Warning,clipTime*spinCastMoment,null,effects);effects.Hide();
-            State=CombatState.Active;bool hit=false;float activeTime=0;
+            BossSound("BladeRing");State=CombatState.Active;bool hit=false;float activeTime=0;
             for(float radius=0;radius<arenaRadius;)
             {
                 float previousRadius=radius;if(!CombatFeedback.Paused(this)){radius+=waveSpeed*Time.deltaTime;activeTime+=Time.deltaTime;}
@@ -145,7 +152,7 @@ namespace DogLife
         }
         IEnumerator ColdWave()
         {
-            target.FrostProtectionPaused=true;
+            BossSound("Frost_Charge");target.FrostProtectionPaused=true;
             var crystals=new List<GameObject>();float gather=Mathf.Max(coldWarning,crystalGatherMinimum);
             for(int i=0;i<coldCrystalCount;i++)
             {
@@ -155,15 +162,16 @@ namespace DogLife
             effects.Show(FrozenKnightVfx.Shape.Ring,Arena,Forward,arenaRadius*2,0,FrozenKnightVfx.Theme.ColdField);
             yield return Stage(CombatState.Warning,gather,"FrostChannel",effects);
             target.FrostProtectionPaused=false;
-            effects.Activate();Play(knightAnimator,"Roar",1);State=CombatState.Active;float next=0;
+            StormSound(true);effects.Activate();Play(knightAnimator,"Roar",1);State=CombatState.Active;float next=0;
             for(float t=0;t<coldDuration;t+=Time.deltaTime)
             {
                 if(t>=next){next=t+coldTick;DealHit(target,coldDamage,0,0,Arena);}yield return null;
             }
-            foreach(var c in crystals)if(c)Destroy(c);effects.Hide();yield return Recover(encounterRecovery);
+            StormSound(false);foreach(var c in crystals)if(c)Destroy(c);effects.Hide();yield return Recover(encounterRecovery);
         }
         IEnumerator CloneRush()
         {
+            BossSound("Clone_Appear");
             // 좌우 분신을 포함한 전체 폭을 경고/판정에 동일하게 사용합니다.
             yield return Charge(charge,charge.attack.damage,charge.attack.width+cloneOffset*2,charge.attack.warning,false);
             yield return Recover(charge.attack.recovery);
@@ -174,7 +182,7 @@ namespace DogLife
             effects.Show(FrozenKnightVfx.Shape.Ring,transform.position,Forward,3,0,FrozenKnightVfx.Theme.Summon);
             float clipTime=StartNativeCast("IceWallMounted");
             yield return Stage(CombatState.Warning,clipTime*wallCastMoment,null,effects);effects.Activate();
-            var choices=new[]{winterMinionA,winterMinionB,winterMinionC};int missing=Mathf.Max(0,Mathf.Clamp(maxMinions,1,3)-summonedMinions.Count);
+            BossSound("Summon");var choices=new[]{winterMinionA,winterMinionB,winterMinionC};int missing=Mathf.Max(0,Mathf.Clamp(maxMinions,1,3)-summonedMinions.Count);
             for(int i=0;i<missing;i++)
             {
                 var prefab=choices[Random.Range(0,choices.Length)];if(!prefab)continue;
@@ -205,7 +213,7 @@ namespace DogLife
                     float u=t/warning;swordRoot.SetPositionAndRotation(Vector3.Lerp(from,to,Mathf.SmoothStep(0,1,u)),Quaternion.Slerp(original,facing*Quaternion.Euler(0,i==0?-90:90,0)*bladeForward,u));effects.SetWarningProgress(u,i==0);yield return null;
                 }
                 elapsed+=warning+remoteSwingDuration;
-                State=CombatState.Active;effects.BeginSlash(i);effects.Activate();swordArea.Arm(this,combo.first.damage,combo.first.knockback,0);
+                BossSound("Sword_Swing",swordRoot);State=CombatState.Active;effects.BeginSlash(i);effects.Activate();swordArea.Arm(this,combo.first.damage,combo.first.knockback,0);
                 for(float t=0;t<remoteSwingDuration;t+=Time.deltaTime)
                 {float u=Mathf.SmoothStep(0,1,t/remoteSwingDuration);float angle=Mathf.Lerp(i==0?-90:90,i==0?90:-90,u);swordRoot.SetPositionAndRotation(to,facing*Quaternion.Euler(0,angle,0)*bladeForward);yield return null;}
                 swordArea.Disarm();effects.Hide();
@@ -271,6 +279,8 @@ namespace DogLife
         {
             ClearEncounterObjects();ClearHazards();Disarm();StopMovement();health.invulnerable=true;State=CombatState.Warning;
             var core=swordCore;core.Begin(coreSpearHits);HoldHorseForSpear();
+            finaleBlizzard=effects.CreateFinaleBlizzard(this,core,GroundPoint(Arena),arenaRadius,finaleBlizzardSeconds,finaleBlizzardHeight,finaleBlizzardDensity,finaleBlizzardFadeSeconds);
+            StormSound(true);
             Vector3 swordCenter=GroundPoint(core.Center);
             effects.Show(FrozenKnightVfx.Shape.Ring,swordCenter,Forward,coreRadius,0,FrozenKnightVfx.Theme.SwordConjure);
             yield return Stage(CombatState.Warning,finalePrepare,"MountedCommand",effects);effects.Hide();
@@ -325,9 +335,25 @@ namespace DogLife
             if(!broken)
             {
                 effects.Show(FrozenKnightVfx.Shape.Ring,Arena,Forward,arenaRadius*2,0,FrozenKnightVfx.Theme.ColdField);
-                yield return Stage(CombatState.Warning,finaleExplosionWarning,"MountedCommand",effects);
+                State=CombatState.Warning;Play(knightAnimator,"MountedCommand",finaleExplosionWarning);
+                for(float t=0;t<finaleExplosionWarning;t+=Time.deltaTime)
+                {
+                    if(core&&core.Broken)break;
+                    float progress=t/Mathf.Max(.01f,finaleExplosionWarning);
+                    effects.SetWarningProgress(progress);
+                    if(finaleBlizzard)finaleBlizzard.FillFinaleBlizzard(progress);
+                    yield return null;
+                }
+                // 마지막 경고 중에도 검 파괴 성공을 인정합니다.
+                if(core&&core.Broken)
+                {
+                    ClearEncounterObjects();ClearHazards();ClearCavalryEffects();Disarm();effects.Hide();StopMovement();
+                    State=CombatState.Groggy;Play(knightAnimator,"MountedGroggy");Play(horseAnimator,"Groggy");health.ReleaseForFinalHit();
+                    while(!health.Dead)yield return null;
+                    yield break;
+                }
                 effects.Show(FrozenKnightVfx.Shape.Ring,Arena,Forward,arenaRadius*2,0,FrozenKnightVfx.Theme.Burst);effects.Activate();
-                if(core&&!core.Broken)target.FatalDamage();
+                BossSound("Final_Explosion");if(core&&!core.Broken)target.FatalDamage();
             }
             yield return Stage(CombatState.Recovery,.5f);ClearEncounterObjects();effects.Hide();health.CompleteDeferredDeath();
         }

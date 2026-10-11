@@ -27,6 +27,7 @@ namespace DogLife
             }
         }
         Rigidbody body;
+        PlayerWaterMovement waterMovement;
         BasicWeaponCombat attackCombo;
         public bool AttackLocked => attackCombo && attackCombo.IsAttacking;
         public bool AttackMovementLocked => attackCombo && attackCombo.LocksMovement;
@@ -61,10 +62,12 @@ namespace DogLife
             body.constraints = RigidbodyConstraints.FreezeRotation;
             body.interpolation = RigidbodyInterpolation.Interpolate;
             body.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+            if(!GetComponent<PlayerMovementAudio>())gameObject.AddComponent<PlayerMovementAudio>();
             spawn = transform.position; standingHeight = capsule.height; standingCenter = capsule.center;
             if (visualRoot) { visualScale = visualRoot.localScale; visualPosition = visualRoot.localPosition; }
         }
         void Update() {
+            if (!waterMovement) waterMovement = GetComponent<PlayerWaterMovement>();
             if (SkillWindow.BlocksGameplayInput) { MoveInput = Vector2.zero; ReleaseJump(); return; }
             if (!readInput) return;
             if (Cursor.lockState != CursorLockMode.Locked) { MoveInput = Vector2.zero; ReleaseJump(); return; }
@@ -74,28 +77,31 @@ namespace DogLife
             if (Input.GetKeyDown(KeyCode.LeftShift)) RequestDash();
             if (AttackMovementLocked) { MoveInput = Vector2.zero; ClearJumpInput(); return; }
             SetCrouching(crouchHeld && !suppressCrouchUntilRelease);
-            if (Input.GetKeyDown(KeyCode.Space)) RequestJump();
+            if (waterMovement && waterMovement.Submerged) waterMovement.AscendHeld = Input.GetKey(KeyCode.Space);
+            else if (Input.GetKeyDown(KeyCode.Space)) RequestJump();
             if (!Input.GetKey(KeyCode.Space)) ReleaseJump();
         }
         public void RequestJump() {
+            if (waterMovement && waterMovement.Submerged) { waterMovement.AscendHeld = true; return; }
             if (IsKnockedBack || AttackLocked || !StandForAction()) return;
             jumpHeld = true; jumpBuffer = Time.time + .12f;
         }
         // 물리 프레임 전에 짧게 눌렀다 놓아도 점프 예약은 유지합니다.
-        public void ReleaseJump() { jumpHeld = false; }
+        public void ReleaseJump() { jumpHeld = false; if(waterMovement)waterMovement.AscendHeld=false; }
         public bool RequestDash() {
             var health=GetComponent<CombatHealth>();
             if (!isActiveAndEnabled || SkillWindow.BlocksGameplayInput || (health&&health.Dead) || IsKnockedBack) return false;
-            if (!StandForAction() || Time.time < nextDash) return false;
+            if (Time.time < nextDash || !StandForAction(true)) return false;
             dashDirection = MoveDirection.sqrMagnitude > .01f ? MoveDirection.normalized : Facing;
             if(attackCombo)attackCombo.CancelForDash();
             var feedback=GetComponent<CombatFeedback>();if(feedback)feedback.CancelHitStop();
+            GameAudio.Play("Roll",transform.position,.75f);
             dashUntil = Time.time + dashDuration; nextDash = Time.time + dashCooldown; return true;
         }
-        bool StandForAction()
+        bool StandForAction(bool forDash=false)
         {
             // 머리 위 공간을 먼저 확인하고, 앉기 키를 계속 눌러도 바로 다시 앉지 않게 합니다.
-            if (Crouching && !SetCrouching(false)) return false;
+            if (Crouching && !SetCrouchingInternal(false,forDash)) return false;
             suppressCrouchUntilRelease = true;
             return true;
         }
@@ -111,7 +117,12 @@ namespace DogLife
             if (visualRoot) visualRoot.rotation = Quaternion.LookRotation(Facing) * Quaternion.Euler(0, visualYawOffset + (attackCombo ? attackCombo.VisualYawOffset : 0), 0);
         }
         public bool SetCrouching(bool value) {
-            if (AttackLocked) return false;
+            return SetCrouchingInternal(value,false);
+        }
+        bool SetCrouchingInternal(bool value,bool forDash) {
+            // A dash may leave the crouched attack pose before CancelForDash clears the combo.
+            // Keep the ceiling check and the normal attack-time stance lock for all other callers.
+            if (AttackLocked && !forDash) return false;
             if (value == Crouching) return true;
             // 머리 위가 막혀 있으면 일어나지 않습니다.
             if (!value) {
@@ -193,7 +204,8 @@ namespace DogLife
             if(IsKnockedBack)horizontal=knockbackVelocity*Mathf.Clamp01((knockbackUntil-Time.time)/knockbackDuration);
             horizontal = LimitWallMovement(horizontal);
             var velocity = new Vector3(horizontal.x, body.linearVelocity.y, horizontal.z);
-            if (!AttackLocked && !Crouching && jumpBuffer > Time.time && Time.time - lastGrounded < .1f) {
+            if (!(waterMovement && waterMovement.Submerged) && !AttackLocked && !Crouching && jumpBuffer > Time.time && Time.time - lastGrounded < .1f) {
+                GameAudio.Play("Jump",transform.position,.55f);
                 velocity.y = jumpSpeed; jumpBuffer = 0; lastGrounded = -10; Grounded = false;
                 jumping = true; jumpReleased = false;
             }
@@ -203,12 +215,13 @@ namespace DogLife
                 jumpReleased = true;
             }
             if (velocity.y <= 0) jumping = false;
+            if(waterMovement && waterMovement.Submerged) velocity=waterMovement.ResolveVelocity(velocity);
             body.linearVelocity = velocity;
             // 방향별 걷기는 조준 방향을 유지해야 옆걸음과 뒷걸음이 선택됩니다.
             if (horizontal.sqrMagnitude > .01f && !directionalLocomotion) Face(horizontal);
             if (body.position.y < -12) Respawn();
         }
-        public void Respawn() { movementSlowUntil=0;knockbackUntil=0;wallNormals.Clear(); ClearJumpInput(); body.position = spawn; body.linearVelocity = Vector3.zero; }
+        public void Respawn() { if(waterMovement)waterMovement.Leave(); movementSlowUntil=0;knockbackUntil=0;wallNormals.Clear(); ClearJumpInput(); body.position = spawn; body.linearVelocity = Vector3.zero; }
         public void SetRespawnPoint(Vector3 point) { spawn = point; }
         public void StopForAttack()
         {

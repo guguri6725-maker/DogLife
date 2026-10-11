@@ -18,6 +18,8 @@ namespace DogLife
         public bool IsOpen => Progress >= 1f;
         public bool IsClosed => Progress <= 0f;
         float target;
+        bool initialized;
+        GameAudio.Handle gateSound;
         PlayableGraph poseGraph;
         AnimationClipPlayable poseClip;
 
@@ -26,6 +28,7 @@ namespace DogLife
             Progress = target = startOpen ? 1 : 0;
             ApplyPose();
             if (visualRoot && startOpen && hideWhenInitiallyOpen) visualRoot.SetActive(false);
+            initialized=true;
         }
         public void Open() { SetTarget(1); }
         public void Close() { SetTarget(0); }
@@ -33,6 +36,11 @@ namespace DogLife
         {
             if (target == value) return;
             target = value;
+            gateSound.Stop();
+            if(initialized&&SpringSoundscape.IsSpringScene(gameObject.scene))
+                gateSound=GameAudio.Play(value>0?"Spring_Gate_Open":"Spring_Gate_Close",transform.position,.75f,2.4f/Mathf.Max(.1f,duration),follow:transform);
+            else if(initialized&&WinterSoundscape.IsWinter(gameObject.scene))
+                gateSound=GameAudio.Play(value>0?"Winter_Door_Open":"Winter_Door_Close",transform.position,.65f,2.4f/Mathf.Max(.1f,duration),follow:transform);
             if (visualRoot) visualRoot.SetActive(true);
             ApplyBlockers();
         }
@@ -43,7 +51,9 @@ namespace DogLife
             if (Progress == target) return;
             Progress = Mathf.MoveTowards(Progress, target, Time.deltaTime / Mathf.Max(.1f, duration));
             ApplyPose();
+            if(Progress==target)gateSound.Stop();
         }
+        void OnDisable(){gateSound.Stop();}
         void ApplyPose()
         {
             if (openingClip && animationRoot)

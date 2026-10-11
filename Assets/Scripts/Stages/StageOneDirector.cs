@@ -45,8 +45,8 @@ namespace DogLife
                 var enemyBody = enemy.GetComponent<Rigidbody>();
                 if (!enemyBody.isKinematic) enemyBody.linearVelocity = Vector3.zero;
             }
-            StopEnemies<SpringBoarBoss>(); StopEnemies<HarvestReaperBoss>();
-            StopEnemies<KrakenBoss>();
+            StopEnemies<SpringBoarBoss>(); StopEnemies<SpringBoarPhaseTwo>(); StopEnemies<HarvestReaperBoss>();
+            StopEnemies<KrakenBoss>(); StopEnemies<KrakenPhaseOne>();
             StopEnemies<FrozenKnightBoss>();
             StopEnemies<BlossomSkeletonEnemy>(); StopEnemies<BlossomSpiritEnemy>();
             StopEnemies<FloralDeerEnemy>(); StopEnemies<SakuraRabbitEnemy>();
@@ -75,6 +75,7 @@ namespace DogLife
                     if (vines) vines.Open(); else gates[Cleared].SetActive(false);
                     Cleared++;
                     if (Cleared < encounters.Length) encounters[Cleared].SetActive(true);
+                    else if(StoryBook.Instance)StoryBook.Instance.QueueClear(this);
                 }
             }
             else
@@ -91,6 +92,10 @@ namespace DogLife
                     usedStations[i] = true; hud.health.Restore(); recoveryStations[i].gameObject.SetActive(false);
                 }
         }
-        public void RecordStreamedClear(int count) { Cleared = count; }
+        public void RecordStreamedClear(int count)
+        {
+            Cleared = count;
+            if(streaming&&count==streaming.roomScenePaths.Length&&StoryBook.Instance)StoryBook.Instance.QueueClear(this);
+        }
     }
 }

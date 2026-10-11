@@ -45,7 +45,8 @@ namespace DogLife.EditorTools
             {
                 Vector3 p=vertices[i];float rear=Mathf.InverseLerp(p.y<0?.03f:-.005f,.075f,p.z)*Mathf.InverseLerp(.31f,.23f,p.y);
                 float core=Mathf.InverseLerp(.115f,.065f,Mathf.Abs(p.x))*Mathf.InverseLerp(.025f,.09f,p.y)*Mathf.InverseLerp(.32f,.27f,p.y);
-                float blend=Mathf.Max(rear,core);if(blend<=0)continue;
+                // 망토 보정이 발뒤꿈치까지 몸통에 묶지 않도록 발목 아래는 제외합니다.
+                float blend=Mathf.Max(rear,core)*Mathf.SmoothStep(0,1,Mathf.InverseLerp(-.40f,-.33f,p.y));if(blend<=0)continue;
                 var sums=new float[renderer.bones.Length];var w=weights[i];
                 sums[w.boneIndex0]+=w.weight0*(1-blend);sums[w.boneIndex1]+=w.weight1*(1-blend);sums[w.boneIndex2]+=w.weight2*(1-blend);sums[w.boneIndex3]+=w.weight3*(1-blend);
                 float upper=Mathf.InverseLerp(-.02f,.22f,p.y);sums[hips]+=blend*(1-upper);sums[core>rear?chest:spine]+=blend*upper;

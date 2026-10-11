@@ -103,6 +103,8 @@ namespace DogLife
                     groupsThisFrame=0;
                 }
             }
+            var passageLayout=GetComponent<RoomPassageLayout>();
+            if(passageLayout)passageLayout.HideOldPassage();
             // 문/구조물의 Start가 끝난 후 몬스터를 소환합니다.
             yield return null;
             geometryReady=true;

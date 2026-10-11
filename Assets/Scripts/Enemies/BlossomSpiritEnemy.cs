@@ -96,7 +96,15 @@ namespace DogLife
             if(value&&!p.isPlaying)p.Play();
             else if(!value)p.Stop(true,ParticleSystemStopBehavior.StopEmittingAndClear);
         }
-        void Charge(bool value){SetCharge(leftCharge,value);SetCharge(rightCharge,value);}
+        bool chargeSoundActive;
+        GameAudio.Handle chargeSound;
+        void Charge(bool value)
+        {
+            if(value&&!chargeSoundActive)chargeSound=GameAudio.Play("Blossom_Charge",transform.position,.7f,follow:transform);
+            if(!value&&chargeSoundActive)chargeSound.Stop();
+            chargeSoundActive=value;
+            SetCharge(leftCharge,value);SetCharge(rightCharge,value);
+        }
         bool MoveTo(Vector3 destination)
         {
             if(!Navigable)return false;
@@ -169,7 +177,10 @@ namespace DogLife
             if(direction.sqrMagnitude<.001f||!Clear(origin,aimedPoint))return;
             var shot=Instantiate(projectilePrefab,origin,Quaternion.LookRotation(direction));
             var projectile=shot.GetComponent<CombatProjectile>();
+            GameAudio.Play("Blossom_Launch",origin,.85f);
+            projectile.impactSound="Blossom_Burst";
             projectile.owner=transform;projectile.hostile=true;projectile.direction=direction;
+            projectile.ignoreFriendlyMonsters=true;
             projectile.speed=projectileSpeed;projectile.damage=damage;projectile.range=12;
         }
         void Update(){if(modelAnimator)modelAnimator.SetBool(Moving,!dashing&&!casting&&Navigable&&!agent.isStopped&&agent.velocity.sqrMagnitude>.02f);}

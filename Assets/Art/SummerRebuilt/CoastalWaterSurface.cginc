@@ -2,6 +2,8 @@
         sampler2D _MainTex;
         fixed4 _Color;
         float _FlowSpeed, _Opacity, _SurfaceMode, _WorldTiling, _GateMode, _OpenProgress, _FlowTime, _ImpactMode, _WaterLevel;
+        float _FloodVisibility, _FloodLevel, _FloodFeather;
+        float _FloodFloorVisibility;
         struct Input { float2 uv_MainTex; float3 worldPos; float4 color : COLOR; };
         // 수평 수면과 수직 폭포에 같은 밝기를 사용해 방향광 때문에 색이 갈라지지 않게 한다.
         half4 LightingConsistentWater(SurfaceOutput s, half3 lightDir, half atten)
@@ -58,5 +60,8 @@
             o.Albedo = water * _Color.rgb;
             o.Emission = 0;
             o.Alpha = _Color.a * edge * _Opacity;
+            if (_SurfaceMode < .5)
+                o.Alpha *= _FloodVisibility * smoothstep(_FloodLevel-_FloodFeather*.5, _FloodLevel+_FloodFeather*.5, IN.worldPos.y);
+            else o.Alpha *= _FloodFloorVisibility;
         }
 

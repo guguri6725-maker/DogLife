@@ -33,6 +33,7 @@ namespace DogLife
         bool hitApplied;
         int scrapeCount;
         string animationName;
+        GameAudio.Handle readySound,chargeSound;
         public bool Windup=>phase==Phase.Windup;
         bool Navigable=>agent&&agent.isActiveAndEnabled&&agent.isOnNavMesh;
         float WorldScale=>Mathf.Max(.01f,transform.lossyScale.y);
@@ -68,6 +69,7 @@ namespace DogLife
         void Stop(){if(Navigable){agent.isStopped=true;agent.ResetPath();}}
         void StopEffects()
         {
+            readySound.Stop();chargeSound.Stop();
             if(warning)warning.enabled=false;
             if(scrapeEffect)scrapeEffect.Stop(true,ParticleSystemStopBehavior.StopEmittingAndClear);
             if(chargeEffect)chargeEffect.Stop(true,ParticleSystemStopBehavior.StopEmittingAndClear);
@@ -105,6 +107,7 @@ namespace DogLife
         }
         void BeginWindup(Vector3 direction)
         {
+            readySound=GameAudio.Play("Deer_Charge_Ready",transform.position,.8f,follow:transform);
             Stop();phase=Phase.Windup;phaseStarted=Time.time;scrapeCount=0;hitApplied=false;
             lockedDirection=Vector3.ProjectOnPlane(direction,Vector3.up).normalized;
             if(lockedDirection.sqrMagnitude<.001f)lockedDirection=transform.forward;
@@ -150,7 +153,7 @@ namespace DogLife
             {
                 Stop();float elapsed=Time.time-phaseStarted;
                 if(scrapeCount<2&&elapsed>=.25f+scrapeCount*.45f){scrapeCount++;if(scrapeEffect){scrapeEffect.Stop(true,ParticleSystemStopBehavior.StopEmittingAndClear);scrapeEffect.Play();}}
-                if(elapsed>=windupTime){phase=Phase.Charge;phaseStarted=Time.time;travelled=0;if(warning)warning.enabled=false;if(chargeEffect)chargeEffect.Play();Animate("Charge");}
+                if(elapsed>=windupTime){readySound.Stop();chargeSound=GameAudio.Play("Deer_Charge",transform.position,.9f,follow:transform);phase=Phase.Charge;phaseStarted=Time.time;travelled=0;if(warning)warning.enabled=false;if(chargeEffect)chargeEffect.Play();Animate("Charge");}
                 return;
             }
             if(phase==Phase.Charge){TickCharge();return;}

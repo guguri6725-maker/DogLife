@@ -1,0 +1,41 @@
+Dog Life — illustration story and memories (2026-10-09)
+
+Usage
+Open Assets/Scenes/Title.unity and Play.
+START always shows the prologue from page zero, even if previously collected. Skip continues to Spring. Collected memories remain unlocked.
+The lower-left Memories button opens a persistent illustrated collection.
+Clear each season's final encounter to earn its memory. Phase changes and intermediate rooms do not count.
+The first clear opens its story after the death presentation; repeat clears retain the gallery unlock without replaying the same chapter.
+Winter completion shows the karma ending after its story, once per run.
+Follow the existing exit / Enter flow to advance Spring -> Summer -> Fall -> Winter -> Title.
+
+Controls
+Previous/Next buttons or arrow keys; Space/Enter to advance; Escape/Skip to close.
+Automatic page advance is optional and off by default.
+Gallery replays return to the gallery and never start a new run.
+Stories pause world time and block gameplay, inventory, settings and shop input, then restore prior state.
+
+Editable content
+Assets/Resources/Story/StoryLibrary.asset: all Korean text, image references, zoom, fade, automatic reading time, clear delay, karma thresholds.
+Assets/Resources/UI/StoryBook.prefab: startup service and library reference.
+Assets/Art/Story: eight original story illustrations plus a title button asset.
+Images generated with built-in image_gen; prompts recorded in Tools/StoryArtworkPrompts.txt.
+StoryBookBuilder is a content installation/rebuild utility; it overwrites library content when explicitly invoked. Edit the library directly for ordinary writing changes.
+
+Ending defaults (adjustable)
+Normalized karma <= -0.34: life with owner.
+Between -0.34 and +0.34: farewell.
+Normalized karma >= +0.34: revenge.
+PlayerKarma is carried with existing RunEconomy data on authorized next-stage travel; a fresh run does not inherit it.
+The owner is shown without an established face. Ending narration is a first draft of the three specified outcomes, without inventing an apology or redemption.
+
+Persistence
+PlayerPrefs keys DogLife.Memories.v1.<chapter id> store the collection independently from the run.
+No existing saves/settings are cleared. Validation backs up and restores these keys.
+No full game-save/LOAD implementation or mid-room memory collectibles were added in this pass.
+
+Validation
+27 runtime checks passed: imported assets, karma cutoffs and carry/reset, gallery locking, input/time/cursor restoration, single continuation, final-room-only unlock, repeat suppression, Winter ending routing, gallery replay.
+Actual START -> prologue -> Spring streaming ready verified; timeScale restored to 1 and exactly one StoryBook instance survived.
+Visual captures at 16:9, 4:3 and 21:9 reviewed in Builds/StoryValidation.
+No new script compilation errors. Existing unrelated VARCO bridge missing local package path remains.

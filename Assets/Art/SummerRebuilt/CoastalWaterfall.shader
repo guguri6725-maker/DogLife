@@ -13,6 +13,9 @@ Shader "DogLife/Original Coastal Waterfall"
         _FlowTime("Gate flow clock (-1 uses time)", Float) = -1
         _ImpactMode("Soft landing foam", Float) = 0
         _WaterLevel("Landing water height", Float) = 0
+        _FloodVisibility("Flood flow visibility", Range(0,1)) = 1
+        _FloodLevel("Flood surface level", Float) = -10000
+        _FloodFeather("Flood contact softness", Float) = .8
     }
     SubShader
     {

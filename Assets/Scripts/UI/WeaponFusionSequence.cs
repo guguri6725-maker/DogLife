@@ -25,11 +25,18 @@ namespace DogLife
         Vector3 cameraPosition,cameraGoal;Quaternion cameraRotation;float cameraFov,elapsed;
         Color color;InventoryWeapon result;bool active,released;
         Material sigilMaterial;
+        [Header("합성 사운드 타이밍 (연출 진행 비율)")]
+        [SerializeField,Range(0,1)] float loopAudioAt=.23f,resultAudioAt=.8f;
+        [SerializeField,Range(0,1)] float startVolume=.65f,loopVolume=.35f,resultVolume=.8f;
+        GameAudio.Handle startSound,loopSound,resultSound;
+        bool loopPlayed,resultPlayed;
         public bool Completed {get;private set;}
         public string Status=>Completed?"합성 완료\n"+result.displayName+"\n"+(result.boneOrigin==InventoryWeapon.BoneOrigin.Dog?"동물형":"인간형")+" · "+Category(result.weaponCategory):elapsed/duration<.25f?"두 영혼이 깨어납니다":elapsed/duration<.52f?"뼈와 영혼이 하나로 모입니다":"새로운 무기가 모습을 드러냅니다";
         static string Category(InventoryWeapon.WeaponCategory c){string[] names={"검","창","도끼","활","단검","부메랑"};return (int)c<names.Length?names[(int)c]:c.ToString();}
         public void Begin(InventoryWeapon a,InventoryWeapon b,InventoryWeapon output)
         {
+            elapsed=0;Completed=released=loopPlayed=resultPlayed=false;
+            startSound=GameAudio.Play("Synthesis_Start",Vector3.zero,startVolume,ui:true);
             result=output;color=output.boneOrigin==InventoryWeapon.BoneOrigin.Dog?animalColor:humanColor;
             // 동적으로 로드되는 기존 HUD는 연출 동안만 숨기고 원래 켜져 있던 것만 복구합니다.
             foreach(var canvas in FindObjectsByType<Canvas>(FindObjectsSortMode.None))
@@ -84,6 +91,8 @@ namespace DogLife
         void Reveal(List<Material> group,float amount,Transform socket){foreach(var m in group){m.SetFloat("_Reveal",amount);m.SetFloat("_Bottom",socket.position.y-weaponSize*.65f);}}
         void Tick(float t)
         {
+            if(!loopPlayed&&!resultPlayed&&t>=loopAudioAt&&t<resultAudioAt){loopPlayed=true;loopSound=GameAudio.Play("Synthesis_Loop",Vector3.zero,loopVolume,ui:true,follow:transform,loop:true);}
+            if(!resultPlayed&&t>=resultAudioAt){resultPlayed=true;startSound.Stop();loopSound.Stop();resultSound=GameAudio.Play("Synthesis_Result",Vector3.zero,resultVolume,ui:true);}
             float dissolve=Ease(.23f,.44f,t),assemble=Ease(.52f,.84f,t),finish=Ease(.82f,.96f,t);
             firstSocket.localPosition=new Vector3(-orbitRadius*(1-.6f*dissolve),displayHeight-.15f+.2f*Mathf.Sin(t*Mathf.PI),0);
             secondSocket.localPosition=new Vector3(orbitRadius*(1-.6f*dissolve),displayHeight-.15f+.2f*Mathf.Sin(t*Mathf.PI),0);
@@ -121,6 +130,7 @@ namespace DogLife
         public void Release()
         {
             if(released)return;released=true;active=false;
+            startSound.Stop();loopSound.Stop();if(!Completed)resultSound.Stop();
             foreach(var canvas in hiddenHud)if(canvas)canvas.enabled=true;hiddenHud.Clear();
             if(controller&&controllerEnabled){controller.BlendFromCinematic(.45f,cameraFov);controller.enabled=true;}
             else if(cameraTarget){cameraTarget.transform.SetPositionAndRotation(cameraPosition,cameraRotation);cameraTarget.fieldOfView=cameraFov;}

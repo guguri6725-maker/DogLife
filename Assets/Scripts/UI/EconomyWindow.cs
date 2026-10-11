@@ -43,7 +43,7 @@ namespace DogLife
                 else if(Input.GetKeyDown(KeyCode.Escape)||Input.GetKeyDown(KeyCode.F))Close();
                 return;
             }
-            if(SkillWindow.IsOpen||GameSettingsWindow.IsOpen){prompt.text="";return;}
+            if(SkillWindow.IsOpen||GameSettingsWindow.IsOpen||StoryBook.BlocksInput){prompt.text="";return;}
             if(Time.unscaledTime>=scanAt)
             {
                 scanAt=Time.unscaledTime+.2f;nearest=null;float best=float.MaxValue;
@@ -55,17 +55,21 @@ namespace DogLife
         }
         public void Open(EconomyStation target)
         {
-            if(IsOpen||SkillWindow.IsOpen||GameSettingsWindow.IsOpen||!target||!target.InReach(wallet.inventory))return;
+            if(IsOpen||SkillWindow.IsOpen||GameSettingsWindow.IsOpen||StoryBook.BlocksInput||!target||!target.InReach(wallet.inventory))return;
             station=target;previousScale=Time.timeScale;previousCursor=Cursor.lockState;previousVisible=Cursor.visible;
             opened=true;
+            GameAudio.EnterEconomyMenu();
             Time.timeScale=0;Cursor.lockState=CursorLockMode.None;Cursor.visible=true;consumed=Time.frameCount;
             panel.SetActive(true);prompt.text="";bool shop=station.kind==EconomyStation.StationKind.Shop;
             shopPanel.SetActive(shop);fusionPanel.SetActive(!shop);title.text=shop?"뼈 상점":"영혼의 합성";message.text=shop?"구매한 무기는 가방에 들어갑니다.":"같은 계열의 일반 무기 2개 · 비용 없음 · 방당 1회";
             first=null;second=null;Cycle(true,1);Cycle(false,1);Refresh();
+            GameAudio.Play("UI_Window_Open",Vector3.zero,.6f,ui:true);
+            for(int i=0;i<buyButtons.Length;i++)if(!buyButtons[i].GetComponent<EconomyItemAudio>())buyButtons[i].gameObject.AddComponent<EconomyItemAudio>();
+            if(fuseButton&&!fuseButton.GetComponent<EconomyItemAudio>())fuseButton.gameObject.AddComponent<EconomyItemAudio>().shopPreview=false;
         }
         public void Close()
-        {if(!opened)return;opened=false;if(sequence){sequence.Release();Destroy(sequence.gameObject);sequence=null;}if(fusionPresentation)fusionPresentation.SetActive(false);panel.SetActive(false);Time.timeScale=previousScale;Cursor.lockState=previousCursor;Cursor.visible=previousVisible;consumed=Time.frameCount;station=null;}
-        public void Buy(int index){if(!station)return;string text;station.Buy(index,wallet,out text);message.text=text;Refresh();}
+        {if(!opened)return;opened=false;if(sequence){sequence.Release();Destroy(sequence.gameObject);sequence=null;}if(fusionPresentation)fusionPresentation.SetActive(false);panel.SetActive(false);Time.timeScale=previousScale;Cursor.lockState=previousCursor;Cursor.visible=previousVisible;consumed=Time.frameCount;station=null;GameAudio.Play("UI_Window_Close",Vector3.zero,.55f,ui:true);}
+        public void Buy(int index){if(!station)return;string text;bool success=station.Buy(index,wallet,out text);message.text=text;Refresh();GameAudio.Play(success?"Shop_Purchase":"UI_Action_Denied",Vector3.zero,.7f,ui:true);}
         public void Fuse()
         {
             if(!station||sequence)return;
@@ -73,7 +77,8 @@ namespace DogLife
             string text;InventoryWeapon result;
             // 재료/결과 교환은 한 번만 확정하고 연출은 확정된 결과를 보여줍니다.
             bool success=station.Fuse(first,second,wallet,out text,out result);message.text=text;Refresh();
-            if(!success||!fusionSequencePrefab||!fusionPresentation)return;
+            if(!success){GameAudio.Play("UI_Action_Denied",Vector3.zero,.6f,ui:true);return;}
+            if(!fusionSequencePrefab||!fusionPresentation){GameAudio.Play("Synthesis_Result",Vector3.zero,.8f,ui:true);return;}
             var focus=station.fusionFocus;
             sequence=Instantiate(fusionSequencePrefab,focus?focus.position:station.transform.position+Vector3.up*1.2f,Quaternion.identity);
             sequence.Begin(a,b,result);panel.SetActive(false);fusionPresentation.SetActive(true);
@@ -81,12 +86,18 @@ namespace DogLife
         public void FusionAction()
         {
             if(!sequence)return;
+            GameAudio.Play("UI_Button_Click",Vector3.zero,.45f,ui:true);
             if(!sequence.Completed){sequence.Skip();return;}
             sequence.Release();Destroy(sequence.gameObject);sequence=null;
             fusionPresentation.SetActive(false);panel.SetActive(true);Refresh();
         }
-        public void NextFirst(){Cycle(true,1);Refresh();}public void PreviousFirst(){Cycle(true,-1);Refresh();}
-        public void NextSecond(){Cycle(false,1);Refresh();}public void PreviousSecond(){Cycle(false,-1);Refresh();}
+        public void NextFirst(){SelectMaterial(true,1);}public void PreviousFirst(){SelectMaterial(true,-1);}
+        public void NextSecond(){SelectMaterial(false,1);}public void PreviousSecond(){SelectMaterial(false,-1);}
+        void SelectMaterial(bool a,int direction)
+        {
+            string before=a?first:second;Cycle(a,direction);string after=a?first:second;Refresh();
+            GameAudio.Play(before==after?"UI_Action_Denied":string.IsNullOrEmpty(after)?"Synthesis_Material_Remove":"Synthesis_Material_Add",Vector3.zero,.55f,ui:true);
+        }
         void Cycle(bool a,int direction)
         {
             var inv=wallet.inventory;int count=inv.OwnedWeapons.Count,index=direction>0?-1:0;string current=a?first:second,other=a?second:first;

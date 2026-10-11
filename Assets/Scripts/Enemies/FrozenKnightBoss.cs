@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -184,7 +184,7 @@ namespace DogLife
                 // 같은 Plant에서 페이즈 전환을 시작해도 이전 클립의 끝 자세를 고정하지 않습니다.
                 if(plantingSword&&!swordPlanted&&!knightAnimator.IsInTransition(0)&&pose.IsName("Plant")&&pose.normalizedTime>=swordPlantLockTime)
                 {
-                    plantingSword=false;swordPlanted=true;plantedSwordPosition=swordRoot.position;plantedSwordRotation=swordRoot.rotation;
+                    BossSound("Sword_Slam",swordRoot);plantingSword=false;swordPlanted=true;plantedSwordPosition=swordRoot.position;plantedSwordRotation=swordRoot.rotation;
                     // 피격 반동은 LateUpdate에서 상체 뼈를 움직이므로 꽂힌 검을 손 뼈에서 분리합니다.
                     swordRoot.SetParent(transform,true);
                 }
@@ -194,6 +194,7 @@ namespace DogLife
         }
         void Update()
         {
+            TickBossAudio();
             ResetIntroductionSword();
             if(!health||health.Dead||!target||target.Dead)return;
             if(room&&!room.CombatStarted)return;
@@ -362,7 +363,7 @@ namespace DogLife
                     swordArea.Disarm();radialArea.Disarm();armed=hit;
                     if(hit>=0)
                     {
-                        var attack=attacks[hit];hits.Clear();
+                        var attack=attacks[hit];hits.Clear();BossSound(fissure?"Sword_Slam":"Sword_Swing",swordRoot);
                         if(fissure)swordArea.Arm(this,attack.damage,attack.knockback,attack.lift,hits);
                         else{radialArea.transform.SetPositionAndRotation(transform.position,Quaternion.LookRotation(Forward));radialArea.ArmSector(this,attack.damage,attack.knockback,attack.lift,attack.range,meleeSectorAngle,hitHeight,hits);effects.BeginSlash(hit);effects.Activate();}
                     }
@@ -370,7 +371,7 @@ namespace DogLife
                 }
                 if(fissure&&!crackStarted&&t>=slamImpactTime+crack.delay/length)
                 {
-                    crackStarted=true;crackEnd=t+crack.activeTime/length;SetBox(crackArea,crack.width,crack.length,true);
+                    BossSound("Fissure");crackStarted=true;crackEnd=t+crack.activeTime/length;SetBox(crackArea,crack.width,crack.length,true);
                     crackArea.Arm(this,crack.damage,crack.sword.knockback,crack.sword.lift);effects.Activate();
                 }
                 if(crackStarted&&t>=crackEnd){crackArea.Disarm();effects.Hide();}
@@ -395,6 +396,7 @@ namespace DogLife
         }
         IEnumerator Burst(Attack a,bool mounted)
         {
+            BossSound("Frost_Charge");
             effects.Show(FrozenKnightVfx.Shape.Ring,transform.position,Forward,a.range,0);
             if(mounted)Play(horseAnimator,"Rear",a.warning);
             float clipTime=0;
@@ -403,7 +405,7 @@ namespace DogLife
             yield return Stage(CombatState.Attack,attackLeadTime,null,effects,.9f,1);
             if(mounted)Play(horseAnimator,"Stomp",a.duration);
             radialArea.transform.SetPositionAndRotation(transform.position,Quaternion.LookRotation(Forward));
-            radialArea.ArmSector(this,a.damage,a.knockback,a.lift,a.range,360,hitHeight);effects.Activate();
+            radialArea.ArmSector(this,a.damage,a.knockback,a.lift,a.range,360,hitHeight);effects.Activate();BossSound("Frost_Burst");
             // 비탑승 폭발은 밀어내기 상체 동작을 유지하고 하체는 서 있는 자세를 보존합니다.
             yield return Stage(CombatState.Active,a.duration,mounted?"MountedStompImpact":null);radialArea.Disarm();
             if(!mounted&&clipTime*(1-pushCastMoment)>attackLeadTime+a.duration)yield return Stage(CombatState.Recovery,clipTime*(1-pushCastMoment)-attackLeadTime-a.duration);
@@ -416,7 +418,7 @@ namespace DogLife
             Play(horseAnimator,"Rear",warning);yield return Stage(CombatState.Warning,warning,"MountedStompReady",effects,0,.9f);
             yield return Stage(CombatState.Attack,attackLeadTime,null,effects,.9f,1);
             SetBox(chargeArea,width,settings.attack.width,false);hits.Clear();chargeArea.Arm(this,amount,settings.attack.knockback,settings.attack.lift,hits);
-            effects.Activate();Play(horseAnimator,"Gallop");Play(knightAnimator,"MountedCharge");State=CombatState.Active;
+            effects.Activate();Play(horseAnimator,"Gallop");Play(knightAnimator,"MountedCharge");State=CombatState.Active;BossSound("Charge_Start",horseRoot);BossSound("Charge_Pass",horseRoot,.65f);
             float travelled=0,trailTravel=0;Vector3 trailStart=transform.position;FrozenKnightHazard trail=null;bool trailStarted=false;
             while(travelled<settings.attack.range)
             {
@@ -505,7 +507,7 @@ namespace DogLife
             BeginSwordField();
             if(swordIcePatch)swordIcePatch.SetGrowthDuration(iceSpreadDuration);
             yield return new WaitForSeconds(iceSpreadDuration+iceSpreadHold);
-            if(cinematicStage)cinematicStage.ShowMount(transform);
+            if(cinematicStage)cinematicStage.ShowMount(transform);BossSound("Summon",horseRoot,.65f);
             effects.Show(FrozenKnightVfx.Shape.Ring,transform.position,Forward,frostBurst.range,0,FrozenKnightVfx.Theme.Summon);effects.Activate();
             // 검을 꽂은 뒤 쓰러지지 않고 서서 군마를 기다립니다.
             Play(knightAnimator,"Idle");effects.Hide();
@@ -677,7 +679,7 @@ namespace DogLife
             string last=animator==knightAnimator?lastKnight:lastHorse;
             // 같은 대기 상태로 돌아가도 공격/후딜레이용 재생 배속은 원래대로 되돌립니다.
             if(duration<=0&&last==state){animator.speed=1;return;}
-            if(animator==knightAnimator)lastKnight=state;else lastHorse=state;
+            if(animator==knightAnimator)lastKnight=state;else lastHorse=state;AnimationSound(animator,state);
             float length=1;foreach(var clip in animator.runtimeAnimatorController.animationClips)if(clip.name==state){length=clip.length;break;}
             animator.speed=duration>0?length/Mathf.Max(minimumAttackTime,duration):1;
             // 준비/공격은 짧게, 대기 복귀는 길게 섞되 짧은 공격 대부분을 블렌드로 소비하지 않습니다.
@@ -705,8 +707,8 @@ namespace DogLife
             plantingSword=swordPlanted=retrievingSword=false;
         }
         void OnEnable(){RestoreSwordGrip();}
-        void Died(){State=CombatState.Dead;StopAllCoroutines();ClearEncounterObjects();ClearCavalryEffects();RestoreSwordGrip();Disarm();ClearHazards();StopMovement();if(effects)effects.Hide();}
-        void OnDisable(){StopAllCoroutines();if(cinematicStage)cinematicStage.End();ClearEncounterObjects();ClearCavalryEffects();RestoreSwordGrip();Disarm();ClearHazards();StopMovement();if(effects)effects.Hide();busy=false;}
+        void Died(){StormSound(false);State=CombatState.Dead;StopAllCoroutines();ClearEncounterObjects();ClearCavalryEffects();RestoreSwordGrip();Disarm();ClearHazards();StopMovement();if(effects)effects.Hide();}
+        void OnDisable(){StormSound(false);StopAllCoroutines();if(cinematicStage)cinematicStage.End();ClearEncounterObjects();ClearCavalryEffects();RestoreSwordGrip();Disarm();ClearHazards();StopMovement();if(effects)effects.Hide();busy=false;}
         void OnDestroy(){if(health)health.Died-=Died;}
     }
 }

@@ -11,7 +11,8 @@ namespace DogLife.EditorTools
         {
             Bake("Winter_IceSword","IceSwordMounted","MountedIdle",true);
             Bake("Winter_IceWall","IceWallMounted","MountedIdle",true);
-            Bake("Winter_IceWall","IceWallFull","Idle",false);
+            // 서서 소환할 때도 원본의 다리 들기를 제외하여 양발 접지를 유지합니다.
+            Bake("Winter_IceWall","IceWallFull","Idle",true);
             Bake("밀어내기","PushUpper","Idle",true);
             AssetDatabase.SaveAssets();return "Four imported cast clips built";
         }

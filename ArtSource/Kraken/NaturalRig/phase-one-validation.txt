@@ -1,0 +1,25 @@
+PASS Outside room: waiting and exactly five slots
+PASS Entry cinematic completes and combat begins
+PASS Slam fills entire rectangular warning during windup
+PASS Slam hits player inside displayed rectangle exactly once
+PASS Leaving locked slam rectangle avoids impact
+PASS Capture warning position locked; moving out avoids damage
+PASS Capture connects and locks movement
+PASS Capture throws and restores dynamic body
+PASS Real PlayerMotor jump avoids moving low sweep
+PASS Grounded sweep hits exactly once
+PASS Repeated lethal damage counts one kill
+PASS Dead slot respawns elsewhere without exceeding five
+PASS Fifth kill immediately enters transition
+PASS Phase transition safely releases an active capture
+PASS All attack colliders disabled during transition
+PASS Continuous water rise reaches underwater test state
+PASS Player floats after water contact, cinematic input/invulnerability restored
+PASS Gameplay camera returns below water surface
+PASS Underwater dash remains available
+PASS Held ascent accelerates gradually from rest
+PASS Looking down and moving forward descends
+PASS Released input settles into gentle sinking
+PASS Swim motion cannot cross arena boundary
+PASS Cancellation restores gravity, input ownership and underwater state
+PASS Player death retains death lock and clears water state

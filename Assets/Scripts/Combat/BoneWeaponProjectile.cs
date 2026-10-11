@@ -11,6 +11,7 @@ namespace DogLife
         Color tint;
         float distance,reach,age,visualScale=1f;
         bool returning;
+        GameAudio.Handle flightSound;
         readonly HashSet<CombatHealth> outward=new HashSet<CombatHealth>(),inward=new HashSet<CombatHealth>();
         LineRenderer visual;
         Material effectMaterial;
@@ -20,7 +21,7 @@ namespace DogLife
         float HitRadius=>item.weaponCategory==InventoryWeapon.WeaponCategory.Bow?move.ProjectileHitRadius:.51f*visualScale;
         Vector3 BoomerangHalfExtents=>new Vector3(HitRadius,move.BoomerangHalfThickness*visualScale,HitRadius);
         public event System.Action Returned;
-        void OnDestroy(){if(bowVisual&&Application.isPlaying)bowVisual.Finish();Returned?.Invoke();}
+        void OnDestroy(){flightSound.Stop();if(bowVisual&&Application.isPlaying)bowVisual.Finish();Returned?.Invoke();}
         public static BoneWeaponProjectile Launch(Vector3 position,Vector3 direction,Transform owner,InventoryWeapon item,BasicWeaponMoveset move,Color color,float reach,float charge=0)
         {
             var go=new GameObject(item.weaponCategory==InventoryWeapon.WeaponCategory.Bow?"Bone arrow":"Bone boomerang");go.transform.position=position;
@@ -32,6 +33,7 @@ namespace DogLife
             p.reach*=BoneWeaponVfx.SizeFor(item);
             p.visual=go.AddComponent<LineRenderer>();p.visual.sharedMaterial=p.effectMaterial;p.visual.useWorldSpace=false;p.visual.startWidth=.07f*p.visualScale;p.visual.endWidth=.025f*p.visualScale;p.visual.startColor=p.visual.endColor=color;p.visual.numCapVertices=4;
             bool bow=item.weaponCategory==InventoryWeapon.WeaponCategory.Bow;
+            if(!bow)p.flightSound=GameAudio.Play("BoomerangLoop",position,.22f,GameAudio.WeaponPitch(item),follow:go.transform,loop:true);
             if(bow){p.power=1+charge;p.speedScale=Mathf.Lerp(.8f,1.4f,charge);p.visualScale*=Mathf.Lerp(1,1.5f,charge);}
             go.transform.rotation=Quaternion.LookRotation(direction);
             if(!bow&&item.visualPrefab)
@@ -89,9 +91,10 @@ namespace DogLife
             if((returning?inward:outward).Add(health))
             {
                 Vector3 contact=collider.ClosestPoint(transform.position);
-                if(CombatFeedback.DealDamage(health,(returning?item.returnDamage:item.damage)*power,contact,forward,power,null,tint)&&health.Dead&&owner)
+                if(CombatFeedback.DealDamage(health,(returning?item.returnDamage:item.damage)*power,contact,forward,power,null,tint))
                 {
-                    var karma=owner.GetComponent<PlayerKarma>();if(karma)karma.RecordDefeat(health,item);
+                    GameAudio.WeaponHit(item,contact);
+                    if(health.Dead&&owner){var karma=owner.GetComponent<PlayerKarma>();if(karma)karma.RecordDefeat(health,item);}
                 }
                 Burst(point,Vector3.right,Vector3.up,.25f*visualScale);
             }
@@ -121,7 +124,7 @@ namespace DogLife
             Vector3 target=owner.GetComponent<CapsuleCollider>()?owner.GetComponent<CapsuleCollider>().bounds.center:owner.position+Vector3.up;
             var direction=returning?(target-transform.position).normalized:forward;
             float length=move.projectileSpeed*speedScale*Time.fixedDeltaTime;
-            if(returning&&Vector3.Distance(target,transform.position)<=length+.25f){Destroy(gameObject);return;}
+            if(returning&&Vector3.Distance(target,transform.position)<=length+.25f){GameAudio.Play("BoomerangReturn",target,.65f,GameAudio.WeaponPitch(item));Destroy(gameObject);return;}
             if(!returning)length=Mathf.Min(length,Mathf.Max(0,reach-distance));
             // 화살 중심의 작은 구를 이동 구간 전체로 검사합니다. 뒤쪽 잔상은 충돌하지 않습니다.
             var hits=bow

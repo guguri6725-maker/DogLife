@@ -260,6 +260,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 97406c720235b0746b26d99f8725c0b1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DogLife.FrozenKnightVfx
+  mistCount: 18
+  iceSparkCount: 32
+  mistOpacity: 0.32
+  mistSize: 1.6
   iceTint: {r: 0.36, g: 0.68, b: 0.88, a: 1}
   ornamentIntensity: 1
   auroraHeight: 3.5
@@ -438,6 +442,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 61994810db21684489431b441d18261a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DogLife.FrozenKnightBoss
+  bossSoundVolume: 0.8
+  bossFootstepVolume: 0.4
+  bossStormVolume: 0.23
   cavalryFury:
     safeRadius: 7
     outerRadius: 45
@@ -803,6 +810,7 @@ MonoBehaviour:
     groggy: 5
     edgeDistance: 9
     repositionTimeout: 5
+  mountedSeatRotationSharpness: 14
   attackBlendTime: 0.14
   recoveryBlendTime: 0.28
   originalAttackBlendTime: 0.25
@@ -818,6 +826,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 97406c720235b0746b26d99f8725c0b1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DogLife.FrozenKnightVfx
+  mistCount: 18
+  iceSparkCount: 32
+  mistOpacity: 0.32
+  mistSize: 1.6
   iceTint: {r: 0.36, g: 0.68, b: 0.88, a: 1}
   ornamentIntensity: 1
   auroraHeight: 3.5
@@ -1190,6 +1202,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 97406c720235b0746b26d99f8725c0b1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DogLife.FrozenKnightVfx
+  mistCount: 18
+  iceSparkCount: 32
+  mistOpacity: 0.32
+  mistSize: 1.6
   iceTint: {r: 0.36, g: 0.68, b: 0.88, a: 1}
   ornamentIntensity: 1
   auroraHeight: 3.5
@@ -1702,6 +1718,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 691674299709288164, guid: c273f268faa81cb48b92b59fe2518ce1, type: 3}
       insertIndex: -1
       addedObject: {fileID: 6391092630549478513}
+    - targetCorrespondingSourceObject: {fileID: 691674299709288164, guid: c273f268faa81cb48b92b59fe2518ce1, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7879787871018880374}
   m_SourcePrefab: {fileID: -9137962142385034750, guid: c273f268faa81cb48b92b59fe2518ce1, type: 3}
 --- !u!4 &468302995987349533 stripped
 Transform:
@@ -1735,6 +1754,18 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &7879787871018880374
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1639773991891788494}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d686ad9e28bed2a47859f5ae49852548, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DogLife.FrozenKnightFootstepRelay
 --- !u!4 &4966466760944472049 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6608074680797709275, guid: c273f268faa81cb48b92b59fe2518ce1, type: 3}

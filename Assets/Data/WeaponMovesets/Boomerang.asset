@@ -16,10 +16,16 @@ MonoBehaviour:
   attacks:
   - {fileID: 7400000, guid: 8daa975ae8fcf264b8facd4e66aec467, type: 2}
   bowDrawClip: {fileID: 0}
+  bowFlightVisual: {fileID: 0}
+  bowReleaseVisual: {fileID: 0}
+  bowChargeMaterial: {fileID: 0}
+  bowChargeVisual: {fileID: 0}
   bowVisualYawOffset: 0
   strikeTimes:
   - 0.3
   secondaryStrikeTimes:
+  - 0
+  attackAudioLeadTimes:
   - 0
   comboLinkNormalized: 0.8
   reach: 7

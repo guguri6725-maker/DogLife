@@ -8,6 +8,9 @@ Shader "DogLife/Coastal Landing Foam"
  _GateMode("Gate",Float)=0
  _OpenProgress("Opening",Range(0,1))=0
  _FlowTime("Clock",Float)=-1
+ _FloodVisibility("Flood flow visibility",Range(0,1))=1
+ _FloodLevel("Flood surface level",Float)=-10000
+ _FloodFeather("Flood contact softness",Float)=.8
  }
  SubShader {
  Tags {"Queue"="Transparent+10" "RenderType"="Transparent"}
@@ -18,6 +21,7 @@ Shader "DogLife/Coastal Landing Foam"
  #pragma fragment frag
  #include "UnityCG.cginc"
  sampler2D _MainTex;float4 _Color;float _Opacity,_GateMode,_OpenProgress,_FlowTime;
+ float _FloodVisibility,_FloodLevel,_FloodFeather;
  struct v2f {float4 pos:SV_POSITION;float2 uv:TEXCOORD0;float3 world:TEXCOORD1;};
  v2f vert(appdata_base v){
  v2f o;
@@ -46,7 +50,8 @@ Shader "DogLife/Coastal Landing Foam"
  float2 uv2=float2(.5,0)+(.012+float2(tile.x,frac(flow.y+.5))*.976)*.5;
  float3 baseWater=lerp(tex2D(_MainTex,uv2).rgb,tex2D(_MainTex,uv1).rgb,blend)*float3(.55,.84,.89);
  float foam=saturate((.42+.55*wave)*(.6+.4*grain));
- return fixed4(lerp(baseWater,_Color.rgb,foam),mask*_Opacity);
+ float floodFade=_FloodVisibility*smoothstep(_FloodLevel-_FloodFeather*.5,_FloodLevel+_FloodFeather*.5,i.world.y);
+ return fixed4(lerp(baseWater,_Color.rgb,foam),mask*_Opacity*floodFade);
  }
  ENDCG
  }

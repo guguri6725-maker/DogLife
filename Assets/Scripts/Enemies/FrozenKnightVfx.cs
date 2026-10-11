@@ -64,6 +64,7 @@ namespace DogLife
         {
             if(!frostMaterial)return;
             EnsureResources();
+            if(finaleBlizzard){DrawFinaleBlizzard();return;}
             DrawSword();
             if(visible)DrawArea();
         }

@@ -9,8 +9,10 @@ namespace DogLife
         public float speed, damage, range, radius = .09f;
         public Transform owner;
         public bool hostile;
+        public bool ignoreFriendlyMonsters;
         public bool dot;
         public GameObject impactEffect;
+        public string impactSound;
         [SerializeField, Min(0)] private float playerLaunchSpeed;
         float travelled;
         // 빠른 발사체도 벽을 통과하지 않도록 구간 전체를 SphereCast로 검사합니다.
@@ -23,6 +25,7 @@ namespace DogLife
             {
                 if (!MonsterHurtbox.Accepts(hit.collider) || (owner && hit.transform.IsChildOf(owner))) continue;
                 var health = hit.collider.GetComponentInParent<CombatHealth>();
+                if(ignoreFriendlyMonsters&&hostile&&health&&!health.player)continue;
                 if (health && health.player == hostile)
                 {
                     float before=health.Current;
@@ -34,6 +37,7 @@ namespace DogLife
                         if(motor)motor.ApplyKnockback(Vector3.zero,0,playerLaunchSpeed,.35f);
                     }
                 }
+                if(!string.IsNullOrEmpty(impactSound))GameAudio.Play(impactSound,transform.position+direction*Mathf.Clamp(hit.distance,0,step),.8f);
                 if (impactEffect)
                 {
                     // SphereCast 접촉면 대신 충돌 순간의 탄환 중심에서 터뜨립니다.
