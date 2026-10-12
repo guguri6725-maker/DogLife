@@ -20,7 +20,11 @@ namespace DogLife
             if(GameSettingsWindow.BlocksGameplayInput)return;
             // Hierarchy에 배치한 조준점은 전투 중에만 표시합니다.
             if (crosshair) crosshair.SetActive(!completed && !health.Dead && Cursor.lockState == CursorLockMode.Locked);
-            if (Input.GetKeyDown(KeyCode.F5)) SceneManager.LoadScene(SceneManager.GetActiveScene().path);
+            if (Input.GetKeyDown(KeyCode.F5))
+            {
+                string scene=gameObject.scene.path;
+                if(!SeasonRunSave.RestartSeason(scene))SeasonLoadingScreen.Load(scene);
+            }
             if (!SkillWindow.BlocksGameplayInput && Input.GetKeyDown(KeyCode.Return)) ContinueToNextStage();
         }
         // 클리어 상태일 때 설정된 다음 씬으로 이동합니다.
@@ -30,7 +34,7 @@ namespace DogLife
             string destination = NextDestination;
             if (string.IsNullOrEmpty(destination)) return false;
             if(RunEconomy.Instance)RunEconomy.Instance.CarryTo(destination);
-            SceneManager.LoadScene(destination); return true;
+            SeasonLoadingScreen.Load(destination); return true;
         }
         // A season-only distribution returns to its title instead of loading an omitted scene.
         string NextDestination => !string.IsNullOrEmpty(nextScene) && Application.CanStreamedLevelBeLoaded(nextScene)
@@ -39,7 +43,7 @@ namespace DogLife
         void OnGUI()
         {
             // 스킬창 위로 기존 즉시 모드 HUD가 겹치지 않게 합니다.
-            if (SkillWindow.IsOpen || GameSettingsWindow.IsOpen || StoryBook.IsOpen || StoryBook.AwaitingClear) return;
+            if (PlayerDeathSequence.IsActive || SeasonLoadingScreen.IsLoading || SkillWindow.IsOpen || GameSettingsWindow.IsOpen || StoryBook.IsOpen || StoryBook.AwaitingClear) return;
             if (title == null) { title = new GUIStyle(GUI.skin.label) { fontSize = 24, fontStyle = FontStyle.Bold }; body = new GUIStyle(GUI.skin.label) { fontSize = 16 }; }
             if (health.Dead || completed)
             {

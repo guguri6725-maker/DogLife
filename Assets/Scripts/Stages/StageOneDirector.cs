@@ -53,6 +53,7 @@ namespace DogLife
             StopEnemies<FallMonsterEnemy>(); StopEnemies<SummerMonsterEnemy>(); StopEnemies<WinterMonsterEnemy>();
             ClearHazards<WinterIcePatch>(); ClearHazards<SummerHomingBubble>();
             ClearHazards<CombatProjectile>();
+            if(hud.health.Dead)PlayerDeathSequence.Begin(hud.health);
         }
         // 적별 OnDisable에서 공격 판정과 효과를 정리하는 기존 동작을 유지합니다.
         static void StopEnemies<T>() where T : Behaviour
@@ -81,7 +82,7 @@ namespace DogLife
             else
             {
                 hud.objective = bossLabel + " DEFEATED  /  Reach the green exit";
-                if (Vector3.Distance(hud.motor.transform.position, exit.position) < 2f)
+                if (!StoryBook.AwaitingClear && Vector3.Distance(hud.motor.transform.position, exit.position) < 2f)
                 {
                     hud.completed = true; EndRun();
                 }

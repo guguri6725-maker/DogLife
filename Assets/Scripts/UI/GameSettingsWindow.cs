@@ -19,7 +19,7 @@ namespace DogLife
         public static GameSettingsWindow Instance => instance;
         static int consumedFrame=-1;
         public static bool IsOpen => instance&&instance.panel.activeSelf;
-        public static bool BlocksGameplayInput => IsOpen||Time.frameCount==consumedFrame||StoryBook.BlocksInput;
+        public static bool BlocksGameplayInput => PlayerDeathSequence.IsActive||SeasonLoadingScreen.IsLoading||IsOpen||Time.frameCount==consumedFrame||StoryBook.BlocksInput;
         public bool AwaitingConfirmation { get; private set; }
         public bool Applying { get; private set; }
         GraphicsPreferences draft, previous;
@@ -46,6 +46,9 @@ namespace DogLife
             for(int i=0;i<fpsButtons.Length;i++){int choice=i;fpsButtons[i].onClick.AddListener(()=>SelectLimit(choice));}
             for(int i=0;i<optionButtons.Length;i++){int choice=i;optionButtons[i].onClick.AddListener(()=>CycleOption(choice/2,choice%2==0?-1:1));}
             audioSettings=gameObject.AddComponent<AudioSettingsPanel>();audioSettings.Initialize(panel);
+            var card=panel.transform.Find("Settings Card");
+            if(card)AdventureUI.Button(card,"ReturnTitle","타이틀로 나가기",new Vector2(-315,-412),new Vector2(330,58),card.Find("Heading").GetComponent<Text>().font,ReturnToTitle);
+            AdventureUI.Theme(gameObject);
             SceneManager.activeSceneChanged+=SceneChanged;
         }
         IEnumerator Start()
@@ -60,6 +63,7 @@ namespace DogLife
         {
             foreach(var button in GetComponentsInChildren<Button>(true))
                 if(button.name=="Open Settings")button.gameObject.SetActive(!FindFirstObjectByType<TitleScreen>());
+                else if(button.name=="ReturnTitle")button.gameObject.SetActive(!FindFirstObjectByType<TitleScreen>());
         }
         void SceneChanged(Scene oldScene,Scene newScene){if(IsOpen)Close();UpdateLauncher();}
         void OnDestroy()
@@ -82,7 +86,7 @@ namespace DogLife
                 }
                 renderScale.enabled=WorldRenderScale.Scale<.999f;
             }
-            if(!StoryBook.BlocksInput&&!SkillWindow.IsOpen&&!EconomyWindow.BlocksInput&&(Input.GetKeyDown(KeyCode.Escape)||Input.GetKeyDown(KeyCode.F10)))Toggle();
+            if(!SeasonLoadingScreen.IsLoading&&!StoryBook.BlocksInput&&!SkillWindow.IsOpen&&!EconomyWindow.BlocksInput&&(Input.GetKeyDown(KeyCode.Escape)||Input.GetKeyDown(KeyCode.F10)))Toggle();
             if(AwaitingConfirmation)
             {
                 float remaining=deadline-Time.unscaledTime;
@@ -96,7 +100,7 @@ namespace DogLife
         public void Toggle(){if(AwaitingConfirmation){Revert();return;}if(IsOpen)Close();else Open();}
         public void Open()
         {
-            if(StoryBook.BlocksInput)return;
+            if(PlayerDeathSequence.IsActive||SeasonLoadingScreen.IsLoading||StoryBook.BlocksInput)return;
             if(IsOpen||SkillWindow.IsOpen||EconomyWindow.IsOpen||Applying||GameGraphicsSettings.Current==null)return;
             if(!EventSystem.current)new GameObject("Settings EventSystem",typeof(EventSystem),typeof(StandaloneInputModule));
             previousTimeScale=Time.timeScale;previousCursor=Cursor.lockState;previousCursorVisible=Cursor.visible;
@@ -112,6 +116,12 @@ namespace DogLife
             GameAudio.Revert();panel.SetActive(false);Time.timeScale=previousTimeScale;
             Cursor.lockState=previousCursor;Cursor.visible=previousCursorVisible;consumedFrame=Time.frameCount;
             if(EventSystem.current)EventSystem.current.SetSelectedGameObject(null);
+        }
+        public void ReturnToTitle()
+        {
+            if(Applying||AwaitingConfirmation||SeasonLoadingScreen.IsLoading)return;
+            Close();
+            SeasonLoadingScreen.Load("Assets/Scenes/Title.unity");
         }
         public void SelectLimit(int index)
         {

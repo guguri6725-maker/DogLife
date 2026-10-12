@@ -35,8 +35,8 @@ namespace DogLife
             var i=Panel(name,parent,pos,size,new Color(.07f,.12f,.13f,.94f));i.raycastTarget=true;
             var b=i.gameObject.AddComponent<Button>();b.targetGraphic=i;
             var colors=b.colors;colors.highlightedColor=new Color(1.5f,1.4f,1.15f);colors.pressedColor=new Color(.75f,.8f,.8f);b.colors=colors;
-            Panel("Gold rule",i.transform,new Vector2(0,-size.y*.5f+1),new Vector2(size.x,2),gold);
             text=T("Label",i.transform,label,Vector2.zero,size,24,cream,TextAnchor.MiddleCenter);
+            AdventureUI.StyleButton(b,name=="Next"||name=="Replay memory");
             b.onClick.AddListener(()=>{GameAudio.Play("UI_Button_Click",Vector3.zero,.35f,ui:true);action();});
             return b;
         }
@@ -56,8 +56,12 @@ namespace DogLife
             atmosphere=R("Atmosphere",visual,Vector2.zero,new Vector2(1920,1080)).gameObject.AddComponent<StoryAtmosphere>();atmosphere.raycastTarget=false;
             subheading=T("Chapter subtitle",visual,"",new Vector2(-170,445),new Vector2(1340,40),21,cream);
             heading=T("Chapter title",visual,"",new Vector2(-170,385),new Vector2(1340,76),43,cream);
+            heading.fontStyle=FontStyle.Bold;
+            var titleShadow=heading.gameObject.AddComponent<Shadow>();titleShadow.effectColor=new Color(.15f,.06f,.025f,.95f);titleShadow.effectDistance=new Vector2(2,-3);
             rule=Panel("Chapter accent",visual,new Vector2(-772,334),new Vector2(135,3),gold);
-            caption=T("Narration",visual,"",new Vector2(-40,-326),new Vector2(1560,156),32,cream,TextAnchor.MiddleCenter);
+            var narrationFrame=R("Narration parchment frame",visual,new Vector2(-40,-326),new Vector2(1650,184));
+            var plate=narrationFrame.gameObject.AddComponent<StoryPanelGraphic>();plate.color=new Color(1,1,1,.68f);plate.raycastTarget=false;
+            caption=T("Narration",visual,"",new Vector2(-40,-326),new Vector2(1560,156),32,AdventureUI.Cream,TextAnchor.MiddleCenter);
             caption.gameObject.AddComponent<Shadow>().effectColor=new Color(0,0,0,.65f);
             counter=T("Page number",reader.transform,"",new Vector2(-775,-464),new Vector2(130,50),21,cream);
             Text discard;
@@ -65,10 +69,11 @@ namespace DogLife
             B("Next",reader.transform,"다음",new Vector2(695,-464),new Vector2(265,56),NextPage,out nextLabel);
             B("Skip",reader.transform,"건너뛰기",new Vector2(697,448),new Vector2(268,50),Finish,out skipLabel);
             B("Auto",reader.transform,"자동 넘김 꺼짐",new Vector2(-535,-464),new Vector2(265,56),()=>{automatic=!automatic;autoLabel.text=automatic?"자동 넘김 켜짐":"자동 넘김 꺼짐";},out autoLabel);
-            T("Reader keys",reader.transform,"← → / Space     ·     Esc 돌아가기",new Vector2(-45,-465),new Vector2(555,42),18,new Color(.7f,.72f,.69f),TextAnchor.MiddleCenter);
+            T("Reader keys",reader.transform,"Space 문장 완성 / 다음     ·     Esc 돌아가기",new Vector2(-45,-465),new Vector2(555,42),18,new Color(.7f,.72f,.69f),TextAnchor.MiddleCenter);
+            BuildPresentation(visual);
 
             album=R("Collected memories",frame,Vector2.zero,new Vector2(1920,1080)).gameObject;
-            Panel("Backdrop",album.transform,Vector2.zero,new Vector2(1920,1080),new Color(.035f,.07f,.08f));
+            Panel("Backdrop",album.transform,Vector2.zero,new Vector2(1920,1080),new Color(.065f,.043f,.03f));
             Panel("Book shadow",album.transform,new Vector2(8,-12),new Vector2(1712,836),new Color(0,0,0,.45f));
             Panel("Book binding",album.transform,Vector2.zero,new Vector2(1712,836),gold);
             Panel("Left page",album.transform,new Vector2(-556,0),new Vector2(590,820),new Color(.86f,.81f,.68f));

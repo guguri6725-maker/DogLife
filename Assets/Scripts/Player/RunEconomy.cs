@@ -13,6 +13,9 @@ namespace DogLife
         static List<InventoryWeapon> carried;
         static int carriedGold, equippedIndex;
         static float carriedKarma;
+        static float carriedHealth,carriedMaxHealth,carriedDash;
+        public static void ClearCarry(){carried=null;destination=null;}
+        public void SetGold(int value){gold=Mathf.Max(0,value);}
         static string destination;
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void ResetRun(){Instance=null;carried=null;destination=null;}
@@ -24,12 +27,16 @@ namespace DogLife
         }
         void Start()
         {
+            if(SeasonRunSave.Apply(this)){ClearCarry();SeasonRunSave.RecordEntry(this);return;}
             if(carried!=null&&gameObject.scene.path==destination)
             {
                 gold=carriedGold;inventory.RestoreRunInventory(carried,equippedIndex);
                 var karma=inventory.GetComponent<PlayerKarma>();if(karma)karma.SetValue(carriedKarma);
+                var hp=inventory.GetComponent<CombatHealth>();if(hp&&carriedMaxHealth>0)hp.RestoreCheckpoint(carriedHealth,carriedMaxHealth);
+                var motor=inventory.GetComponent<PlayerMotor>();if(motor)motor.dashCooldown=carriedDash;
             }
             carried=null;destination=null;
+            SeasonRunSave.RecordEntry(this);
         }
         void OnDestroy(){if(Instance==this)Instance=null;}
         public bool Spend(int amount){if(amount<0||gold<amount)return false;gold-=amount;return true;}
@@ -39,6 +46,8 @@ namespace DogLife
             if(!inventory)return;
             carried=new List<InventoryWeapon>(inventory.OwnedWeapons);carriedGold=gold;destination=scene;equippedIndex=-1;
             var karma=inventory.GetComponent<PlayerKarma>();carriedKarma=karma?karma.Value:0;
+            var hp=inventory.GetComponent<CombatHealth>();carriedHealth=hp?hp.Current:5;carriedMaxHealth=hp?hp.maxHealth:5;
+            var motor=inventory.GetComponent<PlayerMotor>();carriedDash=motor?motor.dashCooldown:1;
             for(int i=0;i<carried.Count;i++)if(inventory.GetInstanceId(i)==inventory.EquippedInstanceId)equippedIndex=i;
         }
         public void Reward(CombatHealth target)

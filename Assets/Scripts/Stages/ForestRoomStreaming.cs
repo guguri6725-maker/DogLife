@@ -188,7 +188,7 @@ namespace DogLife
                     float advanceX = loadNextOnClear && CurrentRoom + 1 < rooms.Length ? rooms[CurrentRoom + 1].entryX + 3f : room.exitX + 3f;
                     if (passageOpen && CurrentRoom < rooms.Length - 1 && Hud.motor.transform.position.x >= advanceX)
                         StartCoroutine(Advance());
-                    else if (passageOpen && CurrentRoom == rooms.Length - 1 && room.exit && Vector3.Distance(Hud.motor.transform.position, room.exit.position) < 2f)
+                    else if (!StoryBook.AwaitingClear && passageOpen && CurrentRoom == rooms.Length - 1 && room.exit && Vector3.Distance(Hud.motor.transform.position, room.exit.position) < 2f)
                     { Hud.completed = true; director.EndRun(); }
                 }
                 else Hud.objective = "ROOM CLEAR / Preparing next room...";

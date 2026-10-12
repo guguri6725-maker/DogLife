@@ -73,6 +73,7 @@ namespace DogLife
 
         void Start()
         {
+            AdventureUI.Theme(windowRoot);
             windowRoot.SetActive(false);
             dragGhost.gameObject.SetActive(false);
             foreach (var slot in slots) slot.Refresh();

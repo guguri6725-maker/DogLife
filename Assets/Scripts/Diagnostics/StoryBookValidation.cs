@@ -78,11 +78,13 @@ namespace DogLife
             var go=new GameObject("Story test director");SceneManager.MoveGameObjectToScene(go,scene);
             var director=go.AddComponent<StageOneDirector>();director.enabled=false;
             var hud=go.AddComponent<PrototypeHUD>();hud.enabled=false;director.hud=hud;
+            hud.motor=FindFirstObjectByType<PlayerMotor>();
             var hp=go.AddComponent<CombatHealth>();hp.player=true;hud.health=hp;
             var stream=go.AddComponent<ForestRoomStreaming>();stream.enabled=false;stream.director=director;stream.roomScenePaths=new[]{"a","b"};director.streaming=stream;
             director.RecordStreamedClear(1);Check("Non-final room does not unlock season",!StoryProgress.Unlocked("spring"));
-            director.RecordStreamedClear(2);Check("Final room saves season before presentation",StoryProgress.Unlocked("spring")&&StoryBook.AwaitingClear);
+            director.RecordStreamedClear(2);Check("Final room waits for memory collection",!StoryProgress.Unlocked("spring")&&StoryBook.AwaitingClear);
             yield return new WaitForSecondsRealtime(3.2f);
+            yield return CollectMemory();
             Check("Final boss clear presents correct season",StoryBook.IsOpen&&book.CurrentChapter=="spring");
             yield return Capture("spring-memory");
             book.Finish();yield return null;yield return null;
@@ -93,9 +95,11 @@ namespace DogLife
             var winterGo=new GameObject("Winter story test director");SceneManager.MoveGameObjectToScene(winterGo,winterScene);
             var winterDirector=winterGo.AddComponent<StageOneDirector>();winterDirector.enabled=false;
             var winterHud=winterGo.AddComponent<PrototypeHUD>();winterHud.enabled=false;winterDirector.hud=winterHud;
+            winterHud.motor=FindFirstObjectByType<PlayerMotor>();
             var winterHealth=winterGo.AddComponent<CombatHealth>();winterHealth.player=true;winterHud.health=winterHealth;
             var winterKarma=winterGo.AddComponent<PlayerKarma>();winterKarma.SetValue(80);
             book.QueueClear(winterDirector);yield return new WaitForSecondsRealtime(3);
+            yield return CollectMemory();
             Check("Winter clear waits for chapter before ending",book.CurrentChapter=="winter"&&StoryBook.IsOpen&&!StoryProgress.Unlocked("revenge"));
             book.Finish();yield return null;yield return null;
             Check("Winter routes to karma ending and unlocks only that ending",StoryBook.IsOpen&&book.CurrentChapter=="revenge"&&StoryProgress.Unlocked("revenge")&&!StoryProgress.Unlocked("life")&&!StoryProgress.Unlocked("farewell"));
@@ -112,6 +116,12 @@ namespace DogLife
             foreach(string id in new[]{"life","farewell","revenge"}){book.Play(id);yield return new WaitForSecondsRealtime(1);book.NextPage();yield return new WaitForSecondsRealtime(1);yield return Capture("ending-"+id);book.Finish();yield return null;}
             Check("All unlocked memories survive repeated replay and close",book.Library.chapters.All(c=>StoryProgress.Unlocked(c.id)));
             report.Add("Original player memory unlocks restored after validation.");
+        }
+        IEnumerator CollectMemory()
+        {
+            var pickup=FindFirstObjectByType<BossMemoryPickup>();
+            var player=FindFirstObjectByType<PlayerMotor>();
+            if(pickup){yield return new WaitForSecondsRealtime(1);if(player)pickup.transform.position=player.transform.position;pickup.TryInteract();yield return null;yield return null;}
         }
         IEnumerator Capture(string name)
         {

@@ -19,7 +19,7 @@ namespace DogLife
         readonly HashSet<StageOneDirector> presentedClears=new HashSet<StageOneDirector>();
         public static StoryBook Instance=>instance;
         public static bool IsOpen=>instance&&instance.open;
-        public static bool BlocksInput=>IsOpen||Time.frameCount==consumed;
+        public static bool BlocksInput=>IsOpen||Time.frameCount==consumed||BossMemoryPickup.InputConsumed;
         public static bool AwaitingClear=>instance&&instance.pendingClears.Count>0;
         public StoryLibrary Library=>library;
         public string CurrentChapter=>chapter==null?null:chapter.id;
@@ -77,6 +77,7 @@ namespace DogLife
             if(!open)Acquire();
             gallery=false;replay=fromGallery;chapter=c;page=0;finished=onFinished;
             album.SetActive(false);reader.SetActive(true);automatic=false;autoLabel.text="자동 넘김 꺼짐";
+            art.texture=null;
             ShowPage();return true;
         }
         public void OpenGallery()
@@ -101,6 +102,7 @@ namespace DogLife
         void Release(bool callback)
         {
             if(!open)return;
+            CancelPresentation();
             var action=finished;finished=null;open=false;gallery=false;replay=false;
             root.SetActive(false);Time.timeScale=savedTime;Cursor.lockState=savedCursor;Cursor.visible=savedVisible;
             consumed=Time.frameCount;
@@ -109,24 +111,26 @@ namespace DogLife
         }
         public void Finish()
         {
-            if(!open)return;
-            if(replay){OpenGallery();return;}
-            Release(true);
+            if(!open||closing)return;
+            if(gallery){Release(true);return;}
+            StartCoroutine(ClosePresentation());
         }
         public void NextPage()
         {
-            if(!open||gallery)return;
-            if(Time.unscaledTime-pageStarted<library.fadeDuration){pageStarted=Time.unscaledTime-library.fadeDuration;return;}
+            if(!open||gallery||closing)return;
+            if(!NarrationComplete){pageStarted=Time.unscaledTime-ReadingDuration;return;}
             if(page+1<chapter.pages.Length){page++;ShowPage();}else Finish();
         }
-        public void PreviousPage(){if(open&&!gallery&&page>0){page--;ShowPage();}}
+        public void PreviousPage(){if(open&&!gallery&&!closing&&page>0){page--;ShowPage();}}
         void ShowPage()
         {
+            PreparePresentation();
             var p=chapter.pages[page];art.texture=p.artwork;art.color=p.artwork?Color.white:new Color(.08f,.12f,.15f);
             heading.text=chapter.title;subheading.text=chapter.subtitle;caption.text=p.text;
             counter.text=(page+1).ToString("00")+" / "+chapter.pages.Length.ToString("00");
             nextLabel.text=page==chapter.pages.Length-1?(replay?"추억으로":"계속하기"):"다음";
             prev.interactable=page>0;atmosphere.tint=chapter.accent;rule.color=chapter.accent;
+            atmosphere.season=chapter.id;
             skipLabel.text=replay?"추억으로 돌아가기":"건너뛰기";
             pageStarted=Time.unscaledTime;pageGroup.alpha=0;
             if(EventSystem.current)EventSystem.current.SetSelectedGameObject(null);
@@ -138,9 +142,12 @@ namespace DogLife
             Cursor.lockState=CursorLockMode.None;Cursor.visible=true;
             if(Input.GetKeyDown(KeyCode.Escape)){Finish();return;}
             if(gallery)return;
+            if(closing)return;
             float elapsed=Time.unscaledTime-pageStarted;
-            pageGroup.alpha=Mathf.SmoothStep(0,1,elapsed/Mathf.Max(.1f,library.fadeDuration));
-            float z=1+library.imageZoom*Mathf.SmoothStep(0,1,elapsed/18);
+            UpdatePresentation(elapsed);
+            var shot=chapter.pages[page];
+            float zoom=shot.zoomOverride>=0?shot.zoomOverride:library.imageZoom;
+            float z=1+zoom*Mathf.SmoothStep(0,1,elapsed/Mathf.Max(3,shot.motionSeconds));
             float w=1/z,h=1/z;var focus=chapter.pages[page].focus;
             float drift=Mathf.Sin(Mathf.Min(elapsed,24)/24f*Mathf.PI*.5f)*.15f*(page%2==0?1:-1);
             art.uvRect=new Rect(Mathf.Clamp01(focus.x+drift)*(1-w),Mathf.Clamp01(focus.y)*(1-h),w,h);
@@ -152,7 +159,7 @@ namespace DogLife
                 NextPage();
             }
             else if(Input.GetKeyDown(KeyCode.LeftArrow))PreviousPage();
-            if(automatic&&elapsed>Mathf.Max(library.automaticPageSeconds,caption.text.Length*.12f+2))NextPage();
+            if(automatic&&elapsed>Mathf.Max(library.automaticPageSeconds,ReadingDuration+library.readingHold))NextPage();
         }
         IEnumerator Entrance(Scene scene)
         {
@@ -169,21 +176,25 @@ namespace DogLife
             if(!director||!director.hud||director.hud.health.Dead)return;
             var c=library.ForScene(director.gameObject.scene.name);if(c==null||!presentedClears.Add(director))return;
             pendingClears.Add(director);
-            // Save the earned illustration immediately, even if the player quits during presentation.
-            bool first=StoryProgress.Unlock(c.id);
-            StartCoroutine(ClearPresentation(director,c,first));
+            SeasonRunSave.SaveNext(director);
+            StartCoroutine(ClearPresentation(director,c));
         }
-        IEnumerator ClearPresentation(StageOneDirector director,StoryChapter c,bool first)
+        IEnumerator ClearPresentation(StageOneDirector director,StoryChapter c)
         {
             var key=director;
             yield return new WaitForSeconds(library.clearPause);
             while(director&&(open||GameSettingsWindow.IsOpen||SkillWindow.IsOpen||EconomyWindow.IsOpen||CinematicActive()))yield return null;
             if(!director||director.hud.health.Dead){pendingClears.Remove(key);yield break;}
-            if(first)
-            {
-                Play(c.id);
-                while(open)yield return null;
-            }
+            var memory=BossMemoryPickup.Create(director,c);
+            while(memory&&!memory.Collected&&director&&!director.hud.health.Dead)yield return null;
+            bool collected=memory&&memory.Collected;
+            if(memory)Destroy(memory.gameObject);
+            if(!collected||!director||director.hud.health.Dead){pendingClears.Remove(key);yield break;}
+            StoryProgress.Unlock(c.id);
+            // Album ownership persists across runs, but every season clear tells its story.
+            // presentedClears prevents repeated notifications in the same encounter.
+            Play(c.id);
+            while(open)yield return null;
             if(c.id=="winter"&&director&&!director.hud.health.Dead)
             {
                 var karma=director.hud.health.GetComponent<PlayerKarma>();
@@ -192,6 +203,7 @@ namespace DogLife
                 while(open)yield return null;
             }
             pendingClears.Remove(key);
+            if(director&&!director.hud.health.Dead)SeasonRunSave.ContinueAfterMemory(director);
         }
         static bool CinematicActive()
         {

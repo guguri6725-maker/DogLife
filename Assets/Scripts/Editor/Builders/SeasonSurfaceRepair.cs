@@ -41,7 +41,7 @@ namespace DogLife.EditorTools
                         SeasonSurfaceAudit.Geometry(room);
                         var meshes=main.GetRootGameObjects().Concat(scene.GetRootGameObjects()).SelectMany(g=>g.GetComponentsInChildren<MeshFilter>()).Where(f=>f.sharedMesh&&f.GetComponent<Renderer>()&&f.GetComponent<Renderer>().enabled).ToArray();
                         var ground=room.GetComponentsInChildren<MeshRenderer>().Where(r=>r.enabled&&r.bounds.size.y<1&&r.bounds.size.x>10&&r.bounds.size.z>10&&r.bounds.center.y<1&&r.sharedMaterial&&r.sharedMaterial.renderQueue<2500).OrderByDescending(r=>r.bounds.size.x*r.bounds.size.z).FirstOrDefault();
-                        var floor=ground?ground.sharedMaterial:fallbackFloor;
+                        var floor=season==0?AssetDatabase.LoadAssetAtPath<Material>("Assets/MapDesigne/Spring/Materials/Journey_Ground.mat"):(ground?ground.sharedMaterial:fallbackFloor);
                         float y=season==1?-.17f:.25f;
                         var points=new List<Vector3>();string audit="Builds/SurfaceAudit/S"+season+"_R"+i+".txt";
                         foreach(var line in File.ReadAllLines(audit).Where(l=>l.StartsWith("FLOOR")))
@@ -71,7 +71,7 @@ namespace DogLife.EditorTools
                         }
                         // Return walls close the reachable pocket beside a wide gate and a narrower corridor.
                         foreach(float xx in new[]{room.entryX-1.6f,room.exitX+1.6f})foreach(int sign in new[]{-1,1})
-                            SeasonPassageBuilder.Block(group.transform,"Doorway Side Return",new Vector3(xx,y+4.2f,sign*6.15f),new Vector3(1.1f,9,3.7f),stone);
+                            SeasonPassageBuilder.Block(group.transform,"Doorway Side Return",new Vector3(xx,y+4.2f,sign*6f),new Vector3(1.1f,9,3.7f),stone);
                         if(i==0)SeasonPassageBuilder.Block(group.transform,"Rear Entrance Backing",new Vector3(room.entryX-3.5f,y+4.2f,0),new Vector3(.8f,9,16),stone);
                         EditorSceneManager.MarkSceneDirty(scene);EditorSceneManager.SaveScene(scene);
                         report.Add(scene.name+": doorway aprons/returns, "+patches+" ground edge patches");

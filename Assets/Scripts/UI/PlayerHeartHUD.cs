@@ -8,6 +8,7 @@ namespace DogLife
         [SerializeField] private HeartIcon[] hearts;
         [SerializeField] private Color filled=new Color(1,.32f,.5f,1);
         [SerializeField] private Color empty=new Color(.25f,.19f,.25f,1);
+        void Start(){foreach(var frame in GetComponentsInChildren<VitalityPanelGraphic>(true))AdventureUI.Surface(frame.gameObject);}
         void LateUpdate()
         {
             if(!health)return;

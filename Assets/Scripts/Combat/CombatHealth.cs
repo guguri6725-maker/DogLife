@@ -94,6 +94,10 @@ namespace DogLife
             else if (!player) gameObject.SetActive(false);
         }
         public void Restore() { Current = maxHealth;phaseTransitionPending=false;awaitingFinalHit=false;invulnerableUntil=0;frostProtectionUntil=0;FrostProtectionPaused=false;EndBlink(); }
+        public void RestoreCheckpoint(float current,float maximum)
+        {
+            maxHealth=Mathf.Max(1,maximum);Restore();Current=Mathf.Clamp(current,1,maxHealth);
+        }
         public void ReleaseForFinalHit()
         {
             if(!phaseTransitionPending)return;

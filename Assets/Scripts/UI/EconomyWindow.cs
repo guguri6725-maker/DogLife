@@ -28,7 +28,7 @@ namespace DogLife
         float scanAt;
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void ResetState(){Instance=null;consumed=-1;}
-        void Awake(){Instance=this;panel.SetActive(false);if(fusionPresentation)fusionPresentation.SetActive(false);}
+        void Awake(){Instance=this;AdventureUI.Economy(this);panel.SetActive(false);if(fusionPresentation)fusionPresentation.SetActive(false);}
         void OnDisable(){if(opened)Close();}
         void OnDestroy(){if(Instance!=this)return;if(IsOpen)Close();Instance=null;}
         void Update()
@@ -61,7 +61,7 @@ namespace DogLife
             GameAudio.EnterEconomyMenu();
             Time.timeScale=0;Cursor.lockState=CursorLockMode.None;Cursor.visible=true;consumed=Time.frameCount;
             panel.SetActive(true);prompt.text="";bool shop=station.kind==EconomyStation.StationKind.Shop;
-            shopPanel.SetActive(shop);fusionPanel.SetActive(!shop);title.text=shop?"뼈 상점":"영혼의 합성";message.text=shop?"구매한 무기는 가방에 들어갑니다.":"같은 계열의 일반 무기 2개 · 비용 없음 · 방당 1회";
+            shopPanel.SetActive(shop);fusionPanel.SetActive(!shop);title.text=shop?"뼈 상점":"영혼의 합성";message.text=shop?"구매한 무기는 가방에 들어갑니다.":"같은 계열의 일반 무기 2개를 선택하세요.\n비용 없음  ·  방마다 한 번 합성할 수 있어요.";
             first=null;second=null;Cycle(true,1);Cycle(false,1);Refresh();
             GameAudio.Play("UI_Window_Open",Vector3.zero,.6f,ui:true);
             for(int i=0;i<buyButtons.Length;i++)if(!buyButtons[i].GetComponent<EconomyItemAudio>())buyButtons[i].gameObject.AddComponent<EconomyItemAudio>();

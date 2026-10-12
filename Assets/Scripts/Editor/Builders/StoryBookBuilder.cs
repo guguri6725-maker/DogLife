@@ -80,6 +80,7 @@ namespace DogLife.EditorTools
                     P("WinterDoor","그리움 뒤에 눌러두었던 두려움이 분노가 된다.\n코기는 몸을 낮추고, 이빨을 드러낸다."),
                     P("Revenge","코기는 자신을 죽음에 이르게 한 주인을 죽인다.\n발소리는 멎었다. 오랜 기다림 끝에는 침묵만 남았다."))
             };
+            ExpandedStoryArt.Apply(library);
             EditorUtility.SetDirty(library);
             Directory.CreateDirectory("Assets/Resources/UI");
             var go=new GameObject("Story Book");var book=go.AddComponent<StoryBook>();

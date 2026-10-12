@@ -15,7 +15,10 @@ namespace DogLife
         public void LoadGame()
         {
             if (loading || GameSettingsWindow.BlocksGameplayInput) return;
-            status.text = "저장된 게임이 없습니다.";
+            string scene;
+            if(!SeasonRunSave.PrepareLoad(out scene)){status.text = "저장된 게임이 없습니다.";return;}
+            loading=true;startButton.interactable=false;status.text="저장된 계절로 향하는 중...";
+            SeasonLoadingScreen.Load(scene);
         }
 
         public void OpenOptions()
@@ -65,9 +68,10 @@ namespace DogLife
 
         IEnumerator LoadSpring()
         {
+            SeasonRunSave.NewGame();
             status.text = "봄의 숲으로 향하는 중...";
             yield return null;
-            yield return SceneManager.LoadSceneAsync(springScene, LoadSceneMode.Single);
+            SeasonLoadingScreen.Load(springScene);
         }
     }
 }

@@ -37,6 +37,26 @@ namespace DogLife.EditorTools
                 var meshes=main.GetRootGameObjects().Concat(roomScene.GetRootGameObjects()).SelectMany(g=>g.GetComponentsInChildren<MeshFilter>()).Where(f=>f.sharedMesh&&f.GetComponent<Renderer>()&&f.GetComponent<Renderer>().enabled).ToArray();
                 float y=season==1?-.17f:.25f;
                 var samples=new HashSet<Vector2>();
+                // Dense boundary samples find narrow edge gaps that a one-metre grid misses.
+                var nav=NavMesh.CalculateTriangulation();
+                var edges=new Dictionary<string,int>();var ends=new Dictionary<string,int[]>();
+                for(int n=0;n<nav.indices.Length;n+=3)for(int k=0;k<3;k++)
+                {
+                    int a=nav.indices[n+k],b=nav.indices[n+(k+1)%3];
+                    string key=Mathf.Min(a,b)+":"+Mathf.Max(a,b);
+                    if(!edges.ContainsKey(key)){edges[key]=0;ends[key]=new[]{a,b};}edges[key]++;
+                }
+                foreach(var e in edges.Where(e=>e.Value==1))
+                {
+                    var ab=ends[e.Key];var a=nav.vertices[ab[0]];var b=nav.vertices[ab[1]];
+                    int steps=Mathf.CeilToInt(Vector3.Distance(a,b)/.25f);
+                    for(int j=0;j<=steps;j++)
+                    {
+                        var p=Vector3.Lerp(a,b,j/(float)Mathf.Max(1,steps));
+                        if(p.x>=room.entryX-3&&p.x<=room.exitX+3&&Mathf.Abs(p.y-y)<1)
+                            samples.Add(new Vector2(p.x,p.z));
+                    }
+                }
                 // Entire navigable room and side spaces, not only the center walking line.
                 for(float x=room.entryX-2;x<room.exitX+2;x+=1)for(float z=-45;z<=45;z+=1)
                 {
