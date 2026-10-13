@@ -8,6 +8,7 @@ namespace DogLife
         public RunEconomy wallet;
         public GameObject panel,shopPanel,fusionPanel;
         public Text goldLabel,prompt,title,message,firstLabel,secondLabel;
+        [SerializeField] GameObject promptPlate;
         public Image firstIcon,secondIcon;
         public Text[] itemLabels;
         public Image[] itemIcons;
@@ -30,13 +31,15 @@ namespace DogLife
         static void ResetState(){Instance=null;consumed=-1;}
         void Awake(){Instance=this;AdventureUI.Economy(this);panel.SetActive(false);if(fusionPresentation)fusionPresentation.SetActive(false);}
         void OnDisable(){if(opened)Close();}
+        // 안내가 있을 때만 프리팹의 배경판을 표시합니다.
+        void LateUpdate(){if(promptPlate)promptPlate.SetActive(!string.IsNullOrEmpty(prompt.text));}
         void OnDestroy(){if(Instance!=this)return;if(IsOpen)Close();Instance=null;}
         void Update()
         {
             if(!wallet||!wallet.inventory)return;
             var health=wallet.inventory.GetComponent<CombatHealth>();
             if(health&&health.Dead){if(IsOpen)Close();prompt.text="";return;}
-            goldLabel.text="G  "+wallet.Gold;
+            goldLabel.text="<size=18><color=#B9AA88>골드</color></size>   "+wallet.Gold.ToString("N0");
             if(IsOpen)
             {
                 if(sequence){fusionStatus.text=sequence.Status;fusionActionLabel.text=sequence.Completed?"확인":"건너뛰기";if(Input.GetKeyDown(KeyCode.Escape))FusionAction();}
@@ -50,7 +53,7 @@ namespace DogLife
                 foreach(var s in FindObjectsByType<EconomyStation>(FindObjectsSortMode.None))
                 {float d=Vector3.Distance(s.transform.position,wallet.inventory.transform.position);if(s.InReach(wallet.inventory)&&d<best){best=d;nearest=s;}}
             }
-            prompt.text=nearest?(nearest.kind==EconomyStation.StationKind.Shop?"[F] 뼈 상점":"[F] 무기 합성 · 방당 1회"):"";
+            prompt.text=nearest?(nearest.kind==EconomyStation.StationKind.Shop?"[F] 뼈 상점":"[F] 무기 합성 · 남은 "+nearest.RemainingFusions+"회"):"";
             if(nearest&&Input.GetKeyDown(KeyCode.F))Open(nearest);
         }
         public void Open(EconomyStation target)
@@ -61,7 +64,7 @@ namespace DogLife
             GameAudio.EnterEconomyMenu();
             Time.timeScale=0;Cursor.lockState=CursorLockMode.None;Cursor.visible=true;consumed=Time.frameCount;
             panel.SetActive(true);prompt.text="";bool shop=station.kind==EconomyStation.StationKind.Shop;
-            shopPanel.SetActive(shop);fusionPanel.SetActive(!shop);title.text=shop?"뼈 상점":"영혼의 합성";message.text=shop?"구매한 무기는 가방에 들어갑니다.":"같은 계열의 일반 무기 2개를 선택하세요.\n비용 없음  ·  방마다 한 번 합성할 수 있어요.";
+            shopPanel.SetActive(shop);fusionPanel.SetActive(!shop);title.text=shop?"뼈 상점":"영혼의 합성";message.text=shop?"구매한 무기는 가방에 들어갑니다.":"같은 계열의 일반 무기 2개를 선택하세요.\n비용 없음  ·  남은 합성 "+station.RemainingFusions+"회 / 방당 2회";
             first=null;second=null;Cycle(true,1);Cycle(false,1);Refresh();
             GameAudio.Play("UI_Window_Open",Vector3.zero,.6f,ui:true);
             for(int i=0;i<buyButtons.Length;i++)if(!buyButtons[i].GetComponent<EconomyItemAudio>())buyButtons[i].gameObject.AddComponent<EconomyItemAudio>();

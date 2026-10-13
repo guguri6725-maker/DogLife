@@ -14,10 +14,13 @@ namespace DogLife
         [Min(0)] public int price=30;
         [Min(1)] public float interactionDistance=5;
         [Min(.01f)] public float displayScale=.65f;
-        class Stock {public InventoryWeapon[] items;public bool used;}
+        // 방을 다시 불러와도 성공한 합성 횟수를 유지합니다.
+        const int FusionLimit=2;
+        class Stock {public InventoryWeapon[] items;public int fusionCount;public bool fusing;}
         static Dictionary<string,Stock> saved=new Dictionary<string,Stock>();
         Stock stock;GameObject[] visuals;
-        public bool Used=>stock!=null&&stock.used;
+        public int RemainingFusions=>Mathf.Max(0,FusionLimit-(stock==null?0:stock.fusionCount));
+        public bool Used=>RemainingFusions==0;
         public InventoryWeapon[] Items=>stock==null?new InventoryWeapon[0]:stock.items;
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void ResetStock(){saved.Clear();}
@@ -53,17 +56,22 @@ namespace DogLife
         {
             result=null;
             message="같은 계열의 일반 무기 두 개를 선택하세요.";
-            if(kind!=StationKind.Fusion||stock==null||stock.used||!wallet||!InReach(wallet.inventory)){message="이 합성방은 이미 사용했거나 너무 멉니다.";return false;}
+            if(kind!=StationKind.Fusion||stock==null||Used||stock.fusing||!wallet||!InReach(wallet.inventory)){message="합성 횟수를 모두 사용했거나 너무 멉니다.";return false;}
             var a=wallet.inventory.FindInstance(first);var b=wallet.inventory.FindInstance(second);
             if(!a||!b||first==second||a.weaponForm!=InventoryWeapon.WeaponForm.Basic||b.weaponForm!=InventoryWeapon.WeaponForm.Basic||a.boneOrigin!=b.boneOrigin)return false;
             result=a.weaponCategory==b.weaponCategory?a.sameWeaponEvolution:null;
             if(a.weaponCategory!=b.weaponCategory)
             {var pool=catalog?catalog.weapons.Where(w=>w&&w.boneOrigin==a.boneOrigin&&w.weaponForm==InventoryWeapon.WeaponForm.Synthesized).ToArray():new InventoryWeapon[0];if(pool.Length>0)result=pool[Random.Range(0,pool.Length)];}
             if(!result){message="합성 결과 데이터가 연결되지 않았습니다.";return false;}
-            // 인벤토리 변경 이벤트에서 재진입하더라도 같은 방을 중복 사용할 수 없습니다.
-            stock.used=true;
-            if(!wallet.inventory.FuseInstances(first,second,result)){stock.used=false;message="합성 재료를 다시 선택하세요.";return false;}
-            message=result.displayName+" 합성 완료! 이 방의 합성을 사용했습니다.";return true;
+            // 인벤토리 이벤트의 재진입을 막고, 성공했을 때만 사용 횟수를 차감합니다.
+            stock.fusing=true;
+            try
+            {
+                if(!wallet.inventory.FuseInstances(first,second,result)){message="합성 재료를 다시 선택하세요.";return false;}
+                stock.fusionCount++;
+            }
+            finally {stock.fusing=false;}
+            message=result.displayName+" 합성 완료! 남은 합성 "+RemainingFusions+"회";return true;
         }
     }
 }

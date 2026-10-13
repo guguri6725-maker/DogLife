@@ -27,7 +27,26 @@ namespace DogLife
             UnityEngine.AI.NavMeshHit nav;
             if(UnityEngine.AI.NavMesh.SamplePosition(point,out nav,8,UnityEngine.AI.NavMesh.AllAreas))point=nav.position;
             else if(Physics.Raycast(point+Vector3.up*2,Vector3.down,out var hit,12,1<<8,QueryTriggerInteraction.Ignore))point=hit.point;
-            pickup.resting=point+Vector3.up*1.1f;go.transform.position=pickup.resting;
+            pickup.resting=point+Vector3.up*1.1f;
+            // 수중 크라켄의 루트/바닥은 시체 안에 있으므로 플레이어의 수영 높이에 놓습니다.
+            var swim=player.GetComponent<PlayerWaterMovement>();
+            if(swim&&swim.Submerged&&room&&room.Enemies!=null)
+                foreach(var enemy in room.Enemies)
+                {
+                    var kraken=enemy?enemy.GetComponent<KrakenPhaseTwo>():null;
+                    if(!kraken||!enemy.Dead)continue;
+                    Vector3 away=player.position-kraken.Center;away.y=0;
+                    if(away.sqrMagnitude<.01f){away=-player.forward;away.y=0;}
+                    if(away.sqrMagnitude<.01f)away=Vector3.left;
+                    Vector3 floating=player.position+away.normalized*2+Vector3.up*.6f;
+                    var arena=kraken.Arena;
+                    floating.x=Mathf.Clamp(floating.x,arena.min.x+1,arena.max.x-1);
+                    floating.z=Mathf.Clamp(floating.z,arena.min.z+1,arena.max.z-1);
+                    floating.y=Mathf.Clamp(floating.y,arena.min.y+1,swim.Surface-1);
+                    pickup.resting=floating;
+                    break;
+                }
+            go.transform.position=pickup.resting;
             pickup.Build(chapter.accent);return pickup;
         }
         void Build(Color tint)

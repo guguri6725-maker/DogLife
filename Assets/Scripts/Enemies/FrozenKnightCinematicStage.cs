@@ -16,7 +16,7 @@ namespace DogLife
         bool iceShot;Vector3 iceOrigin;Quaternion iceRotation;
         [Range(20,80)] public float fieldOfView=43;
         Camera view;PlayerCamera follow;PlayerMotor motor;PlayerWeapons weapons;CombatHealth hp;
-        bool motorEnabled,weaponsEnabled,followEnabled,oldInvulnerable,locked;
+        bool motorEnabled,weaponsEnabled,followEnabled,oldInvulnerable,oldRecoveryBlocked,locked;
         float oldFov,blend;Vector3 fromPosition;Quaternion fromRotation;Transform subject;bool mountedShot;
         public bool Active=>locked;
         public bool Valid=>seatedOrigin&&standingOrigin;
@@ -26,6 +26,9 @@ namespace DogLife
             motor=player;weapons=player?player.GetComponent<PlayerWeapons>():null;hp=player?player.GetComponent<CombatHealth>():null;
             view=Camera.main;follow=view?view.GetComponent<PlayerCamera>():null;
             motorEnabled=motor&&motor.enabled;weaponsEnabled=weapons&&weapons.enabled;followEnabled=follow&&follow.enabled;oldInvulnerable=hp&&hp.invulnerable;
+            // 연출 중 회복을 잠그고 종료·중단 시 기존 상태로 돌립니다. 보스 HP에는 영향을 주지 않습니다.
+            oldRecoveryBlocked=hp&&hp.RecoveryBlocked;
+            if(hp)hp.RecoveryBlocked=true;
             if(motor){motor.StopForAttack();motor.enabled=false;}if(weapons)weapons.enabled=false;if(hp)hp.invulnerable=true;
             if(view){oldFov=view.fieldOfView;fromPosition=view.transform.position;fromRotation=view.transform.rotation;}
             if(follow)follow.enabled=false;
@@ -56,7 +59,8 @@ namespace DogLife
         public void End()
         {
             if(!locked)return;locked=false;
-            if(motor)motor.enabled=motorEnabled;if(weapons)weapons.enabled=weaponsEnabled;if(hp)hp.invulnerable=oldInvulnerable;
+            if(motor)motor.enabled=motorEnabled;if(weapons)weapons.enabled=weaponsEnabled;
+            if(hp){hp.invulnerable=oldInvulnerable;hp.RecoveryBlocked=oldRecoveryBlocked;}
             if(follow&&followEnabled){follow.BlendFromCinematic(returnBlend,oldFov);follow.enabled=true;follow.CaptureCursor(true);}
             else if(view)view.fieldOfView=oldFov;
         }

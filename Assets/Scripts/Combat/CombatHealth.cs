@@ -9,6 +9,8 @@ namespace DogLife
         public float maxHealth = 30;
         public bool player, practiceTarget;
         [NonSerialized] public bool invulnerable;
+        // 보스 연출 중에는 외부 회복 호출로 플레이어 체력이 초기화되지 않게 합니다.
+        public bool RecoveryBlocked { get; set; }
         [NonSerialized] public float minimumHealth;
         public float Current { get; private set; }
         bool phaseTransitionPending;
@@ -93,9 +95,12 @@ namespace DogLife
             if (practiceTarget) restoreAt = Time.time + 2;
             else if (!player) gameObject.SetActive(false);
         }
-        public void Restore() { Current = maxHealth;phaseTransitionPending=false;awaitingFinalHit=false;invulnerableUntil=0;frostProtectionUntil=0;FrostProtectionPaused=false;EndBlink(); }
+        public void Restore() {
+            if(player && RecoveryBlocked)return;
+            Current = maxHealth;phaseTransitionPending=false;awaitingFinalHit=false;invulnerableUntil=0;frostProtectionUntil=0;FrostProtectionPaused=false;EndBlink(); }
         public void RestoreCheckpoint(float current,float maximum)
         {
+            if(player && RecoveryBlocked)return;
             maxHealth=Mathf.Max(1,maximum);Restore();Current=Mathf.Clamp(current,1,maxHealth);
         }
         public void ReleaseForFinalHit()

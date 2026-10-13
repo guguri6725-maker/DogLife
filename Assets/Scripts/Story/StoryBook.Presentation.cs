@@ -36,9 +36,10 @@ namespace DogLife
             // Keep the previous illustration underneath until the new one completely covers it.
             if(picture>=1)outgoingArt.texture=null;
             float title=Mathf.SmoothStep(0,1,(elapsed-.3f)/.85f);
-            heading.color=new Color(AdventureUI.Gold.r,AdventureUI.Gold.g,AdventureUI.Gold.b,title);
-            subheading.color=new Color(cream.r,cream.g,cream.b,title*.8f);
-            heading.rectTransform.anchoredPosition=new Vector2(-170,385-12*(1-title));
+            // 프리팹의 서체 색과 배치를 유지하며 부드럽게 나타냅니다.
+            heading.color=new Color(headingTint.r,headingTint.g,headingTint.b,title*headingTint.a);
+            subheading.color=new Color(subtitleTint.r,subtitleTint.g,subtitleTint.b,title*subtitleTint.a);
+            heading.rectTransform.anchoredPosition=headingPosition-Vector2.up*(6*(1-title));
             rule.rectTransform.localScale=new Vector3(title,1,1);
             var text=chapter.pages[page].text;
             int count=Mathf.Clamp(Mathf.FloorToInt((elapsed-NarrationDelay)*Mathf.Max(5,library.charactersPerSecond)),0,text.Length);

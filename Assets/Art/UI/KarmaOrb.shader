@@ -33,40 +33,44 @@ Shader "DogLife/UI/Karma Water"
             struct v2f {float4 vertex:SV_POSITION;float4 color:COLOR;float2 uv:TEXCOORD0;float4 world:TEXCOORD1;};
             float _LightFill,_DarkFill,_WaveTime;float4 _ClipRect;
             v2f vert(appdata v){v2f o;o.world=v.vertex;o.vertex=UnityObjectToClipPos(v.vertex);o.color=v.color;o.uv=v.uv;return o;}
+            // 유리 안의 불규칙한 안개로 상태를 암시하고 수치 눈금은 드러내지 않습니다.
+            float grain(float2 p){return frac(sin(dot(p,float2(127.1,311.7)))*43758.5453);}
+            float mist(float2 p)
+            {
+                float2 cell=floor(p),f=frac(p);f=f*f*(3-2*f);
+                return lerp(lerp(grain(cell),grain(cell+float2(1,0)),f.x),
+                    lerp(grain(cell+float2(0,1)),grain(cell+1),f.x),f.y);
+            }
             fixed4 frag(v2f i):SV_Target
             {
                 float2 p=(i.uv-.5)*2;float d=length(p);float radius=.66;
-                float side=smoothstep(-.015,.015,p.x);
-                float fill=lerp(_LightFill,_DarkFill,side);
-                float3 water=lerp(float3(.25,.68,.62),float3(.72,.23,.30),side);
-                float pulse=.92+.08*sin(_WaveTime*1.8);
-                float glow=exp(-max(0,d-radius)*12)*smoothstep(.99,.79,d)*(.08+.65*fill*fill)*pulse;
-                float4 result=float4(water,glow);
+                float time=_WaveTime*.055;
+                float cloud=mist(p*3+float2(time,-time*.7));
+                cloud=cloud*.65+mist(p*7+cloud*2-float2(time*.4,time))*.35;
+                float veil=smoothstep(.27,.78,cloud);
+                // 양쪽 색/수위 대신, 전체 안개의 미세한 온도 변화만 남깁니다.
+                float mood=smoothstep(0,1,saturate(.5+(_DarkFill-_LightFill)*.5));
+                float3 tint=lerp(float3(.24,.31,.30),float3(.31,.25,.24),mood);
+                float bowl=sqrt(saturate(1-dot(p,p)/(radius*radius)));
+                float3 inside=float3(.035,.042,.046)+tint*veil*(.17+.33*bowl);
+                float wisp=pow(saturate(1-abs(cloud-.52)*9),3);
+                inside+=tint*wisp*.13*bowl;
+                float glow=exp(-max(0,d-radius)*20)*(1-smoothstep(.70,.84,d))*.06;
+                float4 result=float4(float3(.35,.30,.22),glow);
                 float disc=1-smoothstep(radius-.006,radius+.006,d);
-                float3 inside=lerp(float3(.045,.075,.12),float3(.13,.035,.055),side);
-                float height=lerp(-radius-.05,radius+.05,fill);
-                float wave=(sin(p.x*12+_WaveTime*1.7)+.45*sin(p.x*21-_WaveTime*1.2))*.018*sin(fill*3.14159);
-                float backWave=sin(p.x*10-_WaveTime*1.4)*.02*sin(fill*3.14159);
-                float wet=1-smoothstep(height+wave-.008,height+wave+.008,p.y);
-                float back=1-smoothstep(height+backWave+.02,height+backWave+.04,p.y);
-                inside=lerp(inside,water*.37,back*.7);
-                float3 liquid=water*(.52+.42*saturate((p.y+radius)/(2*radius)));
-                inside=lerp(inside,liquid,wet);
-                float crest=(1-smoothstep(.006,.022,abs(p.y-height-wave)))*step(.01,fill)*step(fill,.99);
-                inside+=water*crest*.65;
-                float seam=(1-smoothstep(.007,.016,abs(p.x)))*.7;
-                inside=lerp(inside,float3(.65,.57,.40),seam);
-                float reflection=pow(saturate(1-length((p-float2(-.20,.32))*float2(2.4,6))),4)*.22;
-                inside+=reflection;
+                float reflection=pow(saturate(1-length((p-float2(-.20,.32))*float2(2.1,5))),3)*.16;
+                inside+=float3(.73,.77,.74)*reflection;
+                inside+=pow(1-bowl,3)*float3(.10,.12,.115)*.45;
                 result=lerp(result,float4(inside,.97),disc);
-                float rim=(1-smoothstep(.018,.027,abs(d-(radius+.018))));
-                float3 gold=lerp(float3(.30,.21,.11),float3(.93,.82,.57),saturate(.5+p.y*.7-p.x*.3));
+                float rim=(1-smoothstep(.012,.022,abs(d-(radius+.025))));
+                float3 gold=lerp(float3(.15,.12,.08),float3(.66,.57,.39),saturate(.5+p.y*.7-p.x*.3));
+                gold*=.88+.12*mist(p*48);
                 result=lerp(result,float4(gold,1),rim);
-                // 얇은 이중 금속 테두리와 눈금으로 유리 유물처럼 읽히도록 합니다.
+                // 낡은 황동 테두리와 가는 덩굴 각인: 측정기 대신 작은 유물처럼 표현합니다.
                 float angle=atan2(p.y,p.x);
-                float outer=1-smoothstep(.006,.013,abs(d-.75));
-                float ticks=pow(saturate(cos(angle*24)),24)*(1-smoothstep(.016,.024,abs(d-.72)));
-                result=lerp(result,float4(gold*.8,1),saturate(outer+ticks));
+                float outer=1-smoothstep(.003,.009,abs(d-.745));
+                float vine=1-smoothstep(.003,.008,abs(d-(.720+.007*sin(angle*7))));
+                result=lerp(result,float4(gold*.64,.9),saturate(outer+vine*.45));
                 result*=i.color;
                 #ifdef UNITY_UI_CLIP_RECT
                 result.a*=UnityGet2DClipping(i.world.xy,_ClipRect);

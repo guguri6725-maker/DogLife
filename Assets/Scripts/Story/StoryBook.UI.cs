@@ -10,8 +10,12 @@ namespace DogLife
         RawImage art,preview;
         CanvasGroup pageGroup,banner;
         StoryAtmosphere atmosphere;
-        Text heading,subheading,caption,counter,nextLabel,skipLabel,autoLabel,bannerTitle,bannerLine,albumTitle,albumText,albumCount;
-        Image rule;
+        // 제목 디자인은 프리팹의 Hierarchy에서 편집하고 참조를 직접 연결합니다.
+        [SerializeField] Text heading,subheading;
+        [SerializeField] Image rule;
+        Text caption,counter,nextLabel,skipLabel,autoLabel,bannerTitle,bannerLine,albumTitle,albumText,albumCount;
+        Color headingTint,subtitleTint;
+        Vector2 headingPosition;
         Button prev,replayButton;
         Button[] chapterButtons;
         Text[] chapterLabels;
@@ -54,11 +58,11 @@ namespace DogLife
             var visual=R("Fading picture",reader.transform,Vector2.zero,new Vector2(1920,1080));pageGroup=visual.gameObject.AddComponent<CanvasGroup>();
             art=R("Illustration",visual,Vector2.zero,new Vector2(1920,1080)).gameObject.AddComponent<RawImage>();art.raycastTarget=false;
             atmosphere=R("Atmosphere",visual,Vector2.zero,new Vector2(1920,1080)).gameObject.AddComponent<StoryAtmosphere>();atmosphere.raycastTarget=false;
-            subheading=T("Chapter subtitle",visual,"",new Vector2(-170,445),new Vector2(1340,40),21,cream);
-            heading=T("Chapter title",visual,"",new Vector2(-170,385),new Vector2(1340,76),43,cream);
-            heading.fontStyle=FontStyle.Bold;
-            var titleShadow=heading.gameObject.AddComponent<Shadow>();titleShadow.effectColor=new Color(.15f,.06f,.025f,.95f);titleShadow.effectDistance=new Vector2(2,-3);
-            rule=Panel("Chapter accent",visual,new Vector2(-772,334),new Vector2(135,3),gold);
+            subheading.transform.SetParent(visual,false);
+            heading.transform.SetParent(visual,false);
+            rule.transform.SetParent(visual,false);
+            headingTint=heading.color;subtitleTint=subheading.color;
+            headingPosition=heading.rectTransform.anchoredPosition;
             var narrationFrame=R("Narration parchment frame",visual,new Vector2(-40,-326),new Vector2(1650,184));
             var plate=narrationFrame.gameObject.AddComponent<StoryPanelGraphic>();plate.color=new Color(1,1,1,.68f);plate.raycastTarget=false;
             caption=T("Narration",visual,"",new Vector2(-40,-326),new Vector2(1560,156),32,AdventureUI.Cream,TextAnchor.MiddleCenter);

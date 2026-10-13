@@ -31,7 +31,8 @@ namespace DogLife
         GameAudio.Handle startSound,loopSound,resultSound;
         bool loopPlayed,resultPlayed;
         public bool Completed {get;private set;}
-        public string Status=>Completed?"합성 완료\n"+result.displayName+"\n"+(result.boneOrigin==InventoryWeapon.BoneOrigin.Dog?"동물형":"인간형")+" · "+Category(result.weaponCategory):elapsed/duration<.25f?"두 영혼이 깨어납니다":elapsed/duration<.52f?"뼈와 영혼이 하나로 모입니다":"새로운 무기가 모습을 드러냅니다";
+        // 완료 안내, 무기 이름, 보관 위치를 크기와 색으로 구분합니다.
+        public string Status=>Completed?"<size=20><color=#C6AE7D>합성 완료</color></size>\n<size=34>"+result.displayName+"</size>\n<size=19><color=#C4BBA8>"+(result.boneOrigin==InventoryWeapon.BoneOrigin.Dog?"동물형":"인간형")+" · "+Category(result.weaponCategory)+"   |   가방에 보관됨</color></size>":elapsed/duration<.25f?"두 영혼이 깨어납니다":elapsed/duration<.52f?"뼈와 영혼이 하나로 모입니다":"새로운 무기가 모습을 드러냅니다";
         static string Category(InventoryWeapon.WeaponCategory c){string[] names={"검","창","도끼","활","단검","부메랑"};return (int)c<names.Length?names[(int)c]:c.ToString();}
         public void Begin(InventoryWeapon a,InventoryWeapon b,InventoryWeapon output)
         {

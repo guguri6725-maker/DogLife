@@ -27,7 +27,8 @@ namespace DogLife
             bool replace=equippedInstanceId==first||equippedInstanceId==second;
             int high=Mathf.Max(a,b),low=Mathf.Min(a,b);ownedWeapons.RemoveAt(high);instanceIds.RemoveAt(high);ownedWeapons.RemoveAt(low);instanceIds.RemoveAt(low);
             ownedWeapons.Add(result);string id=System.Guid.NewGuid().ToString("N");instanceIds.Add(id);
-            if(replace){equippedWeapon=result;equippedInstanceId=id;Apply();}else Changed?.Invoke();return true;
+            // 합성 결과는 가방에만 보관합니다. 장착 중인 재료를 소모했다면 장착을 해제합니다.
+            if(replace){equippedWeapon=null;equippedInstanceId=null;Apply();}else Changed?.Invoke();return true;
         }
         public void RestoreRunInventory(IEnumerable<InventoryWeapon> items,int equippedIndex)
         {

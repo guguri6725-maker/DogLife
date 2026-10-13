@@ -11,10 +11,14 @@ namespace DogLife
         static SeasonLoadingScreen instance;
         public static bool IsLoading => instance && instance.busy;
         [SerializeField] float fadeOutSeconds = .4f, fadeInSeconds = .65f, minimumSeconds = 1.2f;
-        CanvasGroup group;
-        Text heading, caption;
-        Button returnButton;
-        CanvasGroup[] paws;
+        // 화면 구성과 버튼 이벤트는 로딩 프리팹의 Inspector에서 연결합니다.
+        [SerializeField] CanvasGroup group;
+        [SerializeField] Text heading, caption, chapterLabel;
+        [SerializeField] Button returnButton;
+        [SerializeField] CanvasGroup[] paws;
+        [SerializeField] RawImage landscape;
+        [SerializeField] Texture[] seasonArt;
+        [SerializeField] Image accentLine;
         bool busy, failed;
         float started;
         public static string LastReadyScene { get; private set; }
@@ -27,11 +31,13 @@ namespace DogLife
             if (IsLoading || !Application.CanStreamedLevelBeLoaded(path)) return false;
             if (!instance)
             {
-                var go = new GameObject("Season Loading Screen");
-                DontDestroyOnLoad(go);
-                instance = go.AddComponent<SeasonLoadingScreen>();
-                instance.Build();
+                var prefab = Resources.Load<SeasonLoadingScreen>("UI/SeasonLoadingScreen");
+                if (!prefab) { Debug.LogError("계절 로딩 화면 프리팹이 없습니다."); return false; }
+                instance = Instantiate(prefab);
+                DontDestroyOnLoad(instance.gameObject);
             }
+            // 이전 전환 뒤 숨긴 프리팹을 다음 로딩 전에 다시 활성화합니다.
+            instance.gameObject.SetActive(true);
             instance.StartCoroutine(instance.Transition(path));
             return true;
         }
@@ -47,8 +53,11 @@ namespace DogLife
             string[] names = { "봄의 숲", "여름의 바다", "가을의 길", "겨울의 설원" };
             Color[] accents = { new Color(.94f,.68f,.72f), new Color(.51f,.8f,.88f), new Color(.9f,.66f,.4f), new Color(.73f,.83f,.94f) };
             heading.text = season >= 0 ? names[season] : "DOG LIFE";
-            heading.color = season >= 0 ? accents[season] : new Color(.88f,.79f,.61f);
-            caption.text = title ? "여정을 추억하며..." : heading.text + "으로 향하는 중...";
+            // 계절색은 작은 장식에만 사용하고 제목은 상아색으로 가독성을 유지합니다.
+            accentLine.color = season >= 0 ? accents[season] : new Color(.88f,.79f,.61f);
+            chapterLabel.text = season >= 0 ? new[]{"I  /  SPRING", "II  /  SUMMER", "III  /  AUTUMN", "IV  /  WINTER"}[season] : "THE JOURNEY HOME";
+            if (season >= 0 && season < seasonArt.Length) landscape.texture = seasonArt[season];
+            caption.text = title ? "여정을 추억하며..." : season == 1 ? "여름의 바다로 향하는 중..." : heading.text + "으로 향하는 중...";
             Time.timeScale = 0;
             yield return Fade(1, fadeOutSeconds);
             // Present the opaque overlay before expensive scene activation begins.
@@ -107,41 +116,11 @@ namespace DogLife
             if (!failed) { Cursor.lockState = CursorLockMode.None; Cursor.visible = false; }
         }
 
-        void Build()
+        // 오류 안내 버튼에 Inspector의 OnClick으로 연결합니다.
+        public void ReturnToTitle()
         {
-            var canvasObject = new GameObject("Overlay", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster), typeof(CanvasGroup));
-            canvasObject.transform.SetParent(transform, false);
-            var canvas = canvasObject.GetComponent<Canvas>(); canvas.renderMode = RenderMode.ScreenSpaceOverlay; canvas.sortingOrder = 32760;
-            var scaler = canvasObject.GetComponent<CanvasScaler>(); scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize; scaler.referenceResolution = new Vector2(1920,1080); scaler.matchWidthOrHeight = .5f;
-            group = canvasObject.GetComponent<CanvasGroup>(); group.alpha = 0;
-            var background = new GameObject("Midnight", typeof(RectTransform), typeof(Image)); background.transform.SetParent(canvasObject.transform,false);
-            var rect = background.GetComponent<RectTransform>(); rect.anchorMin = Vector2.zero; rect.anchorMax = Vector2.one; rect.sizeDelta = Vector2.zero;
-            background.GetComponent<Image>().color = new Color(.035f,.047f,.06f);
-            var font = StoryBook.Instance && StoryBook.Instance.Library ? StoryBook.Instance.Library.font : null;
-            if (!font) font = Font.CreateDynamicFontFromOSFont(new[]{"Malgun Gothic","Arial"},32);
-            Label("Brand", "D O G   L I F E", 22, new Vector2(0,145), font).color = new Color(.66f,.61f,.51f);
-            heading = Label("Season", "", 48, new Vector2(0,62), font);
-            caption = Label("Status", "", 23, new Vector2(0,-32), font); caption.color = new Color(.74f,.76f,.77f);
-            paws = new CanvasGroup[4];
-            for(int i=0;i<paws.Length;i++)
-            {
-                var paw = new GameObject("Paw "+i, typeof(RectTransform), typeof(CanvasGroup), typeof(LoadingPawGraphic));
-                paw.transform.SetParent(canvasObject.transform,false);
-                var pr=paw.GetComponent<RectTransform>(); pr.sizeDelta=new Vector2(34,38); pr.anchoredPosition=new Vector2((i-1.5f)*54,-115+(i%2)*8);
-                paw.GetComponent<LoadingPawGraphic>().color=new Color(.88f,.79f,.61f);
-                paws[i]=paw.GetComponent<CanvasGroup>();
-            }
-            var buttonText=Label("Return to title", "타이틀로 돌아가기",24,new Vector2(0,-210),font);
-            buttonText.raycastTarget=true;
-            returnButton=buttonText.gameObject.AddComponent<Button>(); returnButton.targetGraphic=buttonText;
-            returnButton.onClick.AddListener(()=>{busy=false;Load("Assets/Scenes/Title.unity");});
-        }
-
-        Text Label(string name,string value,int size,Vector2 position,Font font)
-        {
-            var go=new GameObject(name,typeof(RectTransform),typeof(Text)); go.transform.SetParent(group.transform,false);
-            var r=go.GetComponent<RectTransform>();r.sizeDelta=new Vector2(1100,80);r.anchoredPosition=position;
-            var text=go.GetComponent<Text>();text.font=font;text.fontSize=size;text.text=value;text.alignment=TextAnchor.MiddleCenter;text.raycastTarget=false;return text;
+            busy=false;
+            Load("Assets/Scenes/Title.unity");
         }
     }
 }
