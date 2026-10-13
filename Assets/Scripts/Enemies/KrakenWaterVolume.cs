@@ -25,6 +25,8 @@ namespace DogLife
         [SerializeField,Range(0,1)] float decorationFadeStart=.12f,decorationFadeEnd=.9f;
         [SerializeField,Min(.05f)] float submergedFlowFeather=.8f;
         public int StoppedDecorationCount=>stoppedDecorationWater.Count;
+        public float FlowVisibility{get;private set;}=1;
+        public bool IsRaised=>raised;
         public void EnterUnderwater()
         {
             PrepareFlowDecoration();FadeFlowDecoration(1);
@@ -46,6 +48,7 @@ namespace DogLife
         {
             if(flowBlock==null)flowBlock=new MaterialPropertyBlock();
             float visibility=1-Mathf.SmoothStep(0,1,Mathf.InverseLerp(decorationFadeStart,Mathf.Max(decorationFadeStart+.01f,decorationFadeEnd),progress));
+            FlowVisibility=visibility;
             foreach(var pair in stoppedDecorationWater)
             {
                 var r=pair.Key;if(!r)continue;r.GetPropertyBlock(flowBlock);
@@ -114,13 +117,13 @@ namespace DogLife
         void LateUpdate()
         {
             if(!raised||!view||!surface)return;bool submerged=view.transform.position.y<Height;
-            if(!captured&&submerged){captured=true;fogWasOn=RenderSettings.fog;oldColor=RenderSettings.fogColor;oldDensity=RenderSettings.fogDensity;oldMode=RenderSettings.fogMode;oldStart=RenderSettings.fogStartDistance;oldEnd=RenderSettings.fogEndDistance;oldClearFlags=view.clearFlags;oldBackground=view.backgroundColor;}
+            if(!captured&&submerged){GameAudio.Play("Kraken_Submerge",view.transform.position,.5f,minimumInterval:2);captured=true;fogWasOn=RenderSettings.fog;oldColor=RenderSettings.fogColor;oldDensity=RenderSettings.fogDensity;oldMode=RenderSettings.fogMode;oldStart=RenderSettings.fogStartDistance;oldEnd=RenderSettings.fogEndDistance;oldClearFlags=view.clearFlags;oldBackground=view.backgroundColor;}
             blend=Mathf.MoveTowards(blend,submerged?1:0,Time.deltaTime*transitionRate);
             if(captured){RenderSettings.fog=true;RenderSettings.fogMode=FogMode.Exponential;RenderSettings.fogColor=Color.Lerp(oldColor,underwaterFog,blend);RenderSettings.fogDensity=Mathf.Lerp(fogWasOn?oldDensity:0,fogDensity,blend);view.clearFlags=CameraClearFlags.SolidColor;view.backgroundColor=underwaterFog;if(blend<=0)RestoreFog();}
             if(particles){particles.transform.position=view.transform.position;if(submerged&&!particles.isPlaying)particles.Play();else if(!submerged&&particles.isPlaying)particles.Stop();}
         }
         void RestoreFog(){if(!captured)return;RenderSettings.fog=fogWasOn;RenderSettings.fogColor=oldColor;RenderSettings.fogDensity=oldDensity;RenderSettings.fogMode=oldMode;RenderSettings.fogStartDistance=oldStart;RenderSettings.fogEndDistance=oldEnd;if(view){view.clearFlags=oldClearFlags;view.backgroundColor=oldBackground;}captured=false;}
-        public void Clear(){raised=false;if(swimmer)swimmer.Leave();if(surface)surface.enabled=false;foreach(var r in oldSurfaces)if(r){r.enabled=true;r.SetPropertyBlock(originalFloorBlocks[r]);}foreach(var pair in stoppedDecorationWater)if(pair.Key){pair.Key.forceRenderingOff=pair.Value;pair.Key.SetPropertyBlock(originalDecorationBlocks[pair.Key]);}stoppedDecorationWater.Clear();originalDecorationBlocks.Clear();if(particles)particles.Stop(true,ParticleSystemStopBehavior.StopEmittingAndClear);RestoreFog();blend=0;}
+        public void Clear(){FlowVisibility=1;raised=false;if(swimmer)swimmer.Leave();if(surface)surface.enabled=false;foreach(var r in oldSurfaces)if(r){r.enabled=true;r.SetPropertyBlock(originalFloorBlocks[r]);}foreach(var pair in stoppedDecorationWater)if(pair.Key){pair.Key.forceRenderingOff=pair.Value;pair.Key.SetPropertyBlock(originalDecorationBlocks[pair.Key]);}stoppedDecorationWater.Clear();originalDecorationBlocks.Clear();if(particles)particles.Stop(true,ParticleSystemStopBehavior.StopEmittingAndClear);RestoreFog();blend=0;}
         void OnDisable(){Clear();}
         void OnDestroy(){if(mesh)Destroy(mesh);if(materialInstance)Destroy(materialInstance);}
     }

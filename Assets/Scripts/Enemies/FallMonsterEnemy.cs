@@ -80,6 +80,7 @@ namespace DogLife
         public float Progress=>Mathf.Clamp01(elapsed/Mathf.Max(.01f,Duration(CurrentPhase)));
         public bool Windup=>CurrentPhase==Phase.Anticipation;
         NavMeshAgent agent;
+        FallMonsterAudio sound;
         CombatHealth health,targetHealth;
         Transform target;
         Collider targetCollider;
@@ -98,6 +99,7 @@ namespace DogLife
         void Awake()
         {
             agent=GetComponent<NavMeshAgent>();health=GetComponent<CombatHealth>();
+            sound=GetComponent<FallMonsterAudio>();if(!sound)sound=gameObject.AddComponent<FallMonsterAudio>();
             var body=GetComponent<Rigidbody>();body.isKinematic=true;body.constraints=RigidbodyConstraints.FreezeRotation;
             agent.updateRotation=false;agent.updateUpAxis=false;
             if(visualRoot)visualHome=visualRoot.localPosition;
@@ -140,7 +142,7 @@ namespace DogLife
         }
         void Enter(Phase phase)
         {
-            CurrentPhase=phase;elapsed=0;
+            CurrentPhase=phase;elapsed=0;if(sound)sound.Enter(phase);
             if(attackCollider)attackCollider.enabled=phase==Phase.Active&&pattern!=Pattern.Spikes;
             if(phase==Phase.Anticipation)
             {
@@ -191,7 +193,7 @@ namespace DogLife
                 if(pattern==Pattern.Spikes&&!radialPulseUsed&&Progress>=.2f)
                 {
                     // 가시가 드러나는 순간에만 판정을 열고 즉시 닫습니다. 유지 중에는 피해가 없습니다.
-                    radialPulseUsed=true;if(attackCollider)attackCollider.enabled=true;
+                    radialPulseUsed=true;if(sound)sound.SpikeImpact();if(attackCollider)attackCollider.enabled=true;
                     RadialDamage();if(attackCollider)attackCollider.enabled=false;
                 }
                 if(pattern==Pattern.CrowDash)Dash(dt);
@@ -288,7 +290,7 @@ namespace DogLife
             if(CurrentPhase==Phase.Active)CapsuleDamage(from+Vector3.up*(previousFlightAltitude+.7f),transform.position+Vector3.up*(FlightAltitude()+.7f),.65f);
             if(step.sqrMagnitude<.00001f&&CurrentPhase==Phase.Active)Enter(Phase.Recovery);
         }
-        void Cancel(){Stop();CurrentPhase=Phase.Idle;if(attackCollider)attackCollider.enabled=false;if(presentation)presentation.ResetVisuals();}
+        void Cancel(){if(sound)sound.Stop();Stop();CurrentPhase=Phase.Idle;if(attackCollider)attackCollider.enabled=false;if(presentation)presentation.ResetVisuals();}
         void OnDisable(){Cancel();hitTargets.Clear();previousArmValid=false;if(visualRoot)visualRoot.localPosition=visualHome;if(bodyCollider)bodyCollider.center=bodyCenter;if(attackCollider&&pattern==Pattern.CrowDash)attackCollider.transform.localPosition=attackHome;}
         void OnValidate(){radius=Mathf.Max(.1f,radius);armLength=Mathf.Max(.5f,armLength);activeDuration=Mathf.Max(.02f,activeDuration);}
     }

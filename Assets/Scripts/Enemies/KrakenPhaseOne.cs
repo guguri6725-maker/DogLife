@@ -44,7 +44,7 @@ namespace DogLife
         [SerializeField] CaptureSettings capture=new CaptureSettings();
         [SerializeField] SweepSettings sweep=new SweepSettings();
         [Header("Flood")][SerializeField] float floodDelay=1.2f,floodDuration=9,floodHeight=11;
-        [Header("Optional sound / presentation hooks; no audio generated")][SerializeField] UnityEvent onEntry,onSlam,onCapture,onSweep,onFlood,onUnderwater;
+        [Header("Additional presentation hooks")][SerializeField] UnityEvent onEntry,onSlam,onCapture,onSweep,onFlood,onUnderwater;
         public EncounterState State{get;private set;}
         public int Kills{get;private set;}
         public int RequiredKills=>Mathf.Max(1,killsToTransition);
@@ -121,6 +121,7 @@ namespace DogLife
         }
         IEnumerator Emerge(KrakenPhaseTentacle t)
         {
+            SummerAudioEmitter.Get(t).Cue("Kraken_Tentacle_Rise",.7f);
             t.Warning.Show(KrakenPhaseWarning.Shape.Ripple,t.transform.position+Vector3.up*warningSurfaceOffset,Quaternion.identity,2,0,0);
             yield return t.Animate(KrakenPhaseTentacle.Pose.Emerging,emergeDuration);t.Warning.Hide();t.SetPose(KrakenPhaseTentacle.Pose.Idle,0);
             t.ReadyAt=Mathf.Max(t.ReadyAt,Time.time+emergenceGrace);attackAllowedAt=Mathf.Max(attackAllowedAt,Time.time+emergenceGrace);
@@ -144,15 +145,16 @@ namespace DogLife
         IEnumerator Slam(KrakenPhaseTentacle t)
         {
             slamming.Add(t);t.ReadyAt=Time.time+slam.cooldown;
+            var sound=SummerAudioEmitter.Get(t);sound.Prepare("Kraken_Tentacle_Windup");
             t.SetReach(slam.length);
             float width=slam.width;
             Vector3 forward=Vector3.ProjectOnPlane(Player.transform.position-t.transform.position,Vector3.up).normalized;
             t.transform.rotation=Quaternion.LookRotation(forward);
             float timer=0;while(timer<slam.warning){t.SetPose(KrakenPhaseTentacle.Pose.Ready,timer/slam.warning);t.Warning.Show(KrakenPhaseWarning.Shape.Rectangle,t.transform.position+Vector3.up*warningSurfaceOffset,t.transform.rotation,slam.length,width,timer/slam.warning);timer+=Time.deltaTime;yield return null;}
             t.Warning.Show(KrakenPhaseWarning.Shape.Rectangle,t.transform.position+Vector3.up*warningSurfaceOffset,t.transform.rotation,slam.length,width,1);
-            yield return t.Animate(KrakenPhaseTentacle.Pose.Slam,slam.strike);
+            sound.StopPreparation();yield return t.Animate(KrakenPhaseTentacle.Pose.Slam,slam.strike);
             if(!t.Alive||State!=EncounterState.Combat){slamming.Remove(t);yield break;}
-            ConfigureAttackBox(t,width,slam.hitHeight,slam.length);t.AttackCollider.enabled=true;
+            sound.Cue("Kraken_Tentacle_Slam");ConfigureAttackBox(t,width,slam.hitHeight,slam.length);t.AttackCollider.enabled=true;
             Physics.SyncTransforms();if(BoxContainsPlayer(t.AttackCollider))Hit(slam.damage,forward,slam.knockback,slam.lift,.45f);t.AttackCollider.enabled=false;onSlam?.Invoke();
             t.Warning.Show(KrakenPhaseWarning.Shape.SlamImpact,t.transform.position+Vector3.up*warningSurfaceOffset,t.transform.rotation,slam.length,width,0);
             yield return t.Animate(KrakenPhaseTentacle.Pose.Ground,slam.exposure);t.Warning.Hide();yield return t.Animate(KrakenPhaseTentacle.Pose.Recover,slam.recovery);t.SetPose(KrakenPhaseTentacle.Pose.Idle,0);slamming.Remove(t);
@@ -179,8 +181,10 @@ namespace DogLife
         IEnumerator Capture()
         {
             special=true;nextCapture=Time.time+capture.cooldown;var t=captureTentacle;Vector3 p=Player.transform.position;p.y=floor;t.transform.position=p;t.transform.rotation=Quaternion.identity;
+            var sound=SummerAudioEmitter.Get(t);sound.Prepare("Kraken_Grab_Warning");
             float clock=0;while(clock<capture.warning){t.Warning.Show(KrakenPhaseWarning.Shape.Circle,p+Vector3.up*warningSurfaceOffset,Quaternion.identity,capture.radius,0,clock/capture.warning);clock+=Time.deltaTime;yield return null;}t.Warning.Hide();
             // Contact starts as the visible tip breaks out, not after a second hidden delay.
+            sound.StopPreparation();sound.Cue("Kraken_Tentacle_Rise",.65f);
             bool caught=false;float contactStart=capture.emergence*captureContactProgress;
             float contactEnd=Mathf.Max(capture.emergence,contactStart+captureActiveTime);
             clock=0;
@@ -196,7 +200,7 @@ namespace DogLife
             t.Warning.Show(KrakenPhaseWarning.Shape.Impact,p+Vector3.up*warningSurfaceOffset,Quaternion.identity,capture.radius,0,0);
             if(caught)
             {
-                if(playerHealth.Dead)yield break;onCapture?.Invoke();LockPlayer(false);captured=true;captureFrom=playerBody.position;oldKinematic=playerBody.isKinematic;oldGravity=playerBody.useGravity;playerBody.linearVelocity=Vector3.zero;playerBody.isKinematic=true;Player.enabled=false;
+                if(playerHealth.Dead)yield break;sound.Cue("Kraken_Grab_Coil");onCapture?.Invoke();LockPlayer(false);captured=true;captureFrom=playerBody.position;oldKinematic=playerBody.isKinematic;oldGravity=playerBody.useGravity;playerBody.linearVelocity=Vector3.zero;playerBody.isKinematic=true;Player.enabled=false;
                 clock=0;while(clock<capture.connect+capture.hold){t.SetPose(KrakenPhaseTentacle.Pose.Capture,Mathf.Clamp01(clock/capture.connect));Vector3 target=Vector3.Lerp(captureFrom,t.GripPoint.position,Mathf.SmoothStep(0,1,clock/capture.connect));MoveCaptured(target);clock+=Time.deltaTime;yield return null;}
                 Vector3 direction=Vector3.ProjectOnPlane(new Vector3(Arena.center.x,floor,0)-t.transform.position,Vector3.up).normalized;if(direction.sqrMagnitude<.1f)direction=Vector3.right;
                 clock=0;bool released=false;
@@ -204,10 +208,10 @@ namespace DogLife
                 {
                     float q=clock/Mathf.Max(.05f,capture.throwWindup);t.SetPose(KrakenPhaseTentacle.Pose.Throw,q);
                     if(!released&&q<.65f)MoveCaptured(t.GripPoint.position);
-                    else if(!released){released=true;MoveCaptured(t.ReleasePoint.position);ReleaseCapture();UnlockPlayer();if(!playerHealth.Dead){playerHealth.Damage(capture.throwDamage);Player.ApplyKnockback(direction,capture.throwSpeed,capture.throwLift,capture.throwDuration);}}
+                    else if(!released){sound.Cue("Kraken_Throw");released=true;MoveCaptured(t.ReleasePoint.position);ReleaseCapture();UnlockPlayer();if(!playerHealth.Dead){playerHealth.Damage(capture.throwDamage);Player.ApplyKnockback(direction,capture.throwSpeed,capture.throwLift,capture.throwDuration);}}
                     clock+=Time.deltaTime;yield return null;
                 }
-                if(!released){ReleaseCapture();UnlockPlayer();if(!playerHealth.Dead)Player.ApplyKnockback(direction,capture.throwSpeed,capture.throwLift,capture.throwDuration);}
+                if(!released){sound.Cue("Kraken_Throw");ReleaseCapture();UnlockPlayer();if(!playerHealth.Dead)Player.ApplyKnockback(direction,capture.throwSpeed,capture.throwLift,capture.throwDuration);}
             }
             yield return t.Animate(KrakenPhaseTentacle.Pose.Dying,retractDuration/poseSpeedMultiplier);t.SetPose(KrakenPhaseTentacle.Pose.Hidden,0);yield return new WaitForSeconds(capture.recovery);special=false;nextSlam=Time.time+entryGrace*.5f/poseSpeedMultiplier;
         }
@@ -220,10 +224,12 @@ namespace DogLife
         {
             special=true;nextSweep=Time.time+sweep.cooldown;var t=sweepTentacle;t.transform.position=new Vector3(Arena.center.x,floor,0);t.SetReach(sweep.radius);
             t.Warning.Show(KrakenPhaseWarning.Shape.Ripple,t.transform.position+Vector3.up*warningSurfaceOffset,Quaternion.identity,2.4f,0,0);
+            var sound=SummerAudioEmitter.Get(t);sound.Cue("Kraken_Tentacle_Rise",.7f);
             yield return t.Animate(KrakenPhaseTentacle.Pose.Emerging,emergeDuration/poseSpeedMultiplier);
+            sound.Prepare("Kraken_Tentacle_Windup");
             float yaw=Quaternion.LookRotation(Vector3.ProjectOnPlane(Player.transform.position-t.transform.position,Vector3.up)).eulerAngles.y;
             float timer=0;while(timer<sweep.warning){t.SetPose(KrakenPhaseTentacle.Pose.SweepReady,timer/sweep.warning);t.transform.rotation=Quaternion.Euler(0,yaw-sweep.angle/2,0);t.Warning.Show(KrakenPhaseWarning.Shape.Sector,t.transform.position+Vector3.up*warningSurfaceOffset,Quaternion.Euler(0,yaw,0),sweep.radius,0,timer/sweep.warning,sweep.angle);timer+=Time.deltaTime;yield return null;}
-            t.Warning.Hide();onSweep?.Invoke();bool struck=false;timer=0;float previousAngle=yaw-sweep.angle/2;
+            t.Warning.Hide();sound.StopPreparation();sound.Cue("Kraken_Tentacle_Sweep");onSweep?.Invoke();bool struck=false;timer=0;float previousAngle=yaw-sweep.angle/2;
             while(true)
             {
                 float q=Mathf.Clamp01(timer/Mathf.Max(.01f,sweep.duration));t.SetPose(KrakenPhaseTentacle.Pose.Sweep,q);t.transform.rotation=Quaternion.Euler(0,yaw-sweep.angle/2+sweep.angle*Mathf.SmoothStep(0,1,q),0);
@@ -249,11 +255,13 @@ namespace DogLife
         {
             if(State!=EncounterState.Combat||!t||t.Owner!=this||!t.CombatSlot||!slots.Contains(t)||t.Health.Current>0)return;
             if(countedLives.TryGetValue(t,out var life)&&life==t.LifeId)return;
+            SummerAudioEmitter.Get(t).StopAll();
             countedLives[t]=t.LifeId;Kills=Mathf.Min(RequiredKills,Kills+1);
             // Killing one slot must not reset the other four attacks or their cooldowns.
             slamming.Remove(t);
             if(Kills>=RequiredKills){State=EncounterState.Transition;StopAllCoroutines();foreach(var slot in slots)slot.StopAttack();captureTentacle.StopAttack();sweepTentacle.StopAttack();ReleaseCapture();UnlockPlayer();StartCoroutine(Flood());}
             else StartCoroutine(Replace(t));
+            SummerAudioEmitter.Get(t).Cue("Kraken_Tentacle_Defeat");
         }
         IEnumerator Replace(KrakenPhaseTentacle t)
         {
@@ -264,9 +272,9 @@ namespace DogLife
         IEnumerator Flood()
         {
             special=true;foreach(var t in slots)t.StartCoroutine(t.Animate(KrakenPhaseTentacle.Pose.Dying,retractDuration));captureTentacle.StartCoroutine(captureTentacle.Animate(KrakenPhaseTentacle.Pose.Dying,retractDuration));sweepTentacle.StartCoroutine(sweepTentacle.Animate(KrakenPhaseTentacle.Pose.Dying,retractDuration));
-            yield return new WaitForSeconds(retractDuration+floodDelay);LockPlayer(true);water.SetCinematicLift(true);sequence.Begin(new Vector3(Arena.center.x,floor,0),true);onFlood?.Invoke();float clock=0;
+            yield return new WaitForSeconds(retractDuration+floodDelay);LockPlayer(true);water.SetCinematicLift(true);sequence.Begin(new Vector3(Arena.center.x,floor,0),true);onFlood?.Invoke();var sound=SummerAudioEmitter.Get(this);sound.Cue("Kraken_Flood_Start");sound.Sustain("Kraken_Flood_Loop",.6f);float clock=0;
             while(clock<floodDuration){float progress=Mathf.Clamp01(clock/Mathf.Max(.01f,floodDuration));water.SetHeight(Mathf.Lerp(floor-.2f,floor+floodHeight,Mathf.SmoothStep(0,1,progress)));sequence.SetFloodProgress(progress,water.Height,Player.transform);clock+=Time.deltaTime;yield return null;}
-            water.SetHeight(floor+floodHeight);water.SetCinematicLift(false);water.EnterUnderwater();
+            water.SetHeight(floor+floodHeight);water.SetCinematicLift(false);water.EnterUnderwater();sound.StopSustain();
             var phaseTwo=GetComponent<KrakenPhaseTwo>();
             if(phaseTwo)yield return phaseTwo.Reveal(this,sequence,water.Height);else sequence.End();
             UnlockPlayer();State=EncounterState.Underwater;onUnderwater?.Invoke();if(phaseTwo)phaseTwo.BeginCombat();
@@ -285,7 +293,7 @@ namespace DogLife
         void ReleaseCapture(){if(!captured)return;captured=false;if(playerBody){playerBody.useGravity=oldGravity;if(!playerHealth.Dead){playerBody.isKinematic=oldKinematic;if(!oldKinematic)playerBody.linearVelocity=Vector3.zero;}}if(Player&&!playerHealth.Dead)Player.enabled=oldMotorEnabled;}
         public void CancelEncounter()
         {
-            if(cleaned)return;cleaned=true;var phaseTwo=GetComponent<KrakenPhaseTwo>();if(phaseTwo)phaseTwo.Cancel();StopAllCoroutines();foreach(var t in slots)if(t)t.StopAttack();if(captureTentacle)captureTentacle.StopAttack();if(sweepTentacle)sweepTentacle.StopAttack();ReleaseCapture();if(sequence)sequence.End();UnlockPlayer();if(water)water.Clear();foreach(var c in boundaries)if(c)c.enabled=false;State=EncounterState.Stopped;
+            if(cleaned)return;cleaned=true;foreach(var sound in GetComponentsInChildren<SummerAudioEmitter>(true))sound.StopAll();var phaseTwo=GetComponent<KrakenPhaseTwo>();if(phaseTwo)phaseTwo.Cancel();StopAllCoroutines();foreach(var t in slots)if(t)t.StopAttack();if(captureTentacle)captureTentacle.StopAttack();if(sweepTentacle)sweepTentacle.StopAttack();ReleaseCapture();if(sequence)sequence.End();UnlockPlayer();if(water)water.Clear();foreach(var c in boundaries)if(c)c.enabled=false;State=EncounterState.Stopped;
         }
         public void FinishUnderwaterEncounter(){foreach(var c in boundaries)if(c)c.enabled=false;var swim=Player?Player.GetComponent<PlayerWaterMovement>():null;if(swim)swim.ReleaseArenaLimits();}
         void OnDisable(){CancelEncounter();}

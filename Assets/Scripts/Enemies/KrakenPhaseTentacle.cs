@@ -192,7 +192,7 @@ namespace DogLife
             // Root position sits below the coil centre so the loop surrounds the chest, not the feet.
             GripPoint.position=center-Vector3.up*gripTorsoHeight;GripPoint.rotation=Quaternion.LookRotation(forward,Vector3.up);
         }
-        public void StopAttack(){StopAllCoroutines();if(AttackCollider)AttackCollider.enabled=false;if(Warning)Warning.Hide();}
+        public void StopAttack(){var sound=GetComponent<SummerAudioEmitter>();if(sound)sound.StopAll();StopAllCoroutines();if(AttackCollider)AttackCollider.enabled=false;if(Warning)Warning.Hide();}
         void OnDisable(){StopAttack();foreach(var c in HitColliders)if(c)c.enabled=false;}
     }
 }

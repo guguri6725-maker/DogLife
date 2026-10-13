@@ -180,6 +180,7 @@ GameObject:
   - component: {fileID: 7337543024034561945}
   - component: {fileID: 3165422383144012705}
   - component: {fileID: 648956845085525600}
+  - component: {fileID: 4789059035939175636}
   m_Layer: 0
   m_Name: HarvestReaperBoss
   m_TagString: Untagged
@@ -486,6 +487,21 @@ MonoBehaviour:
   deathClip: {fileID: 7400000, guid: c7784cb5cc398a04ba8cb897f8ab4fc8, type: 2}
   deathVisual: {fileID: 919132149155446097, guid: a3753a2db293d3348bda4023332b1160, type: 3}
   poseBlend: 0.3
+--- !u!114 &4789059035939175636
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6811139766004664486}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c558c49ab987cf2479e6b253ebad3566, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DogLife.HarvestReaperAudio
+  attackVolume: 0.82
+  stormVolume: 0.32
+  curseVolume: 0.2
 --- !u!1001 &3054317301411412259
 PrefabInstance:
   m_ObjectHideFlags: 0

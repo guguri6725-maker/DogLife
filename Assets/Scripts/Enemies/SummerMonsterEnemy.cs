@@ -53,6 +53,7 @@ namespace DogLife
         NavMeshAgent agent;CombatHealth health,targetHealth;PlayerMotor player;Collider body,targetCollider;
         Vector3 facing=Vector3.forward,visualHome;float elapsed,nextAttack,nextPath,nextDefense;bool hit,spawned;
         bool Nav=>agent&&agent.isActiveAndEnabled&&agent.isOnNavMesh;
+        SummerMonsterAudio sound;bool soundedAttack;
         void Awake()
         {
             agent=GetComponent<NavMeshAgent>();health=GetComponent<CombatHealth>();body=GetComponent<Collider>();
@@ -61,6 +62,7 @@ namespace DogLife
             if(visualRoot)visualHome=visualRoot.localPosition;
             if(animator)animator.applyRootMotion=false;
             if(attackCollider){attackCollider.isTrigger=true;attackCollider.enabled=false;attackCollider.radius=attackRadius;}
+            sound=GetComponent<SummerMonsterAudio>();if(!sound)sound=gameObject.AddComponent<SummerMonsterAudio>();
         }
         void OnEnable(){State=Phase.Idle;elapsed=0;nextAttack=Time.time+1;nextDefense=Time.time;}
         ForestRoom combatRoom;
@@ -77,6 +79,7 @@ namespace DogLife
         void Enter(Phase state)
         {
             State=state;elapsed=0;hit=false;spawned=false;
+            soundedAttack=false;if(sound)sound.Enter(state);
             if(attackCollider)attackCollider.enabled=false;
             if(state!=Phase.Burrow&&state!=Phase.Idle)Stop();
             if(state==Phase.Dive)Play("Dive",diveTime);
@@ -92,9 +95,9 @@ namespace DogLife
         public override bool BlocksDamage(float amount)
         {
             if(species!=Species.Tortoise||!health||health.Dead)return false;
-            if(Defending)return true;
+            if(Defending){if(sound)sound.Block();return true;}
             // 물기 도중에는 방어로 끊지 않습니다. 대기/후딜 동안만 방어를 시작합니다.
-            if(Time.time>=nextDefense&&(State==Phase.Idle||State==Phase.Recovery)){Enter(Phase.GuardIn);return true;}
+            if(Time.time>=nextDefense&&(State==Phase.Idle||State==Phase.Recovery)){Enter(Phase.GuardIn);if(sound)sound.Block();return true;}
             return false;
         }
         void Chase(Vector3 target,float speed)
@@ -131,6 +134,7 @@ namespace DogLife
             else if(State==Phase.Attack)
             {
                 bool active=Progress>=.30f&&Progress<=.72f;
+                if(!soundedAttack&&Progress>=.30f){soundedAttack=true;if(sound)sound.Impact();}
                 if(attackCollider){attackCollider.transform.position=AreaCenter+Vector3.up*.8f;attackCollider.enabled=active&&species!=Species.Crab;}
                 if(species==Species.Crab&&!spawned&&Progress>=.3f){spawned=true;LaunchBubbles();}
                 if(active&&!hit&&species!=Species.Crab)DamageArea();
@@ -195,7 +199,7 @@ namespace DogLife
             if(species==Species.Jellyfish)y=.35f+Mathf.Sin(Time.time*2.4f)*.10f;
             visualRoot.localPosition=visualHome+Vector3.up*y;
         }
-        void Cancel(){Stop();if(attackCollider)attackCollider.enabled=false;if(body)body.enabled=true;if(visualRoot)visualRoot.localPosition=visualHome;}
+        void Cancel(){Stop();if(sound)sound.Stop();if(attackCollider)attackCollider.enabled=false;if(body)body.enabled=true;if(visualRoot)visualRoot.localPosition=visualHome;}
         void OnDisable(){Cancel();State=Phase.Idle;}
     }
 }

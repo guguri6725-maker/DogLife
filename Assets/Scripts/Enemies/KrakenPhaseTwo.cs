@@ -51,6 +51,7 @@ namespace DogLife
         public int CompletedPatterns{get;private set;}
         public IReadOnlyList<KrakenDeepArm> Arms=>arms;
         public bool AutomaticAttacks=true;
+        SummerAudioEmitter Sound=>SummerAudioEmitter.Get(this);
         readonly List<KrakenDeepArm> arms=new List<KrakenDeepArm>();
         readonly List<KrakenDeepVfx> effects=new List<KrakenDeepVfx>();
         readonly List<Collider> hurtboxes=new List<Collider>();
@@ -97,10 +98,12 @@ namespace DogLife
             BuildBodyBarrier();
             bodyVisual.position=bodyHome-Vector3.up*burialDepth;SetIdleArms(0);
             var sand=Effect(KrakenDeepVfx.Form.Sand,new Vector3(center.x,arena.min.y+.1f,center.z));sand.Size=new Vector3(sandRadius,sandHeight,0);sand.Intensity=0;
-            camera.BeginReveal(center,waterHeight);
+            camera.BeginReveal(center,waterHeight);Sound.Cue("Kraken_Sand_Rise",.75f);
             Play("Roar",emergeTime+unfurlTime);
-            float duration=sandLead+emergeTime+unfurlTime;
+            float duration=sandLead+emergeTime+unfurlTime;bool emergedSound=false,roaredSound=false;
             for(float t=0;t<duration;t+=Time.deltaTime){
+                if(!emergedSound&&t>=sandLead){emergedSound=true;Sound.Cue("Kraken_Body_Emerge");}
+                if(!roaredSound&&t>=sandLead+emergeTime*.6f){roaredSound=true;Sound.Cue("Kraken_Roar",.8f);}
                 float rise=Mathf.SmoothStep(0,1,Mathf.InverseLerp(sandLead,sandLead+emergeTime,t));
                 bodyVisual.position=bodyHome-Vector3.up*burialDepth*(1-rise);
                 sand.Intensity=Mathf.SmoothStep(0,1,t/sandLead)*(1-Mathf.InverseLerp(sandLead+emergeTime*.5f,duration-1,t));
@@ -198,7 +201,7 @@ namespace DogLife
         }
         IEnumerator Pincer()
         {
-            State=Phase.Pincer;facing=FlatAim();Play("Command",pincer.warning);var side=Vector3.Cross(Vector3.up,facing);
+            State=Phase.Pincer;Sound.Prepare("Kraken_Underwater_Windup");facing=FlatAim();Play("Command",pincer.warning);var side=Vector3.Cross(Vector3.up,facing);
             float reach=Mathf.Clamp(Vector3.Dot(player.transform.position-center,facing),4,pincerReach);
             float y=Mathf.Clamp(player.transform.position.y+.6f,arena.min.y+1,arena.max.y-1);
             Vector3 target=new Vector3(center.x,y,center.z)+facing*reach;
@@ -210,7 +213,7 @@ namespace DogLife
                     float blend=Mathf.SmoothStep(0,1,q);arms[i].SetShape(Vector3.Lerp(fromRoots[i],start,blend),Vector3.Lerp(fromTips[i],target+side*s*pincerHalfWidth,blend),Vector3.up*Mathf.Sin(q*Mathf.PI)*.4f+side*s*2);}
                 yield return null;
             }
-            warning.Progress=1;warning.Impact=true;Play("Wave",pincer.attack);bool hit=false;
+            warning.Progress=1;warning.Impact=true;Sound.StopPreparation();Sound.Cue("Kraken_Underwater_Strike");Play("Wave",pincer.attack);bool hit=false;
             for(float t=0;t<pincer.attack;t+=Time.deltaTime){float q=Mathf.SmoothStep(0,1,t/pincer.attack);
                 for(int i=0;i<2;i++){float s=i==0?-1:1;arms[i].SetShape(center+side*s*3.5f,target+side*s*Mathf.Lerp(pincerHalfWidth,.3f,q),side*s*2);}
                 // The moving damage boxes follow the tips, not the entire warning all at once.
@@ -228,9 +231,9 @@ namespace DogLife
             Vector3 direction=(player.transform.position+Vector3.up*.6f-mouth).normalized;Quaternion rotation=Quaternion.LookRotation(direction);
             float travel=beamDistance;if(Physics.Raycast(mouth,direction,out var wall,travel,1<<8,QueryTriggerInteraction.Ignore))travel=wall.distance;
             var line=Effect(KrakenDeepVfx.Form.Beam,mouth);line.transform.rotation=rotation;line.Size=new Vector3(beamRadius*2,0,travel);
-            var orb=Effect(KrakenDeepVfx.Form.Orb,mouth);Play("Roar",cannon.warning);
+            var orb=Effect(KrakenDeepVfx.Form.Orb,mouth);Sound.Prepare("Kraken_Pressure_Charge");Play("Roar",cannon.warning);
             for(float t=0;t<cannon.warning;t+=Time.deltaTime){float q=t/cannon.warning;line.Progress=q;orb.Size=Vector3.one*Mathf.Lerp(.2f,beamRadius,q);bodyVisual.position=bodyHome-facing*.3f*q;yield return null;}
-            Remove(orb);line.Impact=true;Play("Wave",cannon.attack);bool hit=false;
+            Remove(orb);line.Impact=true;Sound.StopPreparation();Sound.Cue("Kraken_Pressure_Burst");Play("Wave",cannon.attack);bool hit=false;
             for(float distance=0;distance<travel+beamLength;distance+=beamSpeed*Time.deltaTime){
                 float front=Mathf.Min(travel,distance),back=Mathf.Max(0,distance-beamLength);if(back>=travel)break;
                 line.transform.position=mouth+direction*back;line.Size=new Vector3(beamRadius*2,0,front-back);line.Progress=1;
@@ -241,19 +244,19 @@ namespace DogLife
         }
         IEnumerator Vortex()
         {
-            State=Phase.Vortex;Play("Command",vortex.warning);var water=Effect(KrakenDeepVfx.Form.Vortex,center);water.Size=new Vector3(suctionRadius,5,0);
+            State=Phase.Vortex;Sound.Prepare("Kraken_Pressure_Charge");Play("Command",vortex.warning);var water=Effect(KrakenDeepVfx.Form.Vortex,center);water.Size=new Vector3(suctionRadius,5,0);
             for(float t=0;t<vortex.warning;t+=Time.deltaTime){water.Progress=t/vortex.warning;water.Intensity=t/vortex.warning;yield return null;}
-            water.Impact=true;water.Progress=1;water.Intensity=1;
+            water.Impact=true;water.Progress=1;water.Intensity=1;Sound.StopPreparation();Sound.Sustain("Kraken_Flood_Loop",.4f);
             for(float t=0;t<vortex.attack;t+=Time.deltaTime){
                 Vector3 d=center-(player.transform.position+Vector3.up*.6f);
                 if(swim)swim.SetCurrent(d.magnitude<suctionRadius?d.normalized*suctionSpeed:Vector3.zero);
                 for(int i=0;i<arms.Count;i++){float a=Time.time*.6f+i*Mathf.PI*.5f;Vector3 dir=new Vector3(Mathf.Cos(a),0,Mathf.Sin(a));arms[i].SetShape(center+dir*2,center+dir*9+Vector3.up*2,Vector3.up*3);}
                 yield return null;
             }
-            if(swim)swim.SetCurrent(Vector3.zero);Remove(water);
+            if(swim)swim.SetCurrent(Vector3.zero);Remove(water);Sound.StopSustain();Sound.Prepare("Kraken_Pressure_Charge");
             var burst=Effect(KrakenDeepVfx.Form.Orb,center);burst.Size=Vector3.one*burstRadius;
             for(float t=0;t<pauseBeforeBurst;t+=Time.deltaTime){burst.Progress=t/pauseBeforeBurst;yield return null;}
-            Play("Wave",vortex.attack);burst.Shape=KrakenDeepVfx.Form.Burst;burst.Progress=0;
+            Sound.StopPreparation();Sound.Cue("Kraken_Pressure_Burst");Play("Wave",vortex.attack);burst.Shape=KrakenDeepVfx.Form.Burst;burst.Progress=0;
             if(Vector3.Distance(player.GetComponent<CapsuleCollider>().ClosestPoint(center),center)<=burstRadius)Hit(vortex.damage,player.transform.position-center,vortex.knockback);
             for(float t=0;t<.7f;t+=Time.deltaTime){burst.Progress=t/.7f;burst.Intensity=1-t/.7f;yield return null;}Remove(burst);yield return Recover(vortex.recovery);
         }
@@ -266,10 +269,10 @@ namespace DogLife
                 float yaw=Quaternion.LookRotation(facing).eulerAngles.y;
                 var marker=Effect(KrakenDeepVfx.Form.Sector,origin);marker.transform.rotation=Quaternion.Euler(0,yaw,0);
                 marker.Size=new Vector3(sweepRadius,sweepHeight,sweepAngle);
-                Play("Command",sweep.warning);
+                Sound.Prepare("Kraken_Underwater_Windup");Play("Command",sweep.warning);
                 Vector3 fromRoot=arms[2].SamplePoints()[0],fromTip=arms[2].Tip;
                 for(float t=0;t<sweep.warning;t+=Time.deltaTime){float q=t/sweep.warning;marker.Progress=q;Vector3 d=Quaternion.Euler(0,yaw-sweepAngle*.5f,0)*Vector3.forward;float blend=Mathf.SmoothStep(0,1,q);arms[2].SetShape(Vector3.Lerp(fromRoot,origin,blend),Vector3.Lerp(fromTip,origin+d*sweepRadius,blend),Vector3.up*Mathf.Sin(q*Mathf.PI)*2+Vector3.Cross(Vector3.up,d));yield return null;}
-                bool hit=false;float previous=-sweepAngle*.5f;Play("Wave",sweep.attack);
+                Sound.StopPreparation();Sound.Cue("Kraken_Underwater_Strike");bool hit=false;float previous=-sweepAngle*.5f;Play("Wave",sweep.attack);
                 for(float t=0;t<sweep.attack+Time.deltaTime;t+=Time.deltaTime){float q=Mathf.Clamp01(t/sweep.attack),angle=Mathf.Lerp(-sweepAngle*.5f,sweepAngle*.5f,Mathf.SmoothStep(0,1,q));
                     Vector3 d=Quaternion.Euler(0,yaw+angle,0)*Vector3.forward;arms[2].SetShape(origin,origin+d*sweepRadius,Vector3.Cross(Vector3.up,d));
                     int steps=Mathf.Max(1,Mathf.CeilToInt(Mathf.Abs(angle-previous)/3));
@@ -283,18 +286,19 @@ namespace DogLife
         }
         IEnumerator Heart()
         {
-            State=Phase.Heart;HeartExecutions++;Play("Roar",heartWarning);
+            State=Phase.Heart;HeartExecutions++;Sound.Cue("Kraken_Roar");Play("Roar",heartWarning);
             foreach(int layer in new[]{0,2,1}){
+                Sound.Prepare("Kraken_Pressure_Charge");
                 float height=arena.size.y/3;Vector3 p=new Vector3(arena.center.x,arena.min.y+height*(layer+.5f),arena.center.z);
                 var band=Effect(KrakenDeepVfx.Form.Band,p);band.Size=new Vector3(arena.size.x,height,arena.size.z);
                 for(float t=0;t<heartWarning;t+=Time.deltaTime){band.Progress=t/heartWarning;
                     for(int i=0;i<arms.Count;i++){float angle=i*Mathf.PI*.5f;Vector3 d=new Vector3(Mathf.Cos(angle),0,Mathf.Sin(angle));arms[i].SetShape(center+d*2,new Vector3(center.x,y:p.y,z:center.z)+d*10,Vector3.up*2*Mathf.Sin(t/heartWarning*Mathf.PI));}
                     yield return null;}
-                band.Progress=1;band.Impact=true;Play("Wave",heartExplosion);bool hit=false;
+                band.Progress=1;band.Impact=true;Sound.StopPreparation();Sound.Cue("Kraken_Pressure_Burst");Play("Wave",heartExplosion);bool hit=false;
                 for(float t=0;t<heartExplosion;t+=Time.deltaTime){if(!hit)hit=BoxHit(p,band.Size,Quaternion.identity,heartDamage,heartKnockback);band.Intensity=1-t/heartExplosion;yield return null;}
                 attackBox.enabled=false;Remove(band);yield return new WaitForSeconds(heartInterval);
             }
-            State=Phase.Groggy;Play("Groggy",groggyTime);yield return new WaitForSeconds(groggyTime);State=Phase.Idle;Play("Idle",1);
+            State=Phase.Groggy;Sound.Cue("Kraken_Groggy",.75f);Play("Groggy",groggyTime);yield return new WaitForSeconds(groggyTime);State=Phase.Idle;Play("Idle",1);
         }
         IEnumerator Recover(float duration)
         {
@@ -312,12 +316,14 @@ namespace DogLife
         }
         IEnumerator Death()
         {
+            Sound.StopAll();Sound.Cue("Kraken_Death");
             Play("Groggy",deathTime);Vector3 from=bodyVisual.position;var sand=Effect(KrakenDeepVfx.Form.Sand,new Vector3(center.x,arena.min.y,center.z));sand.Size=new Vector3(sandRadius,sandHeight*.5f,0);
             for(float t=0;t<deathTime;t+=Time.deltaTime){float q=Mathf.SmoothStep(0,1,t/deathTime);bodyVisual.position=from-Vector3.up*q*bodyFloatHeight;SetIdleArms(1-q*.5f);sand.Intensity=1-q;yield return null;}
             ClearEffects();if(animator)animator.speed=0;health.CompleteDeferredDeath(true);if(first)first.FinishUnderwaterEncounter();
         }
         public void Cancel()
         {
+            var audio=GetComponent<SummerAudioEmitter>();if(audio)audio.StopAll();
             if(bodyBarrier)bodyBarrier.enabled=false;
             running=false;StopAllCoroutines();if(swim)swim.SetCurrent(Vector3.zero);ClearEffects();foreach(var a in arms)if(a)a.SetExposed(false);foreach(var h in hurtboxes)if(h)h.enabled=false;State=Phase.Dead;
             if(pool)foreach(var warning in pool.GetComponentsInChildren<KrakenPhaseWarning>())Destroy(warning.gameObject);

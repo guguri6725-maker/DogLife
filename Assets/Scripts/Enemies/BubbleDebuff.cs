@@ -12,14 +12,16 @@ namespace DogLife
         public float MoveMultiplier=>Active?moveMultiplier:1;
         public float RollMultiplier=>Active?rollMultiplier:1;
         SummerWaterVfx effect;
+        bool wasActive;
         public void Apply(float moveReduction,float rollReduction,float duration,Material material)
         {
             moveMultiplier=1-Mathf.Clamp(moveReduction,0,.85f);
             rollMultiplier=1-Mathf.Clamp(rollReduction,0,.85f);
             until=Time.time+Mathf.Max(.05f,duration); // 재적중은 강도 곱셈 없이 기간만 갱신합니다.
+            wasActive=true;
             if(!effect){var go=new GameObject("BubbleDebuffVFX");go.transform.SetParent(transform,false);effect=go.AddComponent<SummerWaterVfx>();effect.Initialize(material);effect.debuff=this;}
         }
-        void Update(){var h=GetComponent<CombatHealth>();if(h&&h.Dead)until=0;}
-        void OnDisable(){until=0;}
+        void Update(){var h=GetComponent<CombatHealth>();if(h&&h.Dead){until=0;wasActive=false;}if(wasActive&&!Active){wasActive=false;GameAudio.Play("Crab_Debuff_End",transform.position,.4f);}}
+        void OnDisable(){until=0;wasActive=false;}
     }
 }

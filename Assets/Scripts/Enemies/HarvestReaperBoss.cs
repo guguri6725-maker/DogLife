@@ -53,6 +53,7 @@ namespace DogLife
   public sealed class Patch { public Vector3 point;public float born,nextTick;public bool exploded; }
   readonly List<Patch> patches=new List<Patch>();
   readonly float[] ready=new float[4];readonly bool[] consumed=new bool[3];readonly List<Pattern> choices=new List<Pattern>(4);
+  HarvestReaperAudio sound;
   CombatHealth health,target;PlayerMotor player;Collider targetCollider;ForestRoom room;
   float elapsed,nextAttack,closeClock,nextTick,nextOuterTick;bool gathering;bool hit,engaged;int previous=-1,round,rotationSign;
   public Pattern CurrentPattern{get;private set;} public Phase State{get;private set;}
@@ -67,7 +68,7 @@ namespace DogLife
   public float Progress=>Mathf.Clamp01(elapsed/Mathf.Max(.01f,PhaseDuration));
   public float PhaseDuration=>State==Phase.Warning?(CurrentPattern==Pattern.SafeWedge?(gathering?special.gatherWarning:special.warning):CurrentPattern==Pattern.Storm?stormWarningDuration:CurrentAttack.warning):State==Phase.Gap?special.delay:State==Phase.Recovery?CurrentAttack.recovery:CurrentPattern==Pattern.SafeWedge?(gathering?special.gatherDuration:special.explosionDuration):CurrentAttack.duration;
   public Vector3 Ground=>transform.position+Vector3.up*.06f;
-  void Awake(){health=GetComponent<CombatHealth>();var agent=GetComponent<NavMeshAgent>();if(agent)agent.enabled=false;var body=GetComponent<Rigidbody>();if(body){body.isKinematic=true;body.constraints=RigidbodyConstraints.FreezeAll;}if(animator)animator.applyRootMotion=false;}
+  void Awake(){health=GetComponent<CombatHealth>();sound=GetComponent<HarvestReaperAudio>();if(!sound)sound=gameObject.AddComponent<HarvestReaperAudio>();var agent=GetComponent<NavMeshAgent>();if(agent)agent.enabled=false;var body=GetComponent<Rigidbody>();if(body){body.isKinematic=true;body.constraints=RigidbodyConstraints.FreezeAll;}if(animator)animator.applyRootMotion=false;}
   void Start(){player=FindFirstObjectByType<PlayerMotor>();if(player){target=player.GetComponent<CombatHealth>();targetCollider=player.GetComponent<Collider>();}if(!room)room=GetComponentInParent<ForestRoom>();nextAttack=Time.time+initialDelay;Forward=transform.forward;Play("Idle",1);}
   public void BindRoom(ForestRoom value){room=value;}
   void Play(string clip,float duration){if(!animator)return;animator.SetFloat("PhaseSpeed",clip=="Idle"?1:1/Mathf.Max(.01f,duration));animator.CrossFadeInFixedTime(clip,.12f);}
@@ -98,8 +99,8 @@ namespace DogLife
    if(State==Phase.Gap){if(elapsed>=PhaseDuration){SafeYaw+=rotationSign*special.angleStep;Enter(Phase.Warning);}return;}
    if(State==Phase.Recovery){if(Progress>=recoveryTurnStart)TurnToward(delta,Time.deltaTime);if(elapsed>=PhaseDuration){State=Phase.Idle;nextAttack=Time.time+globalCooldown;Play("Idle",1);}return;}
    if(CurrentPattern==Pattern.Storm){if(Time.time>=nextTick){nextTick=Time.time+Mathf.Max(.05f,special.stormTick);TryAreaHit(storm.damage,storm.knockback,storm.lift);}}
-   else if(CurrentPattern==Pattern.SafeWedge){if(!gathering&&!hit){hit=true;if(targetCollider&&InInnerDanger(targetCollider.bounds.center))Hit(special.damage,0,0,transform.position);}}
-   else if(CurrentPattern!=Pattern.Pumpkins&&!hit&&Progress>=CurrentAttack.hitTime){hit=true;TryAreaHit(CurrentAttack.damage,CurrentAttack.knockback,CurrentAttack.lift);}
+   else if(CurrentPattern==Pattern.SafeWedge){if(!gathering&&!hit){hit=true;if(sound)sound.Impact();if(targetCollider&&InInnerDanger(targetCollider.bounds.center))Hit(special.damage,0,0,transform.position);}}
+   else if(CurrentPattern!=Pattern.Pumpkins&&!hit&&Progress>=CurrentAttack.hitTime){hit=true;if(sound)sound.Impact();TryAreaHit(CurrentAttack.damage,CurrentAttack.knockback,CurrentAttack.lift);}
    if(elapsed>=PhaseDuration)
    {
     if(CurrentPattern==Pattern.SafeWedge&&gathering){gathering=false;Enter(Phase.Warning);}
@@ -140,7 +141,7 @@ namespace DogLife
   }
   void Enter(Phase phase)
   {
-   State=phase;elapsed=0;hit=false;nextTick=Time.time;
+   State=phase;elapsed=0;hit=false;nextTick=Time.time;if(sound)sound.Enter(phase);
    if(phase==Phase.Gap){Play("SpecialHold",special.delay);return;}
    if(phase==Phase.Recovery){Play("Recovery",CurrentAttack.recovery);return;}
    if(CurrentPattern==Pattern.SafeWedge)
@@ -186,6 +187,7 @@ namespace DogLife
   void SpawnPumpkins()
   {
    var made=new List<Vector3>();Vector3 first;if(!Place(player.transform.position,out first))first=new Vector3(player.transform.position.x,transform.position.y,player.transform.position.z);
+   if(sound)sound.PumpkinWarning(first);
    made.Add(first);patches.Add(new Patch{point=first,born=Time.time});
    for(int i=1;i<pumpkin.count;i++)for(int attempt=0;attempt<pumpkin.placementAttempts;attempt++)
    {
@@ -202,12 +204,12 @@ namespace DogLife
     if(age<pumpkin.explosionWarning)continue;
     float distance=Vector3.ProjectOnPlane(player.transform.position-p.point,Vector3.up).magnitude;
     bool sameHeight=Mathf.Abs(player.transform.position.y-p.point.y)<=heightTolerance;
-    if(!p.exploded){p.exploded=true;p.nextTick=Time.time+Mathf.Max(.05f,pumpkin.tickInterval);if(sameHeight&&distance<=pumpkin.explosionRadius)Hit(pumpkin.explosionDamage,pumpkins.knockback,pumpkins.lift,p.point);}
+    if(!p.exploded){p.exploded=true;if(sound)sound.PumpkinExplosion(p.point);p.nextTick=Time.time+Mathf.Max(.05f,pumpkin.tickInterval);if(sameHeight&&distance<=pumpkin.explosionRadius)Hit(pumpkin.explosionDamage,pumpkins.knockback,pumpkins.lift,p.point);}
     if(age>=pumpkin.explosionWarning+pumpkin.poolDuration){patches.RemoveAt(i);continue;}
     if(Time.time>=p.nextTick){p.nextTick=Time.time+Mathf.Max(.05f,pumpkin.tickInterval);if(sameHeight&&distance<=pumpkin.poolRadius)Hit(pumpkin.poolDamage,0,0,p.point);}
    }
   }
-  void Clear(){turnVelocity=0;gathering=false;patches.Clear();if(State!=Phase.Idle){State=Phase.Idle;Play("Idle",1);}engaged=false;}
+  void Clear(){if(sound)sound.Stop();turnVelocity=0;gathering=false;patches.Clear();if(State!=Phase.Idle){State=Phase.Idle;Play("Idle",1);}engaged=false;}
   void OnDisable(){Clear();}
  }
 }

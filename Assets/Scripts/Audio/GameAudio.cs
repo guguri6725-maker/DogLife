@@ -66,6 +66,8 @@ namespace DogLife
             SceneManager.activeSceneChanged+=SceneChanged;
             gameObject.AddComponent<SpringSoundscape>();
             gameObject.AddComponent<WinterSoundscape>();
+            gameObject.AddComponent<SummerSoundscape>();
+            gameObject.AddComponent<FallSoundscape>();
         }
         void SceneChanged(Scene a,Scene b){foreach(var v in voices){v.source.Stop();v.active=false;}cooldowns.Clear();}
         void OnDestroy(){if(instance==this){SceneManager.activeSceneChanged-=SceneChanged;instance=null;}}
@@ -96,6 +98,8 @@ namespace DogLife
             {
                 clip=Resources.Load<AudioClip>("Audio/Spring/"+key);
                 if(!clip)clip=Resources.Load<AudioClip>("Audio/Winter/"+key);
+                if(!clip)clip=Resources.Load<AudioClip>("Audio/Summer/"+key);
+                if(!clip)clip=Resources.Load<AudioClip>("Audio/Fall/"+key);
                 if(!clip)return default;
                 clips[key]=clip;
             }

@@ -7,6 +7,7 @@ namespace DogLife
         Transform[] bones;Vector3[] positions;Quaternion[] rotations;
         public void Begin(AnimationClip value,float seconds)
         {
+            if(!GetComponent<HarvestReaperDeathAudio>())gameObject.AddComponent<HarvestReaperDeathAudio>();
             clip=value;blend=seconds;bones=GetComponentsInChildren<Transform>();
             positions=new Vector3[bones.Length];rotations=new Quaternion[bones.Length];
             for(int i=0;i<bones.Length;i++){positions[i]=bones[i].localPosition;rotations[i]=bones[i].localRotation;}

@@ -14,7 +14,8 @@ namespace DogLife
         }
         void Update()
         {
-            if(!target||!owner||owner.Dead||!owner.isActiveAndEnabled||Time.time>=expires){Destroy(gameObject);return;}
+            if(!target||!owner||owner.Dead||!owner.isActiveAndEnabled){Destroy(gameObject);return;}
+            if(Time.time>=expires){Pop();return;}
             var h=target.GetComponent<CombatHealth>();if(!h||h.Dead){Destroy(gameObject);return;}
             Vector3 aim=target.transform.position+Vector3.up*.8f+Vector3.right*((index-1)*.45f);
             heading=Vector3.RotateTowards(heading,(aim-transform.position).normalized,turn*Mathf.Deg2Rad*Time.deltaTime,0);
@@ -38,11 +39,11 @@ namespace DogLife
                             target.ApplyKnockback(direction,pushSpeed,0,pushDuration);
                         }
                     }
-                    Pop();return;
+                    Pop(!target.IsDashing);return;
                 }
             }
             transform.position=next;
         }
-        void Pop(){SummerWaterVfx.Burst(transform.position,material);Destroy(gameObject);}
+        void Pop(bool hit=false){GameAudio.Play(hit?"Crab_Bubble_Hit":"Crab_Bubble_Expire",transform.position,hit?.65f:.25f,minimumInterval:.06f);SummerWaterVfx.Burst(transform.position,material);Destroy(gameObject);}
     }
 }
