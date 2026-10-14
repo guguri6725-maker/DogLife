@@ -7,7 +7,7 @@ namespace DogLife
     public sealed class SpringSoundscape : MonoBehaviour
     {
         AudioSource source;
-        bool wanted,paused;
+        bool wanted;
         float fade;
         public static bool IsSpringScene(Scene scene)=>scene.name=="Stage1_Spring"||scene.path.Contains("/SeasonRooms/Spring/");
         void Awake()
@@ -25,17 +25,17 @@ namespace DogLife
             // Main scene owns the soundscape, so preloaded rooms cannot start it early.
             wanted=SceneManager.GetSceneByName("Stage1_Spring").isLoaded;
             if(wanted&&!source.clip)source.clip=Resources.Load<AudioClip>("Audio/Spring/Spring_Ambience");
-            if(wanted&&source.clip&&!source.isPlaying&&!paused)source.Play();
+            if(wanted&&source.clip&&!source.isPlaying&&!GameAudio.SuppressSeasonBackground)source.Play();
         }
         void Update()
         {
-            bool pause=Time.timeScale==0;
-            if(pause&&!paused){source.Pause();paused=true;}
-            else if(!pause&&paused){source.UnPause();paused=false;}
+            if(GameAudio.SuppressSeasonBackground)
+            {source.Stop();source.volume=0;fade=0;if(!wanted)source.clip=null;return;}
+            if(wanted&&source.clip&&!source.isPlaying)source.Play();
             fade=Mathf.MoveTowards(fade,wanted?1:0,Time.unscaledDeltaTime/1.25f);
             var p=GameAudio.Current;
             source.volume=.65f*fade*Mathf.Pow(p.master,1.5f)*Mathf.Pow(p.effects,1.5f);
-            if(!wanted&&fade<=0){source.Stop();source.clip=null;paused=false;}
+            if(!wanted&&fade<=0){source.Stop();source.clip=null;}
         }
         void OnDestroy()
         {SceneManager.sceneLoaded-=Loaded;SceneManager.sceneUnloaded-=Unloaded;SceneManager.activeSceneChanged-=Changed;}

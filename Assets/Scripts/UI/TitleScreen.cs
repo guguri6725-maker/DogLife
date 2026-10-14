@@ -11,6 +11,15 @@ namespace DogLife
         [SerializeField] private Button startButton;
         [SerializeField] private Text status;
         bool loading;
+        AudioClip titleMusic;
+        void Start(){ResumeMenuMusic();}
+        public void ResumeMenuMusic()
+        {
+            if(loading||!isActiveAndEnabled||gameObject.scene.name!="Title")return;
+            if(!titleMusic)titleMusic=Resources.Load<AudioClip>("Audio/Music/Title_BGM");
+            if(titleMusic)GameAudio.PlayMusic(titleMusic,this);
+        }
+        void OnDisable(){GameAudio.StopMusic(this);}
 
         public void LoadGame()
         {

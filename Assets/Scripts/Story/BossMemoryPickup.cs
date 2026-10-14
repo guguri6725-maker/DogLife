@@ -14,6 +14,7 @@ namespace DogLife
         static void ResetInput(){consumedFrame=-1;}
         StageOneDirector director;Transform crystal;Material material;Mesh mesh;
         Vector3 resting;float age;GUIStyle prompt;Font font;
+        GameAudio.Handle ambience;
         public static BossMemoryPickup Create(StageOneDirector owner,StoryChapter chapter)
         {
             var go=new GameObject("Boss Memory — "+chapter.id);
@@ -47,7 +48,9 @@ namespace DogLife
                     break;
                 }
             go.transform.position=pickup.resting;
-            pickup.Build(chapter.accent);return pickup;
+            pickup.Build(chapter.accent);
+            pickup.ambience=GameAudio.Play("Memory_Object_Loop",go.transform.position,.32f,follow:go.transform,loop:true,spatialRange:12);
+            return pickup;
         }
         void Build(Color tint)
         {
@@ -70,7 +73,7 @@ namespace DogLife
         public bool TryInteract()
         {
             if(!CanInteract)return false;
-            Collected=true;consumedFrame=Time.frameCount;return true;
+            Collected=true;ambience.Stop();consumedFrame=Time.frameCount;return true;
         }
         void Update()
         {
@@ -86,6 +89,7 @@ namespace DogLife
             if(prompt==null)prompt=new GUIStyle(GUI.skin.box){font=font,fontSize=22,alignment=TextAnchor.MiddleCenter};
             GUI.Box(new Rect(Screen.width*.5f-160,Screen.height*.72f,320,48),"[F] 추억 살펴보기",prompt);
         }
-        void OnDestroy(){if(material)Destroy(material);if(mesh)Destroy(mesh);}
+        void OnDisable(){ambience.Stop();}
+        void OnDestroy(){ambience.Stop();if(material)Destroy(material);if(mesh)Destroy(mesh);}
     }
 }

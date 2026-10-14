@@ -76,6 +76,7 @@ namespace DogLife
             if(unlock)StoryProgress.Unlock(id);
             if(!open)Acquire();
             gallery=false;replay=fromGallery;chapter=c;page=0;finished=onFinished;
+            GameAudio.PlayMusic(c.music,this);
             album.SetActive(false);reader.SetActive(true);automatic=false;autoLabel.text="자동 넘김 꺼짐";
             art.texture=null;
             ShowPage();return true;
@@ -89,6 +90,8 @@ namespace DogLife
                 Acquire();
             }
             gallery=true;replay=false;finished=null;reader.SetActive(false);album.SetActive(true);RefreshGallery();
+            GameAudio.StopMusic(this);
+            var title=FindFirstObjectByType<TitleScreen>();if(title)title.ResumeMenuMusic();
         }
         void Acquire()
         {
@@ -102,11 +105,13 @@ namespace DogLife
         void Release(bool callback)
         {
             if(!open)return;
+            GameAudio.StopMusic(this);
             CancelPresentation();
             var action=finished;finished=null;open=false;gallery=false;replay=false;
             root.SetActive(false);Time.timeScale=savedTime;Cursor.lockState=savedCursor;Cursor.visible=savedVisible;
             consumed=Time.frameCount;
             if(EventSystem.current)EventSystem.current.SetSelectedGameObject(savedSelection?savedSelection:null);
+            if(callback&&openedScene==SceneManager.GetActiveScene()){var title=FindFirstObjectByType<TitleScreen>();if(title)title.ResumeMenuMusic();}
             if(callback&&openedScene==SceneManager.GetActiveScene())action?.Invoke();
         }
         public void Finish()
@@ -119,9 +124,10 @@ namespace DogLife
         {
             if(!open||gallery||closing)return;
             if(!NarrationComplete){pageStarted=Time.unscaledTime-ReadingDuration;return;}
-            if(page+1<chapter.pages.Length){page++;ShowPage();}else Finish();
+            if(page+1<chapter.pages.Length){page++;PageSound();ShowPage();}else Finish();
         }
-        public void PreviousPage(){if(open&&!gallery&&!closing&&page>0){page--;ShowPage();}}
+        public void PreviousPage(){if(open&&!gallery&&!closing&&page>0){page--;PageSound();ShowPage();}}
+        void PageSound(){GameAudio.Play("Memory_Page_Turn",Vector3.zero,.35f,ui:true,minimumInterval:.12f);}
         void ShowPage()
         {
             PreparePresentation();

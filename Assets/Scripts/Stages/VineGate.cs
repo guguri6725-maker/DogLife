@@ -41,6 +41,10 @@ namespace DogLife
                 gateSound=GameAudio.Play(value>0?"Spring_Gate_Open":"Spring_Gate_Close",transform.position,.75f,2.4f/Mathf.Max(.1f,duration),follow:transform);
             else if(initialized&&WinterSoundscape.IsWinter(gameObject.scene))
                 gateSound=GameAudio.Play(value>0?"Winter_Door_Open":"Winter_Door_Close",transform.position,.65f,2.4f/Mathf.Max(.1f,duration),follow:transform);
+            else if(initialized&&(gameObject.scene.name=="Stage3_Summer"||gameObject.scene.path.Contains("/SeasonRooms/Summer/")))
+                gateSound=GameAudio.Play(value>0?"Summer_Door_Open":"Summer_Door_Close",transform.position,.65f,3f/Mathf.Max(.1f,duration),follow:transform);
+            else if(initialized&&FallSoundscape.IsFallScene(gameObject.scene))
+                gateSound=GameAudio.Play(value>0?"Autumn_Door_Open":"Autumn_Door_Close",transform.position,.7f,3.2f/Mathf.Max(.1f,duration),follow:transform);
             if (visualRoot) visualRoot.SetActive(true);
             ApplyBlockers();
         }

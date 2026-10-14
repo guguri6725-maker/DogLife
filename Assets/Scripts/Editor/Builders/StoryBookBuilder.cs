@@ -14,7 +14,8 @@ namespace DogLife.EditorTools
     {
         static StoryPage P(string image,string text)=>new StoryPage{artwork=AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Art/Story/"+image+".png"),text=text};
         static StoryChapter C(string id,string title,string subtitle,string scene,string entrance,Color color,params StoryPage[] pages)
-            =>new StoryChapter{id=id,title=title,subtitle=subtitle,sceneName=scene,entrance=entrance,accent=color,pages=pages};
+            =>new StoryChapter{id=id,title=title,subtitle=subtitle,sceneName=scene,entrance=entrance,accent=color,pages=pages,
+                music=Resources.Load<AudioClip>("Audio/Music/"+(id=="life"?"Ending_Life":id=="farewell"?"Ending_Farewell":id=="revenge"?"Ending_Revenge":"Story_"+char.ToUpperInvariant(id[0])+id.Substring(1)))};
         public static string Build()
         {
             string[] images={"Home","Fear","LastNight","Meadow","WinterDoor","Life","Farewell","Revenge"};

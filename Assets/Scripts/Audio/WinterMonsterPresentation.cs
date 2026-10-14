@@ -50,17 +50,8 @@ namespace DogLife
         }
         void Die()
         {
+            // Health deactivates the enemy immediately; death has no sound or corpse animation.
             preparation.Stop();frost.Stop();
-            GameAudio.Play(Prefix+"_Death",transform.position,deathVolume,minimumInterval:0);
-            if(!deathAnimation||!animator)return;
-            // A visual-only corpse survives the existing health object's immediate deactivation.
-            // It has no Enemy/Health/Collider, so it cannot hold room clear or pay rewards twice.
-            var corpse=Instantiate(animator.gameObject,animator.transform.position,animator.transform.rotation,transform.parent);
-            corpse.name=Prefix+" Death Visual";corpse.transform.localScale=animator.transform.lossyScale;
-            if(corpse.transform.parent)corpse.transform.localScale=new Vector3(animator.transform.lossyScale.x/corpse.transform.parent.lossyScale.x,animator.transform.lossyScale.y/corpse.transform.parent.lossyScale.y,animator.transform.lossyScale.z/corpse.transform.parent.lossyScale.z);
-            foreach(var a in corpse.GetComponentsInChildren<Animator>())a.enabled=false;
-            foreach(var c in corpse.GetComponentsInChildren<Collider>())c.enabled=false;
-            corpse.AddComponent<WinterDeathVisual>().Begin(deathAnimation,corpseHold,enemy.Kind==WinterMonsterEnemy.Species.Spirit);
         }
     }
 }

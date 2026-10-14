@@ -17,6 +17,7 @@ namespace DogLife
     public sealed class StoryChapter
     {
         public string id, title, subtitle, sceneName;
+        public AudioClip music;
         [TextArea] public string entrance;
         public Color accent = new Color(.84f, .67f, .42f);
         public StoryPage[] pages;

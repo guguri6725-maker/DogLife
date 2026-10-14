@@ -130,6 +130,16 @@ namespace DogLife
             CombatStarted |= startCombat;
             encounter.SetActive(true);
             Enemies = encounter.GetComponentsInChildren<CombatHealth>(true);
+            Component boss=encounter.GetComponentInChildren<SpringBoarBoss>(true);
+            string music="Spring_Boss_BGM";
+            if(!boss){boss=encounter.GetComponentInChildren<KrakenPhaseOne>(true);music="Summer_Boss_BGM";}
+            if(!boss){boss=encounter.GetComponentInChildren<HarvestReaperBoss>(true);music="Autumn_Boss_BGM";}
+            if(!boss){boss=encounter.GetComponentInChildren<FrozenKnightBoss>(true);music="Winter_Boss_BGM";}
+            if(boss)
+            {
+                var soundtrack=GetComponent<BossBattleMusic>();if(!soundtrack)soundtrack=gameObject.AddComponent<BossBattleMusic>();
+                soundtrack.Prepare(boss,music);if(CombatStarted)soundtrack.Begin();
+            }
         }
     }
 }

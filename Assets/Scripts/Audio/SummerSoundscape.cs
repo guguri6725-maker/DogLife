@@ -26,12 +26,14 @@ namespace DogLife
             // 통일된 보스 수면 셰이더에서도 수직 폭포의 환경음을 유지합니다.
             {foreach(var m in r.sharedMaterials)if(m&&m.shader&&(m.shader.name=="DogLife/Original Coastal Waterfall"||(m.HasProperty("_EnvironmentMode")&&Mathf.Approximately(m.GetFloat("_EnvironmentMode"),2)))){flows.Add(r);break;}}
         }
-        void Ensure(AudioSource s,string key){if(!s.clip)s.clip=Resources.Load<AudioClip>("Audio/Summer/"+key);if(s.clip&&!s.isPlaying&&!paused)s.Play();}
+        void Ensure(AudioSource s,string key){if(!s.clip)s.clip=Resources.Load<AudioClip>("Audio/Summer/"+key);if(s.clip&&!s.isPlaying&&(s!=waterfall||!paused)&&(!GameAudio.SuppressSeasonBackground||s==waterfall))s.Play();}
         void Update()
         {
             bool wanted=SceneManager.GetSceneByName("Stage3_Summer").isLoaded;
             bool pause=Time.timeScale<=0;
-            if(pause!=paused){foreach(var s in new[]{coast,underwater,waterfall}){if(pause)s.Pause();else s.UnPause();}paused=pause;}
+            if(pause!=paused){if(pause)waterfall.Pause();else waterfall.UnPause();paused=pause;}
+            bool suppress=GameAudio.SuppressSeasonBackground;
+            if(suppress){coast.Stop();underwater.Stop();}
             if(wanted)
             {
                 if(Time.unscaledTime>=nextScan){nextScan=Time.unscaledTime+2;if(geometryDirty){Scan();geometryDirty=false;}else{if(!flood)flood=FindFirstObjectByType<KrakenWaterVolume>();if(!view)view=Camera.main;}}
@@ -46,7 +48,7 @@ namespace DogLife
             if(chosen){waterfall.transform.position=chosen.bounds.center;if(flood&&chosen.GetComponentInParent<ForestRoom>()==flood.GetComponentInParent<ForestRoom>())visibility*=flood.FlowVisibility;}
             flowBlend=Mathf.MoveTowards(flowBlend,visibility,Time.unscaledDeltaTime);
             var p=GameAudio.Current;float gain=fade*Mathf.Pow(p.master,1.5f)*Mathf.Pow(p.effects,1.5f);
-            coast.volume=coastVolume*gain*(1-depthBlend);underwater.volume=underwaterVolume*gain*depthBlend;waterfall.volume=waterfallVolume*gain*flowBlend*(1-depthBlend);
+            coast.volume=coastVolume*gain*(1-depthBlend)*(suppress?0:1);underwater.volume=underwaterVolume*gain*depthBlend*(suppress?0:1);waterfall.volume=waterfallVolume*gain*flowBlend*(1-depthBlend);
             if(!wanted&&fade<=0){foreach(var s in new[]{coast,underwater,waterfall}){s.Stop();s.clip=null;}flows.Clear();flood=null;}
         }
         void OnDestroy(){SceneManager.sceneLoaded-=Loaded;SceneManager.sceneUnloaded-=Unloaded;}

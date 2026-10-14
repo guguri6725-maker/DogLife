@@ -8,6 +8,11 @@ namespace DogLife
         static PlayerDeathSequence active;
         public static bool IsActive=>active;
         public bool MenuVisible {get;private set;}
+        [SerializeField,Range(0,1)] float deathSoundMoment=.7f;
+        [SerializeField,Range(0,1)] float deathVolume=.75f,resultVolume=.5f;
+        GameAudio.Handle deathSound,resultSound;
+        bool deathSoundPlayed;
+        void PlayDeathSound(){if(deathSoundPlayed)return;deathSoundPlayed=true;deathSound=GameAudio.Play("Player_Death",transform.position,deathVolume,ui:true,follow:transform,minimumInterval:0);}
         public static void Begin(CombatHealth health)
         {
             if(active)return;
@@ -41,6 +46,7 @@ namespace DogLife
                 animator.enabled=false;
                 for(float time=0;time<clip.length;time+=Time.unscaledDeltaTime)
                 {
+                    if(time>=clip.length*deathSoundMoment)PlayDeathSound();
                     transform.position=Vector3.Lerp(start,grounded,Mathf.SmoothStep(0,1,time/.45f));
                     clip.SampleAnimation(animator.gameObject,time);
                     float blend=Mathf.SmoothStep(0,1,time/.22f);
@@ -49,12 +55,14 @@ namespace DogLife
                 }
                 clip.SampleAnimation(animator.gameObject,clip.length);
             }
-            else {Debug.LogError("Player death animation is missing.",this);yield return new WaitForSecondsRealtime(.7f);}
+            else {PlayDeathSound();Debug.LogError("Player death animation is missing.",this);yield return new WaitForSecondsRealtime(.7f);}
             yield return new WaitForSecondsRealtime(.35f);
             ShowMenu();
         }
         void ShowMenu()
         {
+            if(MenuVisible)return;
+            resultSound=GameAudio.Play("Death_Result_Show",Vector3.zero,resultVolume,ui:true,follow:transform,minimumInterval:0);
             MenuVisible=true;Cursor.lockState=CursorLockMode.None;Cursor.visible=true;
             var root=new GameObject("Journey Retry",typeof(RectTransform),typeof(Canvas),typeof(CanvasScaler),typeof(GraphicRaycaster));root.transform.SetParent(transform,false);
             var c=root.GetComponent<Canvas>();c.renderMode=RenderMode.ScreenSpaceOverlay;c.sortingOrder=31000;
@@ -68,6 +76,7 @@ namespace DogLife
             AdventureUI.Button(card,"Title","타이틀",new Vector2(177,-94),new Vector2(300,70),font,()=>SeasonLoadingScreen.Load("Assets/Scenes/Title.unity"));
             AdventureUI.Theme(card.gameObject);
         }
-        void OnDestroy(){if(active==this)active=null;}
+        void OnDisable(){deathSound.Stop();resultSound.Stop();}
+        void OnDestroy(){deathSound.Stop();resultSound.Stop();if(active==this)active=null;}
     }
 }
