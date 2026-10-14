@@ -63,6 +63,14 @@ namespace DogLife
         }
         void Animate(string name)
         {
+            // 새 보행의 접지 속도에 실제 이동 속도를 맞추고, 공격 동작은 원래 속도로 재생합니다.
+            if(modelAnimator)
+            {
+                const float authoredWalkSpeed=.28f/(.75f*1.2f);
+                float modelScale=Mathf.Max(.001f,Mathf.Abs(modelAnimator.transform.lossyScale.z));
+                float travelSpeed=Navigable?Vector3.ProjectOnPlane(agent.velocity,Vector3.up).magnitude:0;
+                modelAnimator.speed=name=="Walk"?travelSpeed/(authoredWalkSpeed*modelScale):1f;
+            }
             if(animationName==name)return;animationName=name;
             if(modelAnimator&&modelAnimator.isActiveAndEnabled)modelAnimator.CrossFadeInFixedTime(name,.06f,0);
         }

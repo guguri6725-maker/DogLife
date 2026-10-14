@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using UnityEngine;
 namespace DogLife
 {
@@ -115,7 +115,7 @@ namespace DogLife
         {
             vertices.Clear();colors.Clear();indices.Clear();
             if(patch&&patch.IsActive)DrawPatch();
-            else if(enemy&&enemy.isActiveAndEnabled&&health&&!health.Dead)
+            else if(enemy&&(enemy.isActiveAndEnabled||MonsterAnimationPreview.IsPreviewing(enemy))&&health&&!health.Dead)
             {
                 var state=enemy.State;float t=enemy.Progress;Vector3 p=enemy.Origin+Vector3.up*.10f;var kind=enemy.Kind;
                 bool warning=state==WinterMonsterEnemy.Phase.Warning||state==WinterMonsterEnemy.Phase.Reaim;

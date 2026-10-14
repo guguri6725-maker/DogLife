@@ -190,7 +190,7 @@ namespace DogLife
   {
    vertices.Clear();colors.Clear();indices.Clear();uv.Clear();
    if(!viewCamera)viewCamera=Camera.main;
-   if(boss&&boss.isActiveAndEnabled&&boss.Engaged)
+   if(boss&&(boss.isActiveAndEnabled||MonsterAnimationPreview.IsPreviewing(boss))&&boss.Engaged)
    {
     Vector3 p=boss.Ground;var state=boss.State;var kind=boss.CurrentPattern;var cfg=boss.CurrentAttack;float yaw=Mathf.Atan2(boss.Forward.x,boss.Forward.z)*Mathf.Rad2Deg,t=boss.Progress;
     bool warning=state==HarvestReaperBoss.Phase.Warning,active=state==HarvestReaperBoss.Phase.Active;

@@ -187,7 +187,7 @@ namespace DogLife
         {
             if(!view&&Camera.main)view=Camera.main.transform;
             vertices.Clear();colors.Clear();indices.Clear();uv.Clear();
-            if(boss&&boss.isActiveAndEnabled&&health&&!health.Dead){
+            if(boss&&(boss.isActiveAndEnabled||MonsterAnimationPreview.IsPreviewing(boss))&&health&&!health.Dead){
                 var state=boss.State;var pattern=boss.AttackPattern;float t=boss.Progress;
                 Vector3 p=boss.transform.position+Vector3.up*.12f,forward=boss.Forward,right=Vector3.Cross(Vector3.up,forward);
                 if(state==SpringBoarBoss.Phase.Warning){

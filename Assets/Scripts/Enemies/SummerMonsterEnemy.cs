@@ -95,7 +95,8 @@ namespace DogLife
             if(state!=Phase.Burrow&&state!=Phase.Idle)Stop();
             if(state==Phase.Dive)Play("Dive",diveTime);
             if(state==Phase.Burrow)Play("Burrow",1);
-            if(state==Phase.Warning)Play(species==Species.Mermaid?"Burrow":"AttackReady",warningTime);
+            // 인어도 추적을 멈추면 몸을 모으는 별도 준비 자세를 보여줍니다.
+            if(state==Phase.Warning)Play("AttackReady",warningTime);
             if(state==Phase.Attack)Play(species==Species.Mermaid?"Emerge":"Attack",attackTime);
             if(state==Phase.Recovery)Play("Recovery",recoveryTime);
             if(state==Phase.GuardIn)Play("GuardIn",.25f);
@@ -190,18 +191,19 @@ namespace DogLife
                 float t=Progress,pitch=0;
                 if(State==Phase.Dive)
                 {
-                    // Draw back, tip the head into the water, then drive the tail down.
+                    // 허리를 숙인 뒤 위로 튀지 않고 부드럽게 아래로 잠깁니다.
                     float sink=Mathf.SmoothStep(0,1,Mathf.InverseLerp(.23f,1,t));
-                    y=Mathf.Sin(Mathf.Clamp01(t/.45f)*Mathf.PI)*.23f-diveDepth*sink;
-                    pitch=72*Mathf.SmoothStep(0,1,Mathf.InverseLerp(.12f,.7f,t));
+                    y=-diveDepth*sink;
+                    // 입수 자세는 척추·골반·팔·꼬리 클립이 담당하며 전체 모델을 돌리지 않습니다.
                 }
-                else if(Submerged){y=-diveDepth;pitch=72;}
+                // 수중 경고 때 몸을 세워 출현 자세로 이어갑니다.
+                else if(Submerged){y=-diveDepth;}
                 else if(State==Phase.Attack)
                 {
                     float rise=Mathf.SmoothStep(0,1,Mathf.Clamp01(t/.30f));
                     float leap=Mathf.Sin(Mathf.Clamp01((t-.15f)/.85f)*Mathf.PI);
                     y=Mathf.Lerp(-diveDepth,0,rise)+leap*1.05f;
-                    pitch=Mathf.Lerp(72,-24,rise)*(1-Mathf.SmoothStep(0,1,Mathf.InverseLerp(.5f,1,t)));
+                    pitch=Mathf.Lerp(0,-24,rise)*(1-Mathf.SmoothStep(0,1,Mathf.InverseLerp(.5f,1,t)));
                 }
                 else y=State==Phase.Recovery?-.10f*Mathf.Sin(t*Mathf.PI):Mathf.Sin(Time.time*2)*.08f;
                 visualRoot.rotation=Quaternion.LookRotation(facing)*Quaternion.Euler(pitch,0,0);

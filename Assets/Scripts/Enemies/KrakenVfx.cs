@@ -145,7 +145,7 @@ namespace DogLife
    // 물방울마다 카메라를 다시 검색하지 않고 프레임당 한 번만 확인한다.
    var camera=Camera.main;viewRight=camera?camera.transform.right:Vector3.right;viewUp=camera?camera.transform.up:Vector3.up;
    v.Clear();c.Clear();ids.Clear();uv.Clear();surfaceKind=1;
-   if(boss&&boss.Engaged&&boss.isActiveAndEnabled)
+   if(boss&&boss.Engaged&&(boss.isActiveAndEnabled||MonsterAnimationPreview.IsPreviewing(boss)))
    {
     foreach(var t in boss.Tentacles)
     {

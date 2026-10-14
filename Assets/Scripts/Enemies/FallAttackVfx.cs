@@ -167,7 +167,7 @@ namespace DogLife
         }
         void LateUpdate()
         {
-            if(!enemy||!enemy.enabled||!health||health.Dead){Clear();return;}
+            if(!enemy||(!enemy.enabled&&!MonsterAnimationPreview.IsPreviewing(enemy))||!health||health.Dead){Clear();return;}
             var phase=enemy.CurrentPhase;bool ready=phase==FallMonsterEnemy.Phase.Anticipation;
             bool active=phase==FallMonsterEnemy.Phase.Active;
             bool warning=ready||phase==FallMonsterEnemy.Phase.Attack||active;

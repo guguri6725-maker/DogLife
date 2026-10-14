@@ -13,6 +13,8 @@ namespace DogLife
         [SerializeField] Material material;
         Mesh mesh;MeshRenderer surface;float born;bool burst;
         Camera view;Renderer[] bodyRenderers;MaterialPropertyBlock glowBlock;CombatHealth health;
+
+
         struct Fleck { public Vector3 origin,velocity;public float born,life,size;public int kind; }
         readonly List<Fleck> flecks=new List<Fleck>(160);
         readonly Vector3[] boltPoints=new Vector3[19];
@@ -257,7 +259,7 @@ namespace DogLife
                     Glow(p,.22f,new Color(.10f,.55f,.92f,.16f*opacity));
                 }
             }
-            else if(enemy&&enemy.isActiveAndEnabled&&health&&!health.Dead)
+            else if(enemy&&(enemy.isActiveAndEnabled||MonsterAnimationPreview.IsPreviewing(enemy))&&health&&!health.Dead)
             {
                 var phase=enemy.State;float t=enemy.Progress;Vector3 center=enemy.WarningCenter;
                 bool warning=phase==SummerMonsterEnemy.Phase.Warning,attack=phase==SummerMonsterEnemy.Phase.Attack;
