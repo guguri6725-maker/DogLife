@@ -38,7 +38,8 @@ namespace DogLife
             foreach(var r in room.GetComponentsInChildren<Renderer>(true))
             {
                 if(r.transform.IsChildOf(transform))continue;
-                bool flowing=false;foreach(var m in r.sharedMaterials)if(m&&m.shader&&(m.shader.name=="DogLife/Original Coastal Waterfall"||m.shader.name=="DogLife/Coastal Landing Foam"))flowing=true;
+                // 통일된 수면 재질에서도 폭포/거품 역할을 구분해 침수 전환을 유지합니다.
+                bool flowing=false;foreach(var m in r.sharedMaterials)if(m&&m.shader&&(m.shader.name=="DogLife/Original Coastal Waterfall"||m.shader.name=="DogLife/Coastal Landing Foam"||(m.HasProperty("_EnvironmentMode")&&m.GetFloat("_EnvironmentMode")>1.5f)))flowing=true;
                 if(!flowing)continue;
                 if(stoppedDecorationWater.ContainsKey(r))continue;
                 stoppedDecorationWater.Add(r,r.forceRenderingOff);var oldBlock=new MaterialPropertyBlock();r.GetPropertyBlock(oldBlock);originalDecorationBlocks.Add(r,oldBlock);
@@ -90,7 +91,7 @@ namespace DogLife
             {
                 if(!r.enabled||r.transform.IsChildOf(transform)||r.bounds.size.y>.5f)continue;
                 if(r.name.IndexOf("water",System.StringComparison.OrdinalIgnoreCase)<0||r.bounds.size.x<5||r.bounds.size.z<5)continue;
-                bool floorWater=false;foreach(var m in r.sharedMaterials)if(m&&m.shader&&m.shader.name=="DogLife/Coastal Floor Water")floorWater=true;
+                bool floorWater=false;foreach(var m in r.sharedMaterials)if(m&&m.shader&&(m.shader.name=="DogLife/Coastal Floor Water"||(m.HasProperty("_EnvironmentMode")&&Mathf.Approximately(m.GetFloat("_EnvironmentMode"),1))))floorWater=true;
                 if(!floorWater)continue;
                 bounds.Encapsulate(r.bounds);oldSurfaces.Add(r);originalSurfaceHeight=Mathf.Max(originalSurfaceHeight,r.bounds.max.y);
                 var block=new MaterialPropertyBlock();r.GetPropertyBlock(block);originalFloorBlocks.Add(r,block);

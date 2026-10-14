@@ -23,7 +23,8 @@ namespace DogLife
         {
             flows.Clear();flood=FindFirstObjectByType<KrakenWaterVolume>();view=Camera.main;
             foreach(var r in FindObjectsByType<Renderer>(FindObjectsSortMode.None))
-            {foreach(var m in r.sharedMaterials)if(m&&m.shader&&m.shader.name=="DogLife/Original Coastal Waterfall"){flows.Add(r);break;}}
+            // 통일된 보스 수면 셰이더에서도 수직 폭포의 환경음을 유지합니다.
+            {foreach(var m in r.sharedMaterials)if(m&&m.shader&&(m.shader.name=="DogLife/Original Coastal Waterfall"||(m.HasProperty("_EnvironmentMode")&&Mathf.Approximately(m.GetFloat("_EnvironmentMode"),2)))){flows.Add(r);break;}}
         }
         void Ensure(AudioSource s,string key){if(!s.clip)s.clip=Resources.Load<AudioClip>("Audio/Summer/"+key);if(s.clip&&!s.isPlaying&&!paused)s.Play();}
         void Update()

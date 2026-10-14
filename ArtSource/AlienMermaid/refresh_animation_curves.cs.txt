@@ -1,0 +1,40 @@
+// Blender의 새 뼈대 곡선을 기존 클립에 복사해 컨트롤러 연결과 공격 타이밍을 유지합니다.
+var source = "Assets/Art/SummerMonsters/AlienMermaid/AlienMermaid.fbx";
+var results = new System.Collections.Generic.List<string>();
+foreach (var asset in UnityEditor.AssetDatabase.LoadAllAssetsAtPath(source))
+{
+    var input = asset as UnityEngine.AnimationClip;
+    if (!input || input.name.StartsWith("__")) continue;
+    var state = input.name.Substring(input.name.LastIndexOf('_') + 1);
+    var path = "Assets/Art/SummerMonsters/Animations/CoralMermaid_" + state + ".anim";
+    var output = UnityEditor.AssetDatabase.LoadAssetAtPath<UnityEngine.AnimationClip>(path);
+    if (!output) throw new System.Exception("Missing existing clip: " + path);
+    var oldSettings = UnityEditor.AnimationUtility.GetAnimationClipSettings(output);
+    float seconds = state == "Dive" || state == "Emerge" || state == "Recovery" ? 1.9583334f :
+        state == "Attack" || state == "AttackReady" ? 1.25f : input.length;
+    output.ClearCurves();
+    foreach (var binding in UnityEditor.AnimationUtility.GetCurveBindings(input))
+    {
+        var curve = UnityEditor.AnimationUtility.GetEditorCurve(input, binding);
+        var keys = curve.keys;
+        float ratio = seconds / input.length;
+        for (int i = 0; i < keys.Length; i++)
+        {
+            keys[i].time *= ratio;
+            keys[i].inTangent /= ratio;
+            keys[i].outTangent /= ratio;
+        }
+        curve.keys = keys;
+        UnityEditor.AnimationUtility.SetEditorCurve(output, binding, curve);
+    }
+    output.frameRate = 30;
+    output.EnsureQuaternionContinuity();
+    oldSettings.startTime = 0;
+    oldSettings.stopTime = seconds;
+    oldSettings.loopTime = state == "Idle" || state == "Walk" || state == "Burrow";
+    UnityEditor.AnimationUtility.SetAnimationClipSettings(output, oldSettings);
+    UnityEditor.EditorUtility.SetDirty(output);
+    results.Add(state + " " + seconds + "s");
+}
+UnityEditor.AssetDatabase.SaveAssets();
+return string.Join("\n", results.ToArray());

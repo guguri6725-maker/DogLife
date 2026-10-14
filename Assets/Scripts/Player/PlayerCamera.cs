@@ -93,7 +93,13 @@ namespace DogLife
         {cinematicFrom=transform.position;cinematicRotation=transform.rotation;cinematicReturnStart=Time.unscaledTime;cinematicReturnDuration=duration;ownCamera=GetComponent<Camera>();cinematicFov=ownCamera?ownCamera.fieldOfView:originalFov;gameplayFov=originalFov;}
         // 지나온 방을 해제한 뒤 카메라가 닫힌 문 뒤로 넘어가지 않게 합니다.
         [System.NonSerialized] public float minimumWorldX = float.NegativeInfinity;
-        void Start() { CaptureCursor(true); }
+        void Start()
+        {
+            // 보스방에 도착하기 전에도 물의 깊이/굴절 계산에 필요한 화면 깊이를 제공합니다.
+            var view = GetComponent<Camera>();
+            if (view) view.depthTextureMode |= DepthTextureMode.Depth;
+            CaptureCursor(true);
+        }
         public void CaptureCursor(bool capture) {
             Cursor.lockState = capture ? CursorLockMode.Locked : CursorLockMode.None; Cursor.visible = !capture;
         }

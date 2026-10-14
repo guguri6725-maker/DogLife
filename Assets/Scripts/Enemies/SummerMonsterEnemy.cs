@@ -75,7 +75,18 @@ namespace DogLife
         float Duration(Phase p)=>p==Phase.Dive?diveTime:p==Phase.Burrow?maxSubmergedTime:p==Phase.Warning?warningTime:p==Phase.Attack?attackTime:p==Phase.Recovery?recoveryTime:p==Phase.Guard?defenseDuration:.25f;
         void Stop(){if(Nav){agent.isStopped=true;agent.ResetPath();agent.velocity=Vector3.zero;}}
         void Face(Vector3 d){d.y=0;if(d.sqrMagnitude<.001f)return;facing=d.normalized;if(visualRoot)visualRoot.rotation=Quaternion.LookRotation(facing);}
-        void Play(string state,float duration){if(!animator)return;animator.SetFloat("PhaseSpeed",1/Mathf.Max(.05f,duration));animator.CrossFadeInFixedTime(state,.10f);}
+        void Play(string state,float duration)
+        {
+            if(!animator)return;
+            // 인어의 잠수 이동→공격 대기는 같은 수영 루프를 이어 재생합니다.
+            if(species==Species.Mermaid&&state=="Burrow"&&
+                (animator.GetCurrentAnimatorStateInfo(0).IsName(state)||
+                 animator.IsInTransition(0)&&animator.GetNextAnimatorStateInfo(0).IsName(state)))return;
+            animator.SetFloat("PhaseSpeed",1/Mathf.Max(.05f,duration));
+            // 짧은 출현 공격은 타이밍을 유지하고 긴 동작만 여유 있게 연결합니다.
+            float blend=species==Species.Mermaid?Mathf.Min(.16f,duration*.25f):.10f;
+            animator.CrossFadeInFixedTime(state,blend);
+        }
         void Enter(Phase state)
         {
             State=state;elapsed=0;hit=false;spawned=false;

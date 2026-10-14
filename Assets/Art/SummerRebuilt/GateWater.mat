@@ -8,7 +8,7 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: GateWater
-  m_Shader: {fileID: 4800000, guid: 7d149c2578235fb43b11eb48cd6583c3, type: 3}
+  m_Shader: {fileID: 4800000, guid: 0dc6937a08be178418bd3a832cb6dae7, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
@@ -29,16 +29,29 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
+    - _Absorption: 0.22
+    - _EnvironmentMode: 2
+    - _FloodFeather: 0.8
+    - _FloodFloorVisibility: 1
+    - _FloodLevel: -10000
+    - _FloodVisibility: 1
     - _FlowSpeed: 0.55
     - _FlowTime: -1
+    - _FoamWidth: 0.8
     - _GateMode: 1
     - _ImpactMode: 0
     - _Opacity: 1
     - _OpenProgress: 0
+    - _Refraction: 0.012
+    - _Reveal: 1
     - _SurfaceMode: 0
     - _WaterLevel: 0
+    - _WaveHeight: 0.13
     - _WorldTiling: 0.18
     m_Colors:
     - _Color: {r: 0.55, g: 0.84, b: 0.89, a: 1}
+    - _Deep: {r: 0.018, g: 0.11, b: 0.16, a: 1}
+    - _Foam: {r: 0.79, g: 0.89, b: 0.84, a: 1}
+    - _Shallow: {r: 0.13, g: 0.43, b: 0.44, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
