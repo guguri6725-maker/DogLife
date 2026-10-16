@@ -1,0 +1,43 @@
+// Replace only transform curves; preserve clip assets, events, timing, and controller references.
+var ci=System.Globalization.CultureInfo.InvariantCulture;
+var data=new System.Collections.Generic.Dictionary<string,System.Collections.Generic.Dictionary<float,System.Collections.Generic.Dictionary<string,Matrix4x4>>>();
+foreach(var line in System.IO.File.ReadLines("ArtSource/HarvestReaper/TPoseReplacement/retargeted_motion.csv")){
+ var v=line.Split(',');float t=float.Parse(v[1],ci);var m=Matrix4x4.identity;
+ for(int i=0;i<12;i++)m[i/4,i%4]=float.Parse(v[i+3],ci);
+ if(!data.ContainsKey(v[0]))data[v[0]]=new System.Collections.Generic.Dictionary<float,System.Collections.Generic.Dictionary<string,Matrix4x4>>();
+ if(!data[v[0]].ContainsKey(t))data[v[0]][t]=new System.Collections.Generic.Dictionary<string,Matrix4x4>();
+ data[v[0]][t][v[2]]=m;
+}
+int changed=0;
+foreach(var entry in data){
+ var clip=AssetDatabase.LoadAssetAtPath<AnimationClip>("Assets/Art/HarvestReaper/Animations/"+entry.Key+".anim");
+ var model=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/HarvestReaper/Models/"+(entry.Key.EndsWith("Death")?"HarvestReaperDeath":"HarvestReaper")+".fbx");
+ var transforms=model.GetComponentsInChildren<Transform>(true).ToDictionary(t=>t.name,t=>t);
+ var keys=new System.Collections.Generic.Dictionary<string,System.Collections.Generic.List<Keyframe>[]>();
+ var previous=new System.Collections.Generic.Dictionary<string,Quaternion>();
+ foreach(var frame in entry.Value.OrderBy(x=>x.Key)){
+  var world=frame.Value.ToDictionary(x=>x.Key,x=>x.Value*model.transform.worldToLocalMatrix*transforms[x.Key].localToWorldMatrix);
+  foreach(var kv in world){
+   var tr=transforms[kv.Key];var parent=world.ContainsKey(tr.parent.name)?world[tr.parent.name]:model.transform.worldToLocalMatrix*tr.parent.localToWorldMatrix;
+   var local=parent.inverse*kv.Value;var p=local.GetColumn(3);var q=local.rotation.normalized;
+   if(previous.ContainsKey(kv.Key)&&Quaternion.Dot(previous[kv.Key],q)<0)q=new Quaternion(-q.x,-q.y,-q.z,-q.w);previous[kv.Key]=q;
+   var scale=new Vector3(local.GetColumn(0).magnitude,local.GetColumn(1).magnitude,local.GetColumn(2).magnitude);
+   if(!keys.ContainsKey(kv.Key))keys[kv.Key]=Enumerable.Range(0,10).Select(i=>new System.Collections.Generic.List<Keyframe>()).ToArray();
+   for(int i=0;i<3;i++)keys[kv.Key][i].Add(new Keyframe(frame.Key,p[i]));
+   for(int i=0;i<4;i++)keys[kv.Key][i+3].Add(new Keyframe(frame.Key,q[i]));
+   for(int i=0;i<3;i++)keys[kv.Key][i+7].Add(new Keyframe(frame.Key,scale[i]));
+  }
+ }
+ var binds=new System.Collections.Generic.List<EditorCurveBinding>();var curves=new System.Collections.Generic.List<AnimationCurve>();
+ foreach(var b in AnimationUtility.GetCurveBindings(clip).Where(b=>b.type==typeof(Transform))){binds.Add(b);curves.Add(null);}
+ AnimationUtility.SetEditorCurves(clip,binds.ToArray(),curves.ToArray());binds.Clear();curves.Clear();
+ foreach(var k in keys){var path=AnimationUtility.CalculateTransformPath(transforms[k.Key],model.transform);
+  for(int i=0;i<10;i++){
+   var property=i<3?"m_LocalPosition."+"xyz"[i]:i<7?"m_LocalRotation."+"xyzw"[i-3]:"m_LocalScale."+"xyz"[i-7];
+   var curve=new AnimationCurve(k.Value[i].ToArray());for(int j=0;j<curve.length;j++){AnimationUtility.SetKeyLeftTangentMode(curve,j,AnimationUtility.TangentMode.Linear);AnimationUtility.SetKeyRightTangentMode(curve,j,AnimationUtility.TangentMode.Linear);}
+   binds.Add(EditorCurveBinding.FloatCurve(path,typeof(Transform),property));curves.Add(curve);
+  }
+ }
+ AnimationUtility.SetEditorCurves(clip,binds.ToArray(),curves.ToArray());clip.EnsureQuaternionContinuity();EditorUtility.SetDirty(clip);changed++;
+}
+AssetDatabase.SaveAssets();return "Retargeted "+changed+" existing clips to the new T-pose rig.";

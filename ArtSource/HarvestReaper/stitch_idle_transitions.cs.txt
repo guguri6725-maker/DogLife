@@ -1,0 +1,68 @@
+// Resample transition boundaries against the supplied idle without changing strike timing.
+var folder="Assets/Art/HarvestReaper/Animations/";
+System.Func<string,AnimationClip> Clip=n=>AssetDatabase.LoadAssetAtPath<AnimationClip>(folder+"HarvestReaper_"+n+".anim");
+var idle=Clip("Idle");
+var cache=new System.Collections.Generic.Dictionary<AnimationClip,System.Collections.Generic.Dictionary<string,AnimationCurve>>();
+System.Func<AnimationClip,string,string,float,float> Eval=(c,path,prop,time)=>{
+ if(!cache.ContainsKey(c)){
+  var dict=new System.Collections.Generic.Dictionary<string,AnimationCurve>();
+  foreach(var b in AnimationUtility.GetCurveBindings(c))dict[b.path+"\n"+b.propertyName]=AnimationUtility.GetEditorCurve(c,b);
+  cache[c]=dict;
+ }
+ AnimationCurve curve;
+ if(cache[c].TryGetValue(path+"\n"+prop,out curve))return curve.Evaluate(time);
+ return prop.Contains("Scale")||prop.EndsWith("Rotation.w")?1f:0f;
+};
+System.Func<AnimationClip,string,float,Quaternion> Q=(c,path,time)=>new Quaternion(Eval(c,path,"m_LocalRotation.x",time),Eval(c,path,"m_LocalRotation.y",time),Eval(c,path,"m_LocalRotation.z",time),Eval(c,path,"m_LocalRotation.w",time));
+System.Action<AnimationClip,AnimationClip,AnimationClip,float,float> Stitch=(c,from,to,startWindow,endWindow)=>{
+ float length=c.length;int samples=Mathf.CeilToInt(length*60);
+ var output=new System.Collections.Generic.Dictionary<EditorCurveBinding,AnimationCurve>();
+ foreach(var b in AnimationUtility.GetCurveBindings(c)){
+  var keys=new Keyframe[samples+1];
+  for(int i=0;i<=samples;i++){
+   float time=length*i/samples;float start=from&&startWindow>0?1-Mathf.SmoothStep(0,1,time/startWindow):0;
+   float end=to&&endWindow>0?Mathf.SmoothStep(0,1,(time-length+endWindow)/endWindow):0;
+   float fromTime=from==idle?0:from?from.length:0;
+   // Enter the real preparation directly; do not pass through the old baked idle blend.
+   float poseTime=from==idle&&start>0?startWindow:time;
+   float value;
+   if(b.propertyName.StartsWith("m_LocalRotation.")){
+    var q=Q(c,b.path,poseTime);
+    if(start>0)q=Quaternion.Slerp(q,Q(from,b.path,fromTime),start);
+    if(end>0)q=Quaternion.Slerp(q,Q(to,b.path,0),end);
+    char axis=b.propertyName[b.propertyName.Length-1];value=axis=='x'?q.x:axis=='y'?q.y:axis=='z'?q.z:q.w;
+   }else{
+    value=Eval(c,b.path,b.propertyName,poseTime);
+    if(start>0)value=Mathf.Lerp(value,Eval(from,b.path,b.propertyName,fromTime),start);
+    if(end>0)value=Mathf.Lerp(value,Eval(to,b.path,b.propertyName,0),end);
+   }
+   keys[i]=new Keyframe(time,value);
+  }
+  var curve=new AnimationCurve(keys);
+  for(int i=0;i<keys.Length;i++){AnimationUtility.SetKeyLeftTangentMode(curve,i,AnimationUtility.TangentMode.Linear);AnimationUtility.SetKeyRightTangentMode(curve,i,AnimationUtility.TangentMode.Linear);}
+  output[b]=curve;
+ }
+ foreach(var item in output)AnimationUtility.SetEditorCurve(c,item.Key,item.Value);
+ c.EnsureQuaternionContinuity();EditorUtility.SetDirty(c);cache.Remove(c);
+};
+foreach(var prefix in new[]{"Sweep","Cleave","Slam","Summon","Special","Gather"}){
+ var ready=Clip(prefix+"Ready");var attack=Clip(prefix+"Attack");var recovery=Clip(prefix+"Recovery");
+ Stitch(ready,idle,null,.48f,0);
+ Stitch(attack,ready,null,.13f,0);
+ Stitch(recovery,attack,idle,.24f,.55f);
+}
+// Each last safe sector gets its own recovery, avoiding a snap back to sector zero.
+for(int sector=0;sector<8;sector++){
+ var from=Clip("WedgeHold"+sector);var path=folder+"HarvestReaper_WedgeRecovery"+sector+".anim";
+ var c=AssetDatabase.LoadAssetAtPath<AnimationClip>(path);
+ if(!c){c=new AnimationClip();AssetDatabase.CreateAsset(c,path);}
+ c.ClearCurves();c.name="HarvestReaper_WedgeRecovery"+sector;c.frameRate=60;
+ foreach(var b in AnimationUtility.GetCurveBindings(from)){
+  float value=AnimationUtility.GetEditorCurve(from,b).Evaluate(from.length);
+  AnimationUtility.SetEditorCurve(c,b,AnimationCurve.Constant(0,1.625f,value));
+ }
+ Stitch(c,null,idle,0,1.625f);
+ var settings=AnimationUtility.GetAnimationClipSettings(c);settings.loopTime=false;AnimationUtility.SetAnimationClipSettings(c,settings);
+}
+var loop=AnimationUtility.GetAnimationClipSettings(idle);loop.loopTime=true;AnimationUtility.SetAnimationClipSettings(idle,loop);EditorUtility.SetDirty(idle);
+AssetDatabase.SaveAssets();return "Stitched 18 pattern clips and 8 sector recoveries to supplied Idle.";

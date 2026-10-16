@@ -1,0 +1,23 @@
+// Preserve existing clip timing and evaluated bone motion before replacing the bind pose.
+var ci=System.Globalization.CultureInfo.InvariantCulture;
+var names=new[]{"Root","Hips","Spine","Chest","Head","LArm","LForearm","LHand","RArm","RForearm","RHand","Scythe","LThigh","LShin","LFoot","RThigh","RShin","RFoot","DeathRobe"};
+var output=new System.Text.StringBuilder();
+System.Func<Matrix4x4,string> fmt=m=>string.Join(",",Enumerable.Range(0,12).Select(i=>m[i/4,i%4].ToString("R",ci)).ToArray());
+foreach(var guid in AssetDatabase.FindAssets("t:AnimationClip",new[]{"Assets/Art/HarvestReaper/Animations"})){
+ var file=AssetDatabase.GUIDToAssetPath(guid);if(!file.EndsWith(".anim"))continue;
+ var clip=AssetDatabase.LoadAssetAtPath<AnimationClip>(file);
+ var model=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/HarvestReaper/Models/"+(clip.name.EndsWith("Death")?"HarvestReaperDeath":"HarvestReaper")+".fbx");
+ var all=model.GetComponentsInChildren<Transform>(true);var paths=all.ToDictionary(x=>x,x=>AnimationUtility.CalculateTransformPath(x,model.transform));
+ var curves=AnimationUtility.GetCurveBindings(clip).ToDictionary(b=>b.path+"|"+b.propertyName,b=>AnimationUtility.GetEditorCurve(clip,b));
+ System.Func<Transform,float,Matrix4x4> eval=null;
+ eval=(tr,t)=>{if(tr==model.transform)return Matrix4x4.identity;var p=tr.localPosition;var q=tr.localRotation;var s=tr.localScale;
+ for(int a=0;a<3;a++){AnimationCurve c;if(curves.TryGetValue(paths[tr]+"|m_LocalPosition."+"xyz"[a],out c))p[a]=c.Evaluate(t);if(curves.TryGetValue(paths[tr]+"|m_LocalScale."+"xyz"[a],out c))s[a]=c.Evaluate(t);}
+ for(int a=0;a<4;a++){AnimationCurve c;if(curves.TryGetValue(paths[tr]+"|m_LocalRotation."+"xyzw"[a],out c))q[a]=c.Evaluate(t);}
+ return eval(tr.parent,t)*Matrix4x4.TRS(p,q.normalized,s);};
+ int count=Mathf.CeilToInt(clip.length*60);
+ foreach(var name in names){var tr=all.FirstOrDefault(x=>x.name==name);if(tr==null)continue;var rest=model.transform.worldToLocalMatrix*tr.localToWorldMatrix;
+ output.AppendLine(clip.name+",-1,"+name+","+fmt(rest));
+ for(int i=0;i<=count;i++){float t=clip.length*i/count;output.AppendLine(clip.name+","+t.ToString("R",ci)+","+name+","+fmt(eval(tr,t)*rest.inverse));}}
+}
+System.IO.File.WriteAllText("ArtSource/HarvestReaper/TPoseReplacement/existing_motion.csv",output.ToString());
+return "Saved existing motion, including weapon orientation and safe-zone gestures.";

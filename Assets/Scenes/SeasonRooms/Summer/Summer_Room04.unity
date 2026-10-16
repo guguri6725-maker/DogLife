@@ -4997,6 +4997,11 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 8638797628695928252, guid: 0f7503b4a37701f4084480fc696ed789, type: 3}
   m_PrefabInstance: {fileID: 943104570}
   m_PrefabAsset: {fileID: 0}
+--- !u!4 &958924029 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 4094304348576608200, guid: c1f8eea6ad763b64c9a70c53d3f974c4, type: 3}
+  m_PrefabInstance: {fileID: 4310320808256528606}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &973547099
 GameObject:
   m_ObjectHideFlags: 0
@@ -8340,6 +8345,7 @@ Transform:
   - {fileID: 1362544833}
   - {fileID: 1602552883}
   - {fileID: 1885101114}
+  - {fileID: 958924029}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1768376382
@@ -9151,6 +9157,63 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2144215767}
   m_Mesh: {fileID: 4300000, guid: 377a3eb23a601ac41b25a77b5dd5a23e, type: 2}
+--- !u!1001 &4310320808256528606
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 1768376381}
+    m_Modifications:
+    - target: {fileID: 4094304348576608200, guid: c1f8eea6ad763b64c9a70c53d3f974c4, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 156.24
+      objectReference: {fileID: 0}
+    - target: {fileID: 4094304348576608200, guid: c1f8eea6ad763b64c9a70c53d3f974c4, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -0.05
+      objectReference: {fileID: 0}
+    - target: {fileID: 4094304348576608200, guid: c1f8eea6ad763b64c9a70c53d3f974c4, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4094304348576608200, guid: c1f8eea6ad763b64c9a70c53d3f974c4, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4094304348576608200, guid: c1f8eea6ad763b64c9a70c53d3f974c4, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4094304348576608200, guid: c1f8eea6ad763b64c9a70c53d3f974c4, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4094304348576608200, guid: c1f8eea6ad763b64c9a70c53d3f974c4, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4094304348576608200, guid: c1f8eea6ad763b64c9a70c53d3f974c4, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4094304348576608200, guid: c1f8eea6ad763b64c9a70c53d3f974c4, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4094304348576608200, guid: c1f8eea6ad763b64c9a70c53d3f974c4, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8127614421110246922, guid: c1f8eea6ad763b64c9a70c53d3f974c4, type: 3}
+      propertyPath: m_Name
+      value: KrakenSeabedCover
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: c1f8eea6ad763b64c9a70c53d3f974c4, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

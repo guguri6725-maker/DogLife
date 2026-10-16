@@ -1,0 +1,22 @@
+Camera occlusion refinement — 2026-10-16
+
+Supersedes the earlier camera-to-player capsule detection in verification.txt.
+Only the oriented volume from the camera lens to its near clipping plane is
+checked, with a 0.04-unit safety margin. Player distance is not a trigger.
+Wall collision and the existing 0.18-second reveal delay remain unchanged.
+
+Checked the actual UpdateMonsterVisibility method in Unity with the existing
+Spring player/camera and a temporary FloralDeer prefab instance created through
+Hierarchy tools. Physics transforms were synchronized before each check.
+Camera position (0, 2.33, 0), near plane 0.3, field of view 65 degrees:
+- Deer overlaps player at x=5: visible.
+- Deer blocks the line to the player at x=2.5: visible.
+- Deer surface 0.3 units ahead of the camera: hidden.
+- Same distance, camera rotated 180 degrees away: visible.
+- Camera inside the deer body: hidden even when facing away.
+- Camera position did not change in any visibility check.
+
+The temporary deer was removed, visibility restored, and test scene state
+backed up in Temp/CameraOcclusionBackup before returning to Title.
+Original Stage1_Spring scene file unchanged. No Unity Console errors;
+git diff --check passed.

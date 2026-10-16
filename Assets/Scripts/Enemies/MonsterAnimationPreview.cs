@@ -28,6 +28,11 @@ namespace DogLife
         PlayableGraph graph;
         PreviewTrack[] tracks = Array.Empty<PreviewTrack>();
         Transform rider, seat;
+        Transform previewSword;
+        FrozenKnightBoss previewKnight;
+        Vector3 previewSwordPosition;
+        Quaternion previewSwordRotation;
+        KrakenPhaseTwo krakenPreview;
         Quaternion riderRotation;
         float Duration => actions.Length == 0 ? 0 : actions[clipIndex].Length;
         int PhaseCount => models[modelIndex].name.Contains("KrakenBoss") || models[modelIndex].name.Contains("FrozenKnight") || models[modelIndex].name.Contains("SpringBoarBoss") ? 2 : 1;
@@ -108,15 +113,40 @@ namespace DogLife
             if (!graph.IsValid() || actions.Length == 0) return;
             // Animator의 자동 평가 이후 포즈를 적용해야 기존 Idle 상태가 덮어쓰지 않습니다.
             foreach (var track in tracks) track.Sample(time, Duration);
+            if (krakenPreview && rigIndex == 1)
+            {
+                krakenPreview.SamplePreview(actions[clipIndex].RuntimePattern, (float)time, out string bodyClip, out float bodyProgress);
+                tracks[0].SampleNamed(bodyClip, bodyProgress);
+            }
             graph.Evaluate(0);
+            // 등장 발도의 검 부착을 실제 전투 연출과 같은 방식으로 평가합니다.
+            if (previewKnight && rigIndex == 0 && tracks.Length > 0)
+                previewKnight.SampleIntroductionSword(tracks[0].Current.name, tracks[0].Progress, previewSwordPosition, previewSwordRotation);
+            if (tracks.Length > 0 && tracks[0].Current.name.Contains("P2Death"))
+                models[modelIndex].GetComponent<SpringBoarDeath>()?.SamplePreview(actor, (float)(time / Duration));
             // 말의 애니메이션 평가가 끝난 뒤 기존 안장 위치에 기사를 맞춥니다.
             if (rider && seat && rigIndex == 1) rider.SetPositionAndRotation(seat.position, seat.rotation * riderRotation);
-            if (tracks.Length > 0) effects?.Render(tracks[0].Current.name, tracks[0].Progress, showEffects && !(models[modelIndex].name.Contains("KrakenBoss") && rigIndex == 0));
+            if (tracks.Length > 0) effects?.Render(tracks[0].Current.name, tracks[0].Progress, showEffects && !krakenPreview);
+            if (krakenPreview && rigIndex == 1) krakenPreview.SamplePreviewWater(actions[clipIndex].RuntimePattern, (float)time, showEffects);
         }
 
         public void NextMonster() { SelectModel(modelIndex + 1); }
         public void PreviousMonster() { SelectModel(modelIndex - 1); }
         public void NextRig() { if (models != null) { rigIndex = (rigIndex + 1) % PhaseCount; SelectRig(); } }
+        public void ShowSpringPhaseTwo() { ShowBossPhaseTwo("SpringBoarBoss"); }
+        public void ShowSummerPhaseTwo() { ShowBossPhaseTwo("KrakenBoss"); }
+        public void ShowWinterPhaseTwo() { ShowBossPhaseTwo("FrozenKnight"); }
+
+        // Hierarchy의 바로보기 버튼에서 보스와 2페이즈를 한 번에 선택합니다.
+        void ShowBossPhaseTwo(string modelName)
+        {
+            if (models == null) return;
+            int index = Array.FindIndex(models, model => model.name.Contains(modelName));
+            if (index < 0) return;
+            SelectModel(index);
+            rigIndex = 1;
+            SelectRig();
+        }
         public void NextClip() { SelectClip(clipIndex + 1); }
         public void PreviousClip() { SelectClip(clipIndex - 1); }
         public void TogglePause() { paused = !paused; }
@@ -129,10 +159,12 @@ namespace DogLife
         void SelectModel(int index)
         {
             if (models == null || models.Length == 0) return;
+            models[modelIndex].GetComponent<SpringBoarDeath>()?.ResetPreview();
             DestroyGraph(); RestorePose();
             foreach (var model in models) model.gameObject.SetActive(false);
             modelIndex = (index + models.Length) % models.Length;
             var selected = models[modelIndex];
+            krakenPreview = selected.GetComponent<KrakenPhaseTwo>();
             previewSubject = selected;
             selected.gameObject.SetActive(true);
             effects = new MonsterPreviewEffects(selected);
@@ -141,13 +173,17 @@ namespace DogLife
             rotations = poseBones.Select(t => t.localRotation).ToArray();
             scales = poseBones.Select(t => t.localScale).ToArray();
             animators = selected.GetComponentsInChildren<Animator>(true).Where(a => a.runtimeAnimatorController).ToArray();
-            rider = null; seat = null;
+            rider = null; seat = null; previewSword = null;
             var knight = selected.GetComponent<FrozenKnightBoss>();
+            previewKnight = knight;
             if (knight)
             {
                 var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
                 rider = (Transform)typeof(FrozenKnightBoss).GetField("riderRoot", flags).GetValue(knight);
                 seat = (Transform)typeof(FrozenKnightBoss).GetField("mountSeat", flags).GetValue(knight);
+                previewSword = (Transform)typeof(FrozenKnightBoss).GetField("swordRoot", flags).GetValue(knight);
+                previewSwordPosition = previewSword.localPosition;
+                previewSwordRotation = previewSword.localRotation;
                 riderRotation = rider.localRotation;
             }
             rigIndex = 0;
@@ -161,17 +197,24 @@ namespace DogLife
             string model = models[modelIndex].name;
             bool kraken = model.Contains("KrakenBoss"), boar = model.Contains("SpringBoarBoss");
             actor = kraken ? animators.First(a => rigIndex == 0 ? a.name == "RiggedTentacle" : a.name == "RiggedBody") :
-                boar ? animators.First(a => rigIndex == 0 ? a.name.Contains("Phase1") : !a.name.Contains("Phase1")) : animators[0];
+                boar ? animators.First(a => rigIndex == 0 ? a.name.Contains("Phase1") : !a.name.Contains("Phase1")) : animators.First(a => a.name != "HarvestReaperDeathPreview");
             // 페이즈에 필요한 모델만 표시하고 본체와 보조 모델을 함께 평가합니다.
             foreach (var a in animators)
             {
-                a.enabled = kraken ? rigIndex == 1 || a.name == "RiggedTentacle" : rider ? rigIndex == 1 || a == actor : a == actor;
+                a.enabled = kraken ? a == actor || (rigIndex == 0 && a.name == "RiggedTentacle") : rider ? rigIndex == 1 || a == actor : a == actor;
                 if (a.enabled) for (var t = a.transform; t && t != subjects; t = t.parent) t.gameObject.SetActive(true);
             }
             foreach (var r in models[modelIndex].GetComponentsInChildren<Renderer>(true))
             {
                 var owner = r.GetComponentInParent<Animator>(true);
                 if (owner) r.enabled = owner.enabled;
+            }
+            // 기승 시 손에 든 검을 숨기고 도보 페이즈에서는 복원합니다.
+            if (previewSword) previewSword.gameObject.SetActive(rigIndex == 0);
+            if (krakenPreview)
+            {
+                if (rigIndex == 1) krakenPreview.PreparePreview();
+                krakenPreview.ShowPreviewArms(rigIndex == 1);
             }
             actions = MonsterPreviewCatalog.Build(actor, model, rigIndex);
             string phase = PhaseCount == 1 ? (model.Contains("CoralMermaid") ? "세부 동작 · 제자리 자세 미리보기" : "기본 동작") : (rigIndex + 1) + "페이즈 · " +
@@ -185,6 +228,7 @@ namespace DogLife
         void SelectClip(int index)
         {
             if (!actor || actions.Length == 0) return;
+            models[modelIndex].GetComponent<SpringBoarDeath>()?.ResetPreview();
             DestroyGraph(); RestorePose();
             foreach (var a in animators.Where(a => a.enabled)) a.Rebind();
             clipIndex = (index + actions.Length) % actions.Length;
@@ -193,13 +237,29 @@ namespace DogLife
             graph = PlayableGraph.Create("Monster animation preview");
             graph.SetTimeUpdateMode(DirectorUpdateMode.Manual);
             var action = actions[clipIndex];
+            // 사망 전용 의상 관절과 스킨을 인게임과 동일하게 사용합니다.
+            if (models[modelIndex].GetComponent<HarvestReaperDeath>())
+            {
+                bool death = action.Clips.Any(c => c.name.EndsWith("_Death", StringComparison.Ordinal));
+                var deathActor = animators.FirstOrDefault(a => a.name == "HarvestReaperDeathPreview");
+                if (deathActor)
+                {
+                    actor = death ? deathActor : animators.First(a => a != deathActor);
+                    foreach (var a in animators)
+                    {
+                        a.enabled = a == actor;
+                        foreach (var skin in a.GetComponentsInChildren<Renderer>(true)) skin.enabled = a == actor;
+                    }
+                    actor.Rebind();
+                }
+            }
             tracks = animators.Where(a => a.enabled).OrderBy(a => a == actor ? 0 : 1).Select(a =>
             {
                 var source = a.runtimeAnimatorController.animationClips;
                 var sequence = a == actor ? action.Clips : action.Companion == null ? action.Clips.Select(c => MonsterPreviewCatalog.Find(source, c.name)).Where(c => c).ToArray() :
                     action.Companion.Select(n => MonsterPreviewCatalog.Find(source, n)).Where(c => c).ToArray();
                 if (sequence.Length == 0) sequence = new[] { MonsterPreviewCatalog.Find(source, "Idle") ?? source[0] };
-                return new PreviewTrack(graph, a, sequence, action.Start, action.End);
+                return new PreviewTrack(graph, a, sequence, action.Start, action.End, action.PhaseDurations);
             }).ToArray();
             graph.Play(); LateUpdate();
             if (clipLabel) clipLabel.text = string.Format("동작 {0}/{1}\n{2}", clipIndex + 1, actions.Length, action.Name);
@@ -269,12 +329,14 @@ namespace DogLife
             readonly AnimationClipPlayable[] nodes;
             readonly AnimationMixerPlayable mixer;
             readonly double length;
+            readonly float[] phaseDurations;
             readonly float start, end;
             public AnimationClip Current { get; private set; }
             public float Progress { get; private set; }
-            public PreviewTrack(PlayableGraph graph, Animator animator, AnimationClip[] sequence, float start = 0, float end = 1)
+            public PreviewTrack(PlayableGraph graph, Animator animator, AnimationClip[] sequence, float start = 0, float end = 1, float[] phaseDurations = null)
             {
                 this.start = start; this.end = end;
+                this.phaseDurations = phaseDurations != null && phaseDurations.Length == sequence.Length ? phaseDurations : null;
                 clips = sequence; length = clips.Sum(c => (double)c.length); Current = clips[0];
                 mixer = AnimationMixerPlayable.Create(graph, clips.Length);
                 nodes = clips.Select(c => AnimationClipPlayable.Create(graph, c)).ToArray();
@@ -290,7 +352,15 @@ namespace DogLife
                 double fraction = Math.Max(0, Math.Min(1, time / Math.Max(.001, duration)));
                 double local = (start + fraction * (end - start)) * length;
                 int segment = 0;
-                while (segment < clips.Length - 1 && local >= clips[segment].length)
+                if (phaseDurations != null)
+                {
+                    // 구간별 실제 시간을 클립 시간으로 바꿔 긴 지속 모션을 정확히 보여줍니다.
+                    local = Math.Max(0, time);
+                    while (segment < clips.Length - 1 && local >= phaseDurations[segment])
+                        local -= phaseDurations[segment++];
+                    local = Math.Min(1, local / Math.Max(.001, phaseDurations[segment])) * clips[segment].length;
+                }
+                else while (segment < clips.Length - 1 && local >= clips[segment].length)
                     local -= clips[segment++].length;
                 for (int i = 0; i < nodes.Length; i++) mixer.SetInputWeight(i, i == segment ? 1 : 0);
                 nodes[segment].SetTime(local);
@@ -302,6 +372,15 @@ namespace DogLife
                     mixer.SetInputWeight(segment - 1, 1 - blend); mixer.SetInputWeight(segment, blend);
                 }
                 Current = clips[segment]; Progress = (float)(local / Math.Max(.001, Current.length));
+            }
+            public void SampleNamed(string name, float progress)
+            {
+                var clip = MonsterPreviewCatalog.Find(clips, name);
+                int index = Array.IndexOf(clips, clip);
+                if (index < 0) return;
+                for (int i = 0; i < nodes.Length; i++) mixer.SetInputWeight(i, i == index ? 1 : 0);
+                nodes[index].SetTime(Mathf.Clamp01(progress) * clip.length);
+                Current = clip; Progress = Mathf.Clamp01(progress);
             }
         }
     }

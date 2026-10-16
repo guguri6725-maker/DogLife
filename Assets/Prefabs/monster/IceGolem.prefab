@@ -67,7 +67,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 59466c149a674924fb12f5011688cfab, type: 2}
+  - {fileID: 2100000, guid: b850ea83ca90e124bb7cc84126909445, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -106,7 +106,7 @@ MonoBehaviour:
   enemy: {fileID: 5712742679393745812}
   patch: {fileID: 0}
   spreadCrestWidth: 0.65
-  material: {fileID: 2100000, guid: 59466c149a674924fb12f5011688cfab, type: 2}
+  material: {fileID: 2100000, guid: b850ea83ca90e124bb7cc84126909445, type: 2}
 --- !u!1 &1904964170654621470
 GameObject:
   m_ObjectHideFlags: 0
@@ -658,6 +658,14 @@ PrefabInstance:
     - target: {fileID: 6785792951794030953, guid: 2b832b800a69fb34d9db629c7c8a9a79, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: -169.76479
+      objectReference: {fileID: 0}
+    - target: {fileID: 7159208955087037269, guid: 2b832b800a69fb34d9db629c7c8a9a79, type: 3}
+      propertyPath: m_Mesh
+      value: 
+      objectReference: {fileID: 3166392232124327758, guid: 2b832b800a69fb34d9db629c7c8a9a79, type: 3}
+    - target: {fileID: 7159208955087037269, guid: 2b832b800a69fb34d9db629c7c8a9a79, type: 3}
+      propertyPath: m_Quality
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7159208955087037269, guid: 2b832b800a69fb34d9db629c7c8a9a79, type: 3}
       propertyPath: m_UpdateWhenOffscreen

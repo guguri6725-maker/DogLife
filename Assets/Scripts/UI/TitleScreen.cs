@@ -10,6 +10,10 @@ namespace DogLife
         [SerializeField] private string springScene = "Assets/Scenes/Stage1_Spring.unity";
         [SerializeField] private Button startButton;
         [SerializeField] private Text status;
+        // 전시용 단독 체험 진입점. 저장/이어하기 체계를 거치지 않고 해당 씬을 그대로 띄웁니다.
+        [SerializeField] private string[] seasonDemoScenes = {
+            "Assets/Scenes/Stage1_Spring.unity", "Assets/Scenes/Stage3_Summer.unity",
+            "Assets/Scenes/Stage3_Fall.unity", "Assets/Scenes/Stage4_Winter.unity" };
         bool loading;
         AudioClip titleMusic;
         void Start(){ResumeMenuMusic();}
@@ -73,6 +77,21 @@ namespace DogLife
         {
             if(loading||GameSettingsWindow.BlocksGameplayInput)return;
             if(StoryBook.Instance)StoryBook.Instance.OpenGallery();
+        }
+
+        // 전시용 버튼: 진행 상황을 저장/불러오지 않고 선택한 계절 스테이지만 단독으로 체험합니다.
+        public void PlaySeasonDemo(int season)
+        {
+            if (loading || GameSettingsWindow.BlocksGameplayInput) return;
+            if (season < 0 || season >= seasonDemoScenes.Length) return;
+            string scene = seasonDemoScenes[season];
+            if (!Application.CanStreamedLevelBeLoaded(scene))
+            {
+                status.text = "스테이지를 불러올 수 없습니다.";
+                Debug.LogError("Missing demo scene: " + scene, this);
+                return;
+            }
+            SeasonLoadingScreen.Load(scene);
         }
 
         IEnumerator LoadSpring()

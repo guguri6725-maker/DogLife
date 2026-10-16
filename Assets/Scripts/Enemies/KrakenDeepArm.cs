@@ -53,7 +53,42 @@ namespace DogLife
         public Vector3[] SamplePoints(){var result=new Vector3[bones.Count];for(int i=0;i<bones.Count;i++)result[i]=bones[i].position;return result;}
         void LateUpdate()
         {
+            Evaluate(Time.deltaTime);
+        }
+        // 미리보기는 Hierarchy에 배치된 동일 리그를 사용하고 판정 오브젝트는 만들지 않습니다.
+        public void PreparePreview(float reach)
+        {
+            if (points != null) return;
+            var all = GetComponentsInChildren<Transform>(true);
+            for (int i = 0; i < 18; i++) foreach (var bone in all)
+                if (bone.name == "Tendril" + i) { bones.Add(bone); break; }
+            if (bones.Count < 2) return;
+            float restLength = 0;
+            for (int i = 1; i < bones.Count; i++) restLength += Vector3.Distance(bones[i - 1].position, bones[i].position);
+            transform.localScale *= reach / Mathf.Max(.01f, restLength);
+            points = new Vector3[bones.Count]; rest = new Quaternion[bones.Count]; lengths = new float[bones.Count - 1];
+            for (int i = 0; i < bones.Count; i++) rest[i] = bones[i].localRotation;
+            for (int i = 0; i < lengths.Length; i++) { lengths[i] = Vector3.Distance(bones[i].position, bones[i + 1].position); total += lengths[i]; }
+        }
+        public void SamplePreview(Vector3 start, Vector3 end, Vector3 curve, bool sCurve)
+        {
+            SetShape(start, end, curve, sCurve);
+            // 정지·되감기에서도 같은 시간은 같은 자세가 되도록 누적 보간을 제거합니다.
+            curveReady = false; shapeBlend = sCurve ? 1 : 0;
+            Evaluate(0);
+        }
+        void Evaluate(float deltaTime)
+        {
             if(points==null)return;
+            // 에디터 재로드 후 유지된 자세 배열에 맞춰 관절 참조만 복구합니다.
+            if(bones.Count!=points.Length)
+            {
+                bones.Clear();
+                var hierarchy=GetComponentsInChildren<Transform>(true);
+                for(int i=0;i<points.Length;i++)foreach(var bone in hierarchy)
+                    if(bone.name=="Tendril"+i){bones.Add(bone);break;}
+                if(bones.Count!=points.Length)return;
+            }
             if(socketBody)anchor=SocketPosition;
             transform.position+=anchor-bones[0].position;
             Vector3 end=anchor+Vector3.ClampMagnitude(target-anchor,total*.995f),axis=(end-anchor).normalized;
@@ -64,9 +99,9 @@ namespace DogLife
             // Parallel-transport the bending plane instead of flipping it when a pattern changes.
             Vector3 transported=Vector3.ProjectOnPlane(previousCurve,axis);
             if(curveReady&&transported.sqrMagnitude>.001f)
-                curve=Vector3.Slerp(transported.normalized,curve,1-Mathf.Exp(-9*Time.deltaTime)).normalized;
+                curve=Vector3.Slerp(transported.normalized,curve,1-Mathf.Exp(-9*deltaTime)).normalized;
             previousCurve=curve;curveReady=true;
-            shapeBlend=Mathf.MoveTowards(shapeBlend,flowingS?1:0,Time.deltaTime*2.5f);
+            shapeBlend=Mathf.MoveTowards(shapeBlend,flowingS?1:0,deltaTime*2.5f);
             float targetChord=Vector3.Distance(anchor,end),low=0,high=6;
             // Solve a chain of equal-curvature arcs. Unlike a sine-position curve, this has no pinched apex.
             for(int j=1;j<=32;j++){float a=j*6/32f;if(Trace(a).magnitude<=targetChord){high=a;low=(j-1)*6/32f;break;}}
@@ -81,7 +116,10 @@ namespace DogLife
             for(int i=0;i<bones.Count;i++)bones[i].localRotation=rest[i];
             for(int i=0;i<bones.Count-1;i++){
                 Vector3 current=bones[i+1].position-bones[i].position,desired=points[i+1]-points[i];
-                if(current.sqrMagnitude>.000001f&&desired.sqrMagnitude>.000001f)bones[i].rotation=Quaternion.FromToRotation(current,desired)*bones[i].rotation;
+                if(current.sqrMagnitude>.000001f&&desired.sqrMagnitude>.000001f)
+                {
+                    bones[i].rotation=Quaternion.FromToRotation(current,desired)*bones[i].rotation;
+                }
             }
         }
         float BendProfile(float t)=>Mathf.Lerp(1-2*t,Mathf.Cos(t*Mathf.PI*2),shapeBlend);

@@ -1,0 +1,23 @@
+Camera monster occlusion verification — 2026-10-16
+
+Behavior: walls still shorten the camera arm. Monsters on the camera side
+of the player no longer block the camera. Their body/weapon renderers are
+hidden while obstructing the sight line and restored after 0.18 clear seconds.
+This version switches body visibility; it does not change material opacity.
+Attack effects, telegraphs, health and collision/AI remain active.
+
+Verified in Stage1_Spring / Spring_Room01:
+- 3 live deer: all 11 colliders per deer excluded from camera obstruction;
+  all 11 colliders remained enabled.
+- 103 scenery colliders still classified as blocking.
+- Wall segment test: requested 11.986 units, clipped to 1.713 units.
+- Moved an actual deer between camera and player: body hidden, camera delta 0.
+- Camera component disable restored the body; re-enable hid it again.
+- Moving the deer clear kept it hidden immediately, restored it after 0.3s;
+  collider still enabled. See reveal_check.txt.
+- Other monsters in front of the player stayed visible.
+- Compared verified_visible.png and verified_hidden.png from the same view.
+- No Unity Console errors during verification; git diff --check passed.
+
+Temporary scene/input changes were not saved to Stage1. Its unsaved test
+state was backed up in Temp/CameraOcclusionBackup before closing the scene.

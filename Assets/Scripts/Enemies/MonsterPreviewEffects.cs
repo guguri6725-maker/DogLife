@@ -111,9 +111,15 @@ namespace DogLife
             {
                 Set(harvest, "engaged", visible); Set(harvest, "Forward", forward);
                 Set(harvest, "CurrentPattern", clip.Contains("Sweep") ? "Sweep" : clip.Contains("Cleave") ? "Cleave" :
-                    clip.Contains("Slam") ? "Shockwave" : clip.Contains("Summon") ? "Pumpkins" : "Storm");
+                    clip.Contains("Slam") ? "Shockwave" : clip.Contains("Summon") ? "Pumpkins" : clip.Contains("Wedge") || clip.Contains("Gather") ? "SafeWedge" : "Storm");
+                // 손짓 클립의 방향과 미리보기 안전 부채꼴을 일치시킵니다.
+                bool wedge = clip.Contains("Wedge"), gather = clip.Contains("Gather");
+                Set(harvest, "gathering", gather);
+                int sector = wedge && char.IsDigit(clip[clip.Length - 1]) ? clip[clip.Length - 1] - '0' : 0;
+                Set(harvest, "SafeYaw", root.eulerAngles.y + sector * 45);
                 Set(harvest, "stormWarningDuration", harvest.CurrentAttack.warning);
                 Phase(harvest, "State", !visible ? "Idle" : ready ? "Warning" : attack ? "Active" : recovery ? "Recovery" : "Idle", progress);
+                if (visible && wedge && clip.Contains("Hold")) Phase(harvest, "State", "Gap", progress);
                 var patches = (System.Collections.Generic.List<HarvestReaperBoss.Patch>)Get(harvest, "patches");
                 patches.Clear();
                 if (visible && clip.Contains("Summon"))
@@ -190,6 +196,32 @@ namespace DogLife
             bool slash = clip.Contains("1타2타"), spin = clip.Contains("Spin3");
             bool slam = clip.Contains("Slam"), burst = clip.Contains("Push") || clip.Contains("Roar"), stomp = clip.Contains("Stomp");
             bool summon = clip.Contains("IceWall"), blade = clip.Contains("IceSword"), cold = clip.Contains("FrostChannel"), spear = clip.Contains("Spear");
+            // 회전베기는 실제 시전 시점과 초당 확산 속도로 경고와 칼날 고리를 표시합니다.
+            if (spin)
+            {
+                var animator = root.GetComponentsInChildren<Animator>(true).FirstOrDefault(a => a.name == "Knight");
+                var motion = animator ? animator.runtimeAnimatorController.animationClips.FirstOrDefault(c => c.name == clip) : null;
+                float length = motion ? motion.length : 1;
+                float cast = Number(knight, "spinCastMoment", .55f);
+                float age = (p - cast) * length;
+                float radius = Mathf.Max(0, age) * Number(knight, "waveSpeed", 8);
+                float arena = Number(knight, "arenaRadius", 18);
+                if (!visible || (age >= 0 && radius >= arena)) fx.Hide();
+                else if (age < 0)
+                {
+                    fx.Show(FrozenKnightVfx.Shape.Ring, root.position, root.forward, arena, 0, FrozenKnightVfx.Theme.Crack);
+                    fx.SetWarningProgress(Mathf.Clamp01(p / Mathf.Max(.001f, cast)));
+                }
+                else
+                {
+                    fx.Show(FrozenKnightVfx.Shape.Ring, root.position + Vector3.up * Number(knight, "waveHeight", 1.5f),
+                        root.forward, radius, Mathf.Max(0, radius - Number(knight, "waveWidth", .6f)), FrozenKnightVfx.Theme.BladeWave);
+                    fx.Activate();
+                    Set(fx, "started", Time.time - age);
+                }
+                Call(fx, "LateUpdate");
+                return;
+            }
             if (visible && (slash || slam || burst || stomp || summon || blade || spin || cold || spear))
             {
                 var attack = (FrozenKnightBoss.Attack)Get(knight, stomp ? "stomp" : "frostBurst");
@@ -211,6 +243,13 @@ namespace DogLife
                 // 대검은 실제 보스에 연결된 정규화 타격 구간을 그대로 사용합니다.
                 float impact = burst ? Number(knight, "pushCastMoment", .55f) : slam ? Number(knight, "slamImpactTime", .4f) : .55f;
                 float end = 1;
+                // 밀쳐올리기의 실제 공격 직전 지연을 미리보기에도 반영합니다.
+                if (clip.Contains("Push"))
+                {
+                    var animator = root.GetComponentsInChildren<Animator>(true).FirstOrDefault(a => a.name == "Knight");
+                    var motion = animator ? animator.runtimeAnimatorController.animationClips.FirstOrDefault(c => c.name == clip) : null;
+                    if (motion) impact += Number(knight, "attackLeadTime", .12f) / Mathf.Max(.001f, motion.length);
+                }
                 int swing = 0;
                 if (slash)
                 {

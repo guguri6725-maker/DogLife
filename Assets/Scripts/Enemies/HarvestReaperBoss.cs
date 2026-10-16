@@ -64,6 +64,8 @@ namespace DogLife
   public bool OuterStormActive=>CurrentPattern==Pattern.SafeWedge&&(State==Phase.Active||(!gathering&&(State==Phase.Warning||State==Phase.Gap)));
   public IReadOnlyList<Patch> Patches=>patches;
   public PumpkinSettings Pumpkin=>pumpkin;public SpecialSettings Special=>special;
+  // 미리보기도 폭풍의 실제 구간 길이를 사용합니다.
+  public Attack StormAttack=>storm;
   public Attack CurrentAttack=>CurrentPattern==Pattern.Sweep?sweep:CurrentPattern==Pattern.Cleave?cleave:CurrentPattern==Pattern.Shockwave?shockwave:CurrentPattern==Pattern.Pumpkins?pumpkins:storm;
   public float Progress=>Mathf.Clamp01(elapsed/Mathf.Max(.01f,PhaseDuration));
   public float PhaseDuration=>State==Phase.Warning?(CurrentPattern==Pattern.SafeWedge?(gathering?special.gatherWarning:special.warning):CurrentPattern==Pattern.Storm?stormWarningDuration:CurrentAttack.warning):State==Phase.Gap?special.delay:State==Phase.Recovery?CurrentAttack.recovery:CurrentPattern==Pattern.SafeWedge?(gathering?special.gatherDuration:special.explosionDuration):CurrentAttack.duration;
@@ -71,7 +73,13 @@ namespace DogLife
   void Awake(){health=GetComponent<CombatHealth>();sound=GetComponent<HarvestReaperAudio>();if(!sound)sound=gameObject.AddComponent<HarvestReaperAudio>();var agent=GetComponent<NavMeshAgent>();if(agent)agent.enabled=false;var body=GetComponent<Rigidbody>();if(body){body.isKinematic=true;body.constraints=RigidbodyConstraints.FreezeAll;}if(animator)animator.applyRootMotion=false;}
   void Start(){player=FindFirstObjectByType<PlayerMotor>();if(player){target=player.GetComponent<CombatHealth>();targetCollider=player.GetComponent<Collider>();}if(!room)room=GetComponentInParent<ForestRoom>();nextAttack=Time.time+initialDelay;Forward=transform.forward;Play("Idle",1);}
   public void BindRoom(ForestRoom value){room=value;}
-  void Play(string clip,float duration){if(!animator)return;animator.SetFloat("PhaseSpeed",clip=="Idle"?1:1/Mathf.Max(.01f,duration));animator.CrossFadeInFixedTime(clip,.12f);}
+  void Play(string clip,float duration)
+  {
+   if(!animator)return;
+   // 새 전용 상태와 기존 상태 모두 같은 실제 패턴 시간으로 재생합니다.
+   animator.SetFloat("PhaseSpeed",1);animator.speed=clip=="Idle"?1:1/Mathf.Max(.01f,duration);
+   animator.CrossFadeInFixedTime(clip,.12f);
+  }
   void Update()
   {
    if(!health||health.Dead||!player||!target||target.Dead){Clear();return;}
@@ -142,12 +150,19 @@ namespace DogLife
   void Enter(Phase phase)
   {
    State=phase;elapsed=0;hit=false;nextTick=Time.time;if(sound)sound.Enter(phase);
-   if(phase==Phase.Gap){Play("SpecialHold",special.delay);return;}
-   if(phase==Phase.Recovery){Play("Recovery",CurrentAttack.recovery);return;}
+   int sector=((Mathf.RoundToInt(Mathf.DeltaAngle(transform.eulerAngles.y,SafeYaw)/45f)%8)+8)%8;
+   if(phase==Phase.Gap){Play("WedgeHold"+sector,special.delay);return;}
+   if(phase==Phase.Recovery)
+   {
+    // 마지막으로 가리킨 방향에서 새 대기 자세로 복귀합니다.
+    if(CurrentPattern==Pattern.SafeWedge){Play("WedgeRecovery"+sector,CurrentAttack.recovery);return;}
+    string recovery=CurrentPattern==Pattern.Sweep?"Sweep":CurrentPattern==Pattern.Cleave?"Cleave":CurrentPattern==Pattern.Shockwave?"Slam":CurrentPattern==Pattern.Pumpkins?"Summon":CurrentPattern==Pattern.SafeWedge?"Gather":"Special";
+    Play(recovery+"Recovery",CurrentAttack.recovery);return;
+   }
    if(CurrentPattern==Pattern.SafeWedge)
    {
-    // Large raise/plant gesture first; each inner detonation has a fresh visible wind-up.
-    Play(gathering?(phase==Phase.Warning?"SummonReady":"SpecialAttack"):(phase==Phase.Warning?"SlamReady":"SlamAttack"),PhaseDuration);return;
+    // 실제 안전 부채꼴과 같은 8방향 손짓을 사용하고, 폭발 직전 손을 내립니다.
+    Play(gathering?(phase==Phase.Warning?"GatherReady":"GatherAttack"):(phase==Phase.Warning?"WedgeReady":"WedgeAttack")+sector,PhaseDuration);return;
    }
    string prefix=CurrentPattern==Pattern.Sweep?"Sweep":CurrentPattern==Pattern.Cleave?"Cleave":CurrentPattern==Pattern.Shockwave?"Slam":CurrentPattern==Pattern.Pumpkins?"Summon":"Special";
    Play(prefix+(phase==Phase.Warning?"Ready":"Attack"),PhaseDuration);

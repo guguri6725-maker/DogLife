@@ -1,0 +1,23 @@
+Floral deer attack-to-chase verification (2026-10-16)
+
+Cause: Animator.speed scaled the whole fixed-time crossfade with navigation speed.
+A 0.06-second transition took 0.61 seconds at Animator.speed 0.1, and could
+stop progressing at zero speed. Small velocity changes also restarted Idle/Walk.
+
+Fix: keep Animator.speed at 1 while entering Walk or blending, then scale
+the established walk cycle to movement speed. Use separate start/stop speed
+thresholds and clear navigation velocity when stopping after a charge.
+
+Checks:
+- Actual private Animate("Walk") with the live deer controller and zero measured
+  navigation velocity completed the Recover-to-Walk transition in 0.06 seconds.
+- Stage1_Spring: observed 3 spawned deer over 28 seconds with a moving player.
+  Attack/recovery returned to Walk and sustained chase; 815 sampled observations
+  were Track/Walk with no transition pending. See after.csv.
+- Every sampled transition into Walk had Animator.speed 1.
+- Fresh Play-mode run: no Unity Console errors.
+- git diff --check passed for FloralDeerEnemy.cs.
+
+Test player protection/input were temporary. Play mode was stopped, unsaved
+Stage1 test changes discarded, and the original Title scene restored.
+No rig, animation clip, or controller content was changed.

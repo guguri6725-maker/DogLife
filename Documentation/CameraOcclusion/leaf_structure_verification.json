@@ -1,0 +1,67 @@
+{
+  "date": "2026-10-16",
+  "scope": "Spring Rooms 01-05",
+  "scenes": 31,
+  "prefabs": [
+    {
+      "path": "Assets/Resources/StreamedSpringGeometry/Room1_SpringJourney_R2_Blossoms.prefab",
+      "volumes": 92
+    },
+    {
+      "path": "Assets/Resources/StreamedSpringGeometry/Room1_WildGrove_LayeredVegetation.prefab",
+      "volumes": 112
+    },
+    {
+      "path": "Assets/Resources/StreamedSpringGeometry/Room2_SakuraRuins_LayeredVegetation.prefab",
+      "volumes": 124
+    },
+    {
+      "path": "Assets/Resources/StreamedSpringGeometry/Room2_SpringJourney_R3_Blossoms.prefab",
+      "volumes": 164
+    },
+    {
+      "path": "Assets/Resources/StreamedSpringGeometry/Room3_RootPavilion_LayeredVegetation.prefab",
+      "volumes": 154
+    },
+    {
+      "path": "Assets/Resources/StreamedSpringGeometry/Room3_SpringJourney_R4_Blossoms.prefab",
+      "volumes": 255
+    },
+    {
+      "path": "Assets/Resources/StreamedSpringGeometry/Room4_BlossomSanctuary_LayeredVegetation.prefab",
+      "volumes": 295
+    },
+    {
+      "path": "Assets/Resources/StreamedSpringGeometry/Room4_SpringJourney_R5_Blossoms.prefab",
+      "volumes": 196
+    }
+  ],
+  "physics": {
+    "radius": 0.57190603,
+    "blockedDistance": 1.8480835,
+    "desiredDistance": 6,
+    "clearDistance": 6,
+    "solidPhysicsHitCount": 0,
+    "allLeafMarkers": 388,
+    "allBlockCamera": true,
+    "allIgnoreAttacks": true,
+    "allActive": false,
+    "groupLocals": [
+      "(0.00, 0.00, 0.00)",
+      "(0.00, 0.00, 0.00)"
+    ]
+  },
+  "streaming": {
+    "tested": 388,
+    "blocked": 388,
+    "misses": [],
+    "allActive": true,
+    "allTrigger": true,
+    "allAttackIgnored": true
+  },
+  "notes": [
+    "Authoring uses Hierarchy/Prefab tools; no runtime object creation added.",
+    "All camera volumes are trigger BoxColliders with CameraStructure; leaf render meshes and materials retained.",
+    "Test objects deleted; scene changes saved."
+  ]
+}

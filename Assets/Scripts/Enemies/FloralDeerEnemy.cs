@@ -69,12 +69,18 @@ namespace DogLife
                 const float authoredWalkSpeed=.28f/(.75f*1.2f);
                 float modelScale=Mathf.Max(.001f,Mathf.Abs(modelAnimator.transform.lossyScale.z));
                 float travelSpeed=Navigable?Vector3.ProjectOnPlane(agent.velocity,Vector3.up).magnitude:0;
-                modelAnimator.speed=name=="Walk"?travelSpeed/(authoredWalkSpeed*modelScale):1f;
+                // 재출발 속도가 낮아도 이전 공격/대기 자세에서 걷기로 넘어가는 블렌드는 멈추지 않습니다.
+                bool walking=name=="Walk"&&animationName==name&&!modelAnimator.IsInTransition(0);
+                modelAnimator.speed=walking?travelSpeed/(authoredWalkSpeed*modelScale):1f;
             }
             if(animationName==name)return;animationName=name;
             if(modelAnimator&&modelAnimator.isActiveAndEnabled)modelAnimator.CrossFadeInFixedTime(name,.06f,0);
         }
-        void Stop(){if(Navigable){agent.isStopped=true;agent.ResetPath();}}
+        void Stop()
+        {
+            // 돌진 뒤 회복/대기 자세가 남은 속도로 미끄러지지 않도록 정지 속도도 비웁니다.
+            if(Navigable){agent.isStopped=true;agent.ResetPath();agent.velocity=Vector3.zero;}
+        }
         void StopEffects()
         {
             readySound.Stop();chargeSound.Stop();
@@ -183,7 +189,10 @@ namespace DogLife
                     var filter=new NavMeshQueryFilter{agentTypeID=agent.agentTypeID,areaMask=agent.areaMask};NavMeshHit hit;
                     if(NavMesh.SamplePosition(target.position-Vector3.up,out hit,2,filter))agent.SetDestination(hit.position);
                 }
-                Animate(Navigable&&agent.velocity.sqrMagnitude>.02f?"Walk":"Idle");
+                // 회피/감속 중 작은 속도 변화로 Walk와 Idle 전환을 계속 다시 시작하지 않습니다.
+                float moveThreshold=animationName=="Walk"?.04f:.12f;
+                float planarSpeed=Navigable?Vector3.ProjectOnPlane(agent.velocity,Vector3.up).magnitude:0;
+                Animate(planarSpeed>moveThreshold?"Walk":"Idle");
             }
             else{Stop();Animate("Idle");}
         }

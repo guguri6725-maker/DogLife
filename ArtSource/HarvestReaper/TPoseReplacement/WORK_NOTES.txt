@@ -1,0 +1,46 @@
+Harvest Reaper T-pose replacement — 2026-10-15
+
+Authoritative model authoring file: HarvestReaper_TPoseRig.blend
+Source FBX files: Original/Boss.fbx and Original/Scythe.fbx
+Previous game assets and textures: BeforeReplacement/
+
+The final Blender file includes manual/script-assisted refinements made after
+build_rig.py: curled right grip, shaft alignment/scale, separated robe/leg and
+sleeve interfaces, and smoothed shoulder/wrist skin weights. build_rig.py is an
+initial construction script, NOT a lossless rebuild of the final model.
+Use the saved Blender file and export_final.py for further model edits.
+
+Final rig: 25 named bones; separate body and rigid scythe meshes.
+Existing 54 AnimationClip assets, GUIDs, state names, timing and events retained.
+retarget.py reads existing_motion.csv and generates retargeted_motion.csv.
+import_motion.cs.txt replaces Transform curves only in the existing clips.
+The weapon grip is fixed relative to the right palm. The death pose includes
+weapon-floor contact correction. No runtime IK component is required.
+
+Unity assignments were made via MCP prefab/component/material tools.
+HarvestBladeTip was relocated to the new blade. Death material transfer now
+matches renderer names, preserving the separate scythe material.
+
+Validation:
+- All 54 clips sampled in Blender for limb length, skin edges and foot contact.
+- Maximum fixed limb length residual: approximately 0.0000022 m.
+- Sampled rigid foot vertices remained above the ground after correction.
+- Remaining edge expansion is localized to bending/cloth transitions; the
+  quantitative test is not a proof of zero deformation at every camera angle.
+- Unity visual checks: Idle, uppercut, shockwave, sweep, summon, storm,
+  safe-zone gesture, kneeling death and final death. Front/side/rear views used.
+- Screenshots: Documentation/HarvestReaper/TPoseReplacement/
+- Unity console: zero error entries at the end of verification.
+
+The screenshots cover representative poses, not every frame and camera angle.
+Combat balance, hit timing, controller states and source textures were retained
+apart from replacing the old boss/weapon textures with the supplied new assets.
+
+Grip revision: preserve original hand orientation; rotate scythe 180 degrees around local Y shaft in every clip. Palm anchor uses hand deformation offset (0.035, 0, -0.008)*6.25 from wrist. Applied to all 54 clips. Unity screenshots verified Idle, uppercut, sweep. retarget_before_grip.py retains previous motion generation.
+
+Superseding grip revision: user requested opposite blade and neutral wrist. Removed shaft half-turn; restored RHand bind-relative-to-forearm rotation independently of weapon. Same neutral wrist applied after death IK. Retained inner-palm anchor. All 54 clips imported; Idle, uppercut and sweep inspected in Unity.
+
+2026-10-16: Refined grip anchor to (0.043,-0.009,-0.030)*6.25 from wrist; blade orientation preserved. Summon free-hand wrist blends 85 percent toward neutral forearm-relative bind, smoothly ramps in Ready and out Recovery. Regenerated/imported 54 clips. Unity inspected Idle grip and Summon at 1.2, 2.19375, 4.2 sec. Backup: retarget_before_summon_grip.py.
+
+2026-10-16 flow refinement: refine_flow.py runs after base retarget. Neutralized idle sideways spine/chest/head bias. Rebuilt Ready/Recovery with shortest quaternion interpolation; modest local attack filtering for Cleave/Sweep/Slam/Special. Summon holds reaching hand with idle weapon arm and returns directly to neutral. Gather turn replaced by reaching gesture; WedgeReady paths interpolate directly. Phase endpoints verified zero rotation mismatch for five ordinary pattern groups. All 54 clips imported. Unity spot checks: front Idle, uppercut, sweep, summon recovery, gather start. Original generation preserved in retarget_before_flow.py.
+Final strike check: repaired isolated local quaternion flips before smoothing. Sweep maximum sampled world rotation step for arm/forearm/scythe reduced from 162.5 to 11.58 degrees; Cleave max 7.68 degrees. Reimported all clips; Unity inspected former flip timestamp.

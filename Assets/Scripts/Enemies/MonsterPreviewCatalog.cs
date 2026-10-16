@@ -13,9 +13,12 @@ namespace DogLife
             public string Name;
             public AnimationClip[] Clips;
             public string[] Companion;
+            public string RuntimePattern;
+            public float RuntimeLength;
+            public float[] PhaseDurations;
             // 구간 미리보기는 원본 클립 시간을 유지하여 자세와 이펙트를 함께 맞춥니다.
             public float Start = 0, End = 1;
-            public float Length => Clips.Sum(c => c.length) * (End - Start);
+            public float Length => RuntimeLength > 0 ? RuntimeLength : Clips.Sum(c => c.length) * (End - Start);
         }
 
         public static Action[] Build(Animator actor, string model, int phase)
@@ -63,13 +66,11 @@ namespace DogLife
                 }
                 else
                 {
-                    Add("대기", "Idle", "Idle");
-                    Add("패턴 · 협공", "Command|Idle", "Ready|Strike|Ground|Retract");
-                    Add("패턴 · 포격", "Command|Wave|Idle", "Ready|Throw|Retract");
-                    Add("패턴 · 소용돌이", "Roar|Wave|Idle", "Emerge|Bind|Retract");
-                    Add("패턴 · 휩쓸기", "Wave|Idle", "Ready|Strike|Retract");
-                    Add("패턴 · 심장 노출", "Roar|Groggy|Idle", "Ground|Retract|Idle");
-                    Add("그로기", "Groggy", "Ground");
+                    var two = actor.GetComponentInParent<KrakenPhaseTwo>();
+                    // 2페이즈 촉수는 클립 조합 대신 인게임의 긴 촉수 리그로 평가합니다.
+                    foreach (var pattern in new[] { "대기", "협공", "포격", "소용돌이", "휩쓸기", "심장 노출", "그로기", "사망" })
+                        list.Add(new Action { Name = pattern == "대기" || pattern == "그로기" || pattern == "사망" ? pattern : "패턴 · " + pattern,
+                            Clips = source, RuntimePattern = pattern, RuntimeLength = two.PreviewLength(pattern) });
                 }
             }
             else if (model.Contains("FrozenKnight"))
@@ -81,10 +82,13 @@ namespace DogLife
                     Add("패턴 · 지면 강타", "SlamForward|PlantRetrieve");
                     Add("패턴 · 밀쳐 올리기", "PushUpper|Idle");
                     Add("패턴 · 회전 베기", "Spin3Sword|Idle");
-                    Add("패턴 · 서리 폭발", "Roar|FrostChannel|Idle");
                     Add("패턴 · 창 던지기", "SpearThrow|SpearRelease|Idle");
                     Add("패턴 · 얼음 장벽", "IceWallFull|Idle");
-                    Add("등장", "ThroneIdle|ThroneRise|ThroneDraw1|ThroneDraw2");
+                    Add("등장", "ThroneIdle|ThroneRise|ThroneStand|ThroneDraw1|ThroneDraw2");
+                    // 발도 직전의 정지 시간을 실제 연출과 맞춥니다.
+                    var introduction = list[list.Count - 1];
+                    introduction.PhaseDurations = introduction.Clips.Select(c => c.name == "ThroneStand" ? .4f : c.length).ToArray();
+                    introduction.RuntimeLength = introduction.PhaseDurations.Sum();
                     Add("그로기 / 기상", "Kneel|StandUp");
                 }
                 else
@@ -115,17 +119,31 @@ namespace DogLife
                     Add("대쉬 · 돌진", "Scrape|Charge|P2Brake");
                     Add("패턴 · 휩쓸기", "P2SweepReady|P2Sweep|P2Brake");
                     Add("패턴 · 개화", "P2BloomReady|P2Bloom|Recovery");
-                    Add("패턴 · 꽃 폭풍", "P2Storm|Recovery"); Add("사망", "P2Death");
+                    Add("패턴 · 꽃 폭풍", "P2Storm|Recovery");
+                    Add("사망 · 다리 무너짐", "P2DeathLeft");
+                    var death = actor.GetComponentInParent<SpringBoarDeath>();
+                    foreach (var action in list.Where(a => a.Name.StartsWith("사망"))) action.RuntimeLength = death ? death.Duration : 5.2f;
                 }
             }
             else if (model.Contains("HarvestReaper"))
             {
                 Add("대기", "Idle");
-                Add("공격 · 베기", "CleaveReady|CleaveAttack|Recovery");
-                Add("패턴 · 내려찍기", "SlamReady|SlamAttack|Recovery");
-                Add("패턴 · 휩쓸기", "SweepReady|SweepAttack|Recovery");
-                Add("패턴 · 소환", "SummonReady|SummonAttack|Recovery");
-                Add("패턴 · 필살기", "SpecialReady|SpecialHold|SpecialAttack|Recovery"); Add("사망", "Death");
+                Add("공격 · 직선 올려치기", "CleaveReady|CleaveAttack|CleaveRecovery");
+                Add("패턴 · 자루 찍기 / 충격파", "SlamReady|SlamAttack|SlamRecovery");
+                Add("패턴 · 수확 휩쓸기", "SweepReady|SweepAttack|SweepRecovery");
+                Add("패턴 · 호박 씨앗 소환", "SummonReady|SummonAttack|SummonRecovery");
+                Add("패턴 · 낙엽 폭풍", "SpecialReady|SpecialAttack|SpecialRecovery");
+                // 긴 폭풍 구간에서 충격파 복사 모션을 천천히 끝까지 재생합니다.
+                var reaper = actor.GetComponentInParent<HarvestReaperBoss>();
+                if (reaper)
+                {
+                    var storm = reaper.StormAttack;
+                    list[list.Count - 1].PhaseDurations = new[] { storm.warning, storm.duration, storm.recovery };
+                    list[list.Count - 1].RuntimeLength = storm.warning + storm.duration + storm.recovery;
+                }
+                // 여덟 방향의 예고와 폭발을 한 패턴으로 묶어 보여줍니다.
+                Add("패턴 · 안전지대 회전", "GatherReady|GatherAttack|" + string.Join("|", Enumerable.Range(0, 8).Select(i => "WedgeReady"+i+"|WedgeAttack"+i+"|WedgeHold"+i)) + "|WedgeRecovery7");
+                Add("사망", "Death");
             }
             else
             {

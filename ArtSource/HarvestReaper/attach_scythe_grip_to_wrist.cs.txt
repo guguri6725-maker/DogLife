@@ -1,0 +1,46 @@
+// Apply once after restoring the animation baseline in BeforeLeftWristFix.
+// Keep the weapon-bound gripping hand attached to the physical forearm seam.
+var model=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/HarvestReaper/Models/HarvestReaper.fbx");
+var transforms=model.GetComponentsInChildren<Transform>(true);
+var hand=transforms.First(x=>x.name=="RHand");var weapon=transforms.First(x=>x.name=="Scythe");
+var wrist=model.transform.TransformPoint(new Vector3(-1.66f,4.15f,-.27f));
+var forearmPoint=hand.parent.InverseTransformPoint(wrist);var weaponPoint=weapon.InverseTransformPoint(wrist);
+var handPath=AnimationUtility.CalculateTransformPath(hand,model.transform);var weaponPath=AnimationUtility.CalculateTransformPath(weapon,model.transform);
+int count=0;float worst=0;
+foreach(var guid in AssetDatabase.FindAssets("t:AnimationClip",new[]{"Assets/Art/HarvestReaper/Animations"})){
+ var file=AssetDatabase.GUIDToAssetPath(guid);if(!file.EndsWith(".anim"))continue;
+ var clip=AssetDatabase.LoadAssetAtPath<AnimationClip>(file);
+ var curves=AnimationUtility.GetCurveBindings(clip).Where(b=>b.path==handPath||b.path==weaponPath).ToDictionary(b=>b.path+"|"+b.propertyName,b=>AnimationUtility.GetEditorCurve(clip,b));
+ if(!curves.Keys.Any(k=>k.StartsWith(weaponPath+"|")))continue;
+ System.Func<string,string,float,float,float> val=(path,prop,t,fallback)=>curves.ContainsKey(path+"|"+prop)?curves[path+"|"+prop].Evaluate(t):fallback;
+ System.Func<Transform,string,float,Vector3> pos=(tr,path,t)=>new Vector3(val(path,"m_LocalPosition.x",t,tr.localPosition.x),val(path,"m_LocalPosition.y",t,tr.localPosition.y),val(path,"m_LocalPosition.z",t,tr.localPosition.z));
+ System.Func<Transform,string,float,Vector3> scale=(tr,path,t)=>new Vector3(val(path,"m_LocalScale.x",t,tr.localScale.x),val(path,"m_LocalScale.y",t,tr.localScale.y),val(path,"m_LocalScale.z",t,tr.localScale.z));
+ System.Func<Transform,string,float,Quaternion> rot=(tr,path,t)=>new Quaternion(val(path,"m_LocalRotation.x",t,tr.localRotation.x),val(path,"m_LocalRotation.y",t,tr.localRotation.y),val(path,"m_LocalRotation.z",t,tr.localRotation.z),val(path,"m_LocalRotation.w",t,tr.localRotation.w)).normalized;
+ System.Func<float,Vector3> target=t=>{
+ var hm=Matrix4x4.TRS(pos(hand,handPath,t),rot(hand,handPath,t),scale(hand,handPath,t));
+ var corrected=hm.inverse.MultiplyPoint3x4(forearmPoint)-rot(weapon,weaponPath,t)*Vector3.Scale(scale(weapon,weaponPath,t),weaponPoint);
+ // Allow the scythe to settle independently only after the death fall releases the grip.
+ if(clip.name.EndsWith("_Death"))corrected=Vector3.Lerp(corrected,pos(weapon,weaponPath,t),Mathf.SmoothStep(0,1,(t-2.45f)/.8f));
+ return corrected;};
+ var times=new System.Collections.Generic.SortedSet<float>(curves.Values.SelectMany(c=>c.keys.Select(k=>k.time)));
+ int samples=Mathf.CeilToInt(clip.length*120);for(int i=0;i<=samples;i++)times.Add(clip.length*i/samples);
+ for(int pass=0;pass<10;pass++){
+ var all=times.ToArray();var add=new System.Collections.Generic.List<float>();
+ for(int i=0;i<all.Length-1;i++){
+ float mid=(all[i]+all[i+1])*.5f;var error=weapon.parent.TransformVector((target(all[i])+target(all[i+1]))*.5f-target(mid)).magnitude;
+ if(error>.001f)add.Add(mid);
+ }
+ if(add.Count==0)break;foreach(var t in add)times.Add(t);
+ }
+ var ts=times.Select(t=>(float)Math.Round(t,5)).Distinct().OrderBy(t=>t).ToArray();var keys=new[]{new Keyframe[ts.Length],new Keyframe[ts.Length],new Keyframe[ts.Length]};
+ for(int i=0;i<ts.Length;i++){var p=target(ts[i]);for(int a=0;a<3;a++)keys[a][i]=new Keyframe(ts[i],p[a]);}
+ var outCurves=new AnimationCurve[3];var outBindings=new EditorCurveBinding[3];
+ for(int a=0;a<3;a++){
+ var curve=new AnimationCurve(keys[a]);for(int k=0;k<curve.length;k++){AnimationUtility.SetKeyLeftTangentMode(curve,k,AnimationUtility.TangentMode.Linear);AnimationUtility.SetKeyRightTangentMode(curve,k,AnimationUtility.TangentMode.Linear);}
+ outBindings[a]=EditorCurveBinding.FloatCurve(weaponPath,typeof(Transform),"m_LocalPosition."+"xyz"[a]);outCurves[a]=curve;
+ }
+ AnimationUtility.SetEditorCurves(clip,outBindings,outCurves);
+ for(int i=0;i<ts.Length-1;i++){float mid=(ts[i]+ts[i+1])*.5f;worst=Mathf.Max(worst,weapon.parent.TransformVector((target(ts[i])+target(ts[i+1]))*.5f-target(mid)).magnitude);}
+ EditorUtility.SetDirty(clip);count++;
+}
+AssetDatabase.SaveAssets();return "Corrected "+count+" clips; max interpolation error "+worst.ToString("F6")+"m";

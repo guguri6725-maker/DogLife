@@ -1,0 +1,21 @@
+// Correct the gripping wrist while preserving the scythe's existing world-relative motion.
+var model=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/HarvestReaper/Models/HarvestReaper.fbx");var all=model.GetComponentsInChildren<Transform>(true);var hand=all.First(t=>t.name=="RHand");var weapon=all.First(t=>t.name=="Scythe");
+var wrist=model.transform.TransformPoint(new Vector3(-1.66f,4.15f,-.27f));var pp=hand.parent.InverseTransformPoint(wrist);var hp=hand.InverseTransformPoint(wrist);var handPath=AnimationUtility.CalculateTransformPath(hand,model.transform);var weaponPath=AnimationUtility.CalculateTransformPath(weapon,model.transform);int changed=0;
+foreach(var guid in AssetDatabase.FindAssets("t:AnimationClip",new[]{"Assets/Art/HarvestReaper/Animations"})){
+ var file=AssetDatabase.GUIDToAssetPath(guid);if(!file.EndsWith(".anim"))continue;var clip=AssetDatabase.LoadAssetAtPath<AnimationClip>(file);
+ var dict=AnimationUtility.GetCurveBindings(clip).Where(b=>b.path==handPath||b.path==weaponPath).ToDictionary(b=>b.path+"|"+b.propertyName,b=>AnimationUtility.GetEditorCurve(clip,b));
+ System.Func<string,string,float,float,float> v=(p,n,t,d)=>dict.ContainsKey(p+"|"+n)?dict[p+"|"+n].Evaluate(t):d;
+ System.Func<float,Vector3[]> target=t=>{
+ var q=new Quaternion(v(handPath,"m_LocalRotation.x",t,hand.localRotation.x),v(handPath,"m_LocalRotation.y",t,hand.localRotation.y),v(handPath,"m_LocalRotation.z",t,hand.localRotation.z),v(handPath,"m_LocalRotation.w",t,hand.localRotation.w)).normalized;
+ var s=new Vector3(v(handPath,"m_LocalScale.x",t,hand.localScale.x),v(handPath,"m_LocalScale.y",t,hand.localScale.y),v(handPath,"m_LocalScale.z",t,hand.localScale.z));
+ var old=new Vector3(v(handPath,"m_LocalPosition.x",t,hand.localPosition.x),v(handPath,"m_LocalPosition.y",t,hand.localPosition.y),v(handPath,"m_LocalPosition.z",t,hand.localPosition.z));
+ var wp=new Vector3(v(weaponPath,"m_LocalPosition.x",t,weapon.localPosition.x),v(weaponPath,"m_LocalPosition.y",t,weapon.localPosition.y),v(weaponPath,"m_LocalPosition.z",t,weapon.localPosition.z));
+ var desired=pp-q*Vector3.Scale(s,hp);wp+=Matrix4x4.TRS(Vector3.zero,q,s).inverse.MultiplyVector(old-desired);
+ return new[]{desired,wp};};
+ var times=new System.Collections.Generic.SortedSet<float>(dict.Values.SelectMany(c=>c.keys.Select(k=>k.time)));int count=Mathf.CeilToInt(clip.length*120);for(int i=0;i<=count;i++)times.Add(clip.length*i/count);
+ for(int pass=0;pass<12;pass++){var ts=times.ToArray();var add=new System.Collections.Generic.List<float>();for(int i=0;i<ts.Length-1;i++){if(ts[i+1]-ts[i]<.00002f)continue;float t=(ts[i]+ts[i+1])*.5f;var a=target(ts[i]);var b=target(ts[i+1]);var m=target(t);if(hand.parent.TransformVector((a[0]+b[0])*.5f-m[0]).magnitude>.001f||hand.TransformVector((a[1]+b[1])*.5f-m[1]).magnitude>.001f)add.Add(t);}if(add.Count==0)break;foreach(var t in add)times.Add(t);}
+ var tt=times.Select(t=>(float)Math.Round(t,5)).Distinct().OrderBy(t=>t).ToArray();var output=new AnimationCurve[6];var bindings=new EditorCurveBinding[6];
+ for(int k=0;k<6;k++){int part=k/3,axis=k%3;var curve=new AnimationCurve(tt.Select(t=>new Keyframe(t,target(t)[part][axis])).ToArray());for(int j=0;j<curve.length;j++){AnimationUtility.SetKeyLeftTangentMode(curve,j,AnimationUtility.TangentMode.Linear);AnimationUtility.SetKeyRightTangentMode(curve,j,AnimationUtility.TangentMode.Linear);}output[k]=curve;bindings[k]=EditorCurveBinding.FloatCurve(part==0?handPath:weaponPath,typeof(Transform),"m_LocalPosition."+"xyz"[axis]);}
+ AnimationUtility.SetEditorCurves(clip,bindings,output);EditorUtility.SetDirty(clip);changed++;
+}
+AssetDatabase.SaveAssets();return "Grip wrist corrected in "+changed+" clips; weapon path preserved.";

@@ -1,0 +1,21 @@
+// Import baked motion only; preserve the existing asset GUIDs and rig bindings.
+var data=UnityEngine.JsonUtility.FromJson<DogLife.EditorTools.FrozenKnightBlenderBridge.Payload>(System.IO.File.ReadAllText("ArtSource/FrozenKnight/IntroRefinement/output.json"));
+foreach(var m in data.motions){
+var path="Assets/Art/FrozenKnight/Animations/"+m.name+".anim";var clip=UnityEditor.AssetDatabase.LoadAssetAtPath<UnityEngine.AnimationClip>(path);bool fresh=!clip;
+if(fresh)clip=new UnityEngine.AnimationClip{name=m.name,frameRate=60};
+for(int b=0;b<data.bones.Length;b++)for(int kind=0;kind<2;kind++)for(int k=0;k<(kind==0?3:4);k++){
+var keys=new UnityEngine.Keyframe[m.frames];for(int f=0;f<m.frames;f++){int j=f*data.bones.Length+b;keys[f]=new UnityEngine.Keyframe(m.duration*f/(m.frames-1),kind==0?m.positions[j][k]:m.rotations[j][k]);}
+// Reduce redundant samples with a tight error bound, preserving the 60 fps motion.
+var keep=new System.Collections.Generic.SortedSet<int>{0,keys.Length-1};
+System.Action<int,int> reduce=null;
+reduce=(lo,hi)=>{if(hi<=lo+1)return;float max=0;int at=-1;for(int j=lo+1;j<hi;j++){float expected=UnityEngine.Mathf.Lerp(keys[lo].value,keys[hi].value,(keys[j].time-keys[lo].time)/(keys[hi].time-keys[lo].time));float error=UnityEngine.Mathf.Abs(keys[j].value-expected);if(error>max){max=error;at=j;}}if(max>(kind==0?.00001f:.00005f)){keep.Add(at);reduce(lo,at);reduce(at,hi);}};
+reduce(0,keys.Length-1);
+var c=new UnityEngine.AnimationCurve(keep.Select(i=>keys[i]).ToArray());
+if(keys.All(x=>UnityEngine.Mathf.Abs(x.value-keys[0].value)<.0000001f))c=new UnityEngine.AnimationCurve(keys[0],keys[keys.Length-1]);
+for(int i=0;i<c.length;i++){UnityEditor.AnimationUtility.SetKeyLeftTangentMode(c,i,UnityEditor.AnimationUtility.TangentMode.Linear);UnityEditor.AnimationUtility.SetKeyRightTangentMode(c,i,UnityEditor.AnimationUtility.TangentMode.Linear);}
+UnityEditor.AnimationUtility.SetEditorCurve(clip,UnityEditor.EditorCurveBinding.FloatCurve(data.bones[b].path,typeof(UnityEngine.Transform),(kind==0?"m_LocalPosition.":"m_LocalRotation.")+"xyzw"[k]),c);
+}
+clip.frameRate=60;clip.EnsureQuaternionContinuity();var settings=UnityEditor.AnimationUtility.GetAnimationClipSettings(clip);settings.loopTime=m.name=="ThroneStand";UnityEditor.AnimationUtility.SetAnimationClipSettings(clip,settings);
+if(fresh)UnityEditor.AssetDatabase.CreateAsset(clip,path);else UnityEditor.EditorUtility.SetDirty(clip);
+}
+UnityEditor.AssetDatabase.SaveAssets();return "Imported rise, unarmed stand and two continuous draw phases";

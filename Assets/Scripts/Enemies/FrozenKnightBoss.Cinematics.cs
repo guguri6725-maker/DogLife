@@ -9,8 +9,7 @@ namespace DogLife
         [Header("왕좌 / 입장 연출 — 원본 길이로 재생")]
         [SerializeField] AnimationClip throneIdle,throneRise,throneDraw1,throneDraw2,cinematicMount;
         [SerializeField,Range(0,1)] float drawGripTime=.68f;
-        [SerializeField] Vector3 sheathedGripOffset=new Vector3(.15f,.65f,-.65f),sheathedBladeDirection=new Vector3(.93f,-.35f,0);
-        [SerializeField] Vector3 swordLocalBladeAxis=new Vector3(-.60f,.81f,.41f);
+        [SerializeField] Transform sheathedSwordSocket;
         [SerializeField,Min(.1f)] float introductionWalkSpeed=2.1f,introductionMoveTimeout=18;
         FrozenKnightCinematicStage cinematicStage;
         [Header("최후의 일격 / 사망 연출")]
@@ -133,8 +132,10 @@ namespace DogLife
                         yield return null;
                     }
                 }
-                StopMovement();Aim(true);Play(knightAnimator,"Idle");yield return new WaitForSeconds(.4f);
+                // 검을 뽑기 전에는 무장 대기 자세가 섞이지 않도록 빈손 자세로 정지합니다.
+                StopMovement();Aim(true);Play(knightAnimator,"ThroneStand");yield return new WaitForSeconds(.4f);
                 // 중앙에 도착해 완전히 멈춘 다음 등 뒤 검을 뽑습니다.
+                cinematicStage.ShowDraw();
                 yield return Stage(CombatState.Transition,throneDraw1.length,"ThroneDraw1");
                 yield return Stage(CombatState.Transition,throneDraw2.length,"ThroneDraw2");
                 introductionSwordDrawn=true;
@@ -149,16 +150,29 @@ namespace DogLife
         }
         void UpdateIntroductionSword()
         {
-            if(!awaitingIntroduction&&!introductionRunning)return;
+            if((!awaitingIntroduction&&!introductionRunning)||introductionSwordDrawn||MonsterAnimationPreview.IsPreviewing(this))return;
             var state=knightAnimator.GetCurrentAnimatorStateInfo(0);
-            if(introductionSwordDrawn)return;
-            // 손이 등 뒤 손잡이에 닿는 순간부터 손의 원래 그립으로 연결합니다.
-            if(state.IsName("ThroneDraw2")||(state.IsName("ThroneDraw1")&&state.normalizedTime>=drawGripTime))return;
-            var chest=knightAnimator.transform.Find("skel/Root/Hips/Spine/Spine1/Spine2");
-            if(!chest)return;
-            Vector3 backPosition=chest.position+transform.rotation*sheathedGripOffset;
-            Quaternion backRotation=transform.rotation*Quaternion.FromToRotation(swordLocalBladeAxis,sheathedBladeDirection);
-            float blend=state.IsName("ThroneDraw1")?Mathf.SmoothStep(0,1,Mathf.InverseLerp(drawGripTime-.18f,drawGripTime,state.normalizedTime)):0;
+            // 블렌드 중에는 새 발도 상태의 시간을 사용해 손에 붙은 검이 다시 등으로 튀지 않습니다.
+            if(knightAnimator.IsInTransition(0))
+            {
+                var next=knightAnimator.GetNextAnimatorStateInfo(0);
+                if(next.IsName("ThroneDraw1")||next.IsName("ThroneDraw2"))state=next;
+            }
+            string clip=state.IsName("ThroneDraw2")?"ThroneDraw2":state.IsName("ThroneDraw1")?"ThroneDraw1":"ThroneIdle";
+            SampleIntroductionSword(clip,state.normalizedTime,swordRestPosition,swordRestRotation);
+        }
+        // 인게임과 미리보기가 동일한 손잡이 기준과 발도 접촉 시점을 사용합니다.
+        public void SampleIntroductionSword(string clip,float progress,Vector3 restPosition,Quaternion restRotation)
+        {
+            if(!swordRoot||!knightAnimator)return;
+            swordRoot.localPosition=restPosition;swordRoot.localRotation=restRotation;
+            if(clip!="ThroneIdle"&&clip!="ThroneRise"&&clip!="ThroneStand"&&clip!="ThroneDraw1")return;
+            if(clip=="ThroneDraw1"&&progress>=drawGripTime)return;
+            if(!sheathedSwordSocket)return;
+            // 등뼈 아래의 고정점으로 상체의 기울기와 회전을 함께 따릅니다.
+            Vector3 backPosition=sheathedSwordSocket.TransformPoint(restPosition);
+            Quaternion backRotation=sheathedSwordSocket.rotation*restRotation;
+            float blend=clip=="ThroneDraw1"?Mathf.SmoothStep(0,1,Mathf.InverseLerp(drawGripTime-.10f,drawGripTime,progress)):0;
             swordRoot.SetPositionAndRotation(Vector3.Lerp(backPosition,swordRoot.position,blend),Quaternion.Slerp(backRotation,swordRoot.rotation,blend));
         }
         void ResetIntroductionSword()

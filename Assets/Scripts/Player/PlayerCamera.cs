@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 namespace DogLife
 {
     // 마우스로 회전하는 3인칭 카메라. 지형에 닿으면 가까이 당깁니다.
@@ -23,6 +24,17 @@ namespace DogLife
         readonly Collider[] overlaps = new Collider[64];
         Vector3 lastClearPosition;
         bool hasClearPosition;
+        // 몬스터는 시점을 밀지 않고 외형만 숨깁니다. 경계에서는 잠시 유지해 깜빡임을 막습니다.
+        const float monsterRevealDelay = .18f;
+        readonly Dictionary<CombatHealth, HiddenMonster> hiddenMonsters = new Dictionary<CombatHealth, HiddenMonster>();
+        readonly List<CombatHealth> revealedMonsters = new List<CombatHealth>();
+        readonly Collider[] monsterOverlaps = new Collider[64];
+        Transform visibilityTarget;
+        sealed class HiddenMonster
+        {
+            public float revealAt, refreshAt;
+            public readonly Dictionary<Renderer, bool> renderers = new Dictionary<Renderer, bool>();
+        }
         float impactShake,impactEnds,impactDuration;
         public void AddImpactShake(float strength,float duration)
         { impactShake=Mathf.Clamp(strength,0,1);impactDuration=Mathf.Max(.01f,duration);impactEnds=Time.time+impactDuration; }
@@ -40,11 +52,92 @@ namespace DogLife
         bool BlocksCamera(Collider c)
         {
             if (!c || c.transform.IsChildOf(target) || c.transform.IsChildOf(transform)) return false;
+            if (c.GetComponent<CameraStructure>()) return true;
             var health = c.GetComponentInParent<CombatHealth>();
-            if (health && health.player) return false;
+            if (health && (health.player || IsMonster(health))) return false;
             // 몸체 Trigger만 포함하고 공격 영역, 센서, 포자 장식은 제외합니다.
             if (c.isTrigger) return c.GetComponent<MonsterHurtbox>();
             return (obstructionMask.value & (1 << c.gameObject.layer)) != 0 || c.gameObject.layer == 0 || health;
+        }
+        static bool IsMonster(CombatHealth health)
+        {
+            // 얼음 기둥처럼 체력만 있는 지형은 계속 카메라를 막습니다.
+            return health && !health.player && !health.practiceTarget &&
+                (health.GetComponent<MonsterHurtbox>() || health.GetComponent<KrakenPhaseTentacle>());
+        }
+        static bool IsMonsterBody(Renderer renderer)
+        {
+            if (!(renderer is SkinnedMeshRenderer) && !(renderer is MeshRenderer)) return false;
+            // 장판, 경고 영역, 입자 효과는 숨기지 않아 공격 정보를 계속 전달합니다.
+            var materials = renderer.sharedMaterials;
+            if (materials.Length == 0) return false;
+            foreach (var material in materials)
+                if (material && material.renderQueue < 2500) return true;
+            return false;
+        }
+        void UpdateMonsterVisibility()
+        {
+            if (visibilityTarget != target) { RestoreMonsterVisibility(); visibilityTarget = target; }
+            if (!collisionCamera) collisionCamera = GetComponent<Camera>();
+            if (!collisionCamera) { RestoreMonsterVisibility(); return; }
+            // 플레이어까지의 시야 선이 아닌, 렌즈부터 근접 클리핑 면까지의 작은 공간만 검사합니다.
+            // 카메라 회전에 맞춰 검사 영역도 회전하므로 몸체에 파고드는 각도에서만 숨깁니다.
+            const float skin = .04f;
+            float near = Mathf.Max(.01f, collisionCamera.nearClipPlane);
+            float halfHeight = collisionCamera.orthographic ? collisionCamera.orthographicSize
+                : near * Mathf.Tan(collisionCamera.fieldOfView * Mathf.Deg2Rad * .5f);
+            var halfExtents = new Vector3(halfHeight * collisionCamera.aspect + skin, halfHeight + skin, near * .5f + skin);
+            var center = transform.position + transform.forward * (near * .5f);
+            int count = Physics.OverlapBoxNonAlloc(center, halfExtents, monsterOverlaps, transform.rotation, ~0, QueryTriggerInteraction.Collide);
+            var found = count == monsterOverlaps.Length
+                ? Physics.OverlapBox(center, halfExtents, transform.rotation, ~0, QueryTriggerInteraction.Collide) : monsterOverlaps;
+            if (found != monsterOverlaps) count = found.Length;
+            float now = Time.unscaledTime;
+            for (int i = 0; i < count; i++)
+            {
+                var collider = found[i];
+                if (!MonsterHurtbox.Accepts(collider)) continue;
+                var health = collider.GetComponentInParent<CombatHealth>();
+                if (!IsMonster(health)) continue;
+                if (!hiddenMonsters.TryGetValue(health, out var hidden))
+                {
+                    hidden = new HiddenMonster();
+                    hiddenMonsters.Add(health, hidden);
+                }
+                hidden.revealAt = now + monsterRevealDelay;
+                if (now < hidden.refreshAt) continue;
+                hidden.refreshAt = now + .25f;
+                // 도중에 장착된 무기도 포함하고 원래 숨겨진 부위의 상태는 보존합니다.
+                foreach (var renderer in health.GetComponentsInChildren<Renderer>(true))
+                    if (renderer.GetComponentInParent<CombatHealth>() == health && IsMonsterBody(renderer) && !hidden.renderers.ContainsKey(renderer))
+                        hidden.renderers.Add(renderer, renderer.forceRenderingOff);
+            }
+            revealedMonsters.Clear();
+            foreach (var pair in hiddenMonsters)
+            {
+                if (!pair.Key || !pair.Key.gameObject.activeInHierarchy || now >= pair.Value.revealAt)
+                {
+                    RestoreMonster(pair.Value);
+                    revealedMonsters.Add(pair.Key);
+                    continue;
+                }
+                foreach (var renderer in pair.Value.renderers)
+                    if (renderer.Key) renderer.Key.forceRenderingOff = true;
+            }
+            foreach (var health in revealedMonsters) hiddenMonsters.Remove(health);
+        }
+        static void RestoreMonster(HiddenMonster hidden)
+        {
+            foreach (var renderer in hidden.renderers)
+                if (renderer.Key) renderer.Key.forceRenderingOff = renderer.Value;
+        }
+        void RestoreMonsterVisibility()
+        {
+            // 연출 전환, 방 이동, 카메라 비활성화 뒤에도 몬스터가 숨은 채 남지 않습니다.
+            foreach (var hidden in hiddenMonsters.Values) RestoreMonster(hidden);
+            hiddenMonsters.Clear();
+            revealedMonsters.Clear();
+            visibilityTarget = null;
         }
         bool IsClear(Vector3 point, float radius)
         {
@@ -78,7 +171,7 @@ namespace DogLife
             wanted.x = Mathf.Max(wanted.x, minimumWorldX);
             var clipped = ClipSegment(anchor, wanted, radius);
             if (clipped.x >= minimumWorldX && IsClear(clipped, radius)) return clipped;
-            // 플레이어가 몬스터와 겹쳐도 카메라를 몸 안에 두지 않도록 빈 위치를 찾습니다.
+            // 플레이어가 지형과 겹칠 때도 카메라가 벽 안에 남지 않도록 빈 위치를 찾습니다.
             for (int i = 1; i <= 24; i++)
             {
                 var candidate = Vector3.Lerp(clipped, anchor, i / 24f);
@@ -112,7 +205,7 @@ namespace DogLife
             pitch = Mathf.Clamp(pitch - Input.GetAxis("Mouse Y") * sensitivity, -25, 65);
         }
         void LateUpdate() {
-            if (!target) return;
+            if (!target) { RestoreMonsterVisibility(); return; }
             var rotation = Quaternion.Euler(pitch, yaw, 0);
             float blend=cinematicReturnDuration>0?Mathf.SmoothStep(0,1,(Time.unscaledTime-cinematicReturnStart)/cinematicReturnDuration):1;
             if(ownCamera){ownCamera.fieldOfView=Mathf.Lerp(cinematicFov,gameplayFov,blend);if(blend>=1)ownCamera=null;}
@@ -145,7 +238,8 @@ namespace DogLife
                 transform.rotation*=Quaternion.Euler(Mathf.Sin(Time.time*67)*strength,Mathf.Sin(Time.time*83)*strength*.5f,Mathf.Sin(Time.time*59)*strength*.65f);
             }
             if (IsClear(position, radius)) { lastClearPosition = position; hasClearPosition = true; }
+            UpdateMonsterVisibility();
         }
-        void OnDisable() { armInitialized = false; hasClearPosition = false; armVelocity = shoulderVelocity = 0; CaptureCursor(false); }
+        void OnDisable() { RestoreMonsterVisibility(); armInitialized = false; hasClearPosition = false; armVelocity = shoulderVelocity = 0; CaptureCursor(false); }
     }
 }

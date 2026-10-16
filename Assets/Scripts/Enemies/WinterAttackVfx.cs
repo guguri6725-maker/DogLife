@@ -14,17 +14,22 @@ namespace DogLife
         readonly List<Vector3> vertices=new List<Vector3>(12000);
         readonly List<Color> colors=new List<Color>(12000);
         readonly List<int> indices=new List<int>(18000);
+        readonly List<Vector4> iceData=new List<Vector4>(12000);
+        float iceSurface,iceSeed,iceBase,iceHeight;
         static readonly Color White=new Color(.84f,.97f,1),Ice=new Color(.34f,.65f,.94f),Deep=new Color(.045f,.14f,.3f);
         public void Initialize(Material mat){material=mat;if(surface)surface.sharedMaterial=mat;}
         void Awake(){mesh=new Mesh{name="Winter frost crystals and warning"};mesh.MarkDynamic();GetComponent<MeshFilter>().sharedMesh=mesh;surface=GetComponent<MeshRenderer>();surface.sharedMaterial=material;surface.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;surface.receiveShadows=false;if(enemy)health=enemy.GetComponent<CombatHealth>();}
         static Color A(Color color,float alpha){color.a=alpha;return color;}
-        void Tri(Vector3 a,Vector3 b,Vector3 c,Color color){int n=vertices.Count;vertices.Add(transform.InverseTransformPoint(a));vertices.Add(transform.InverseTransformPoint(b));vertices.Add(transform.InverseTransformPoint(c));colors.Add(color);colors.Add(color);colors.Add(color);indices.Add(n);indices.Add(n+1);indices.Add(n+2);}
+        // 기존 범위 표시와 입체 얼음을 같은 메시 안에서 구분합니다.
+        Vector4 IceData(Vector3 p)=>new Vector4(iceSurface,iceSeed,iceSurface>0?Mathf.Clamp01((p.y-iceBase)/Mathf.Max(.001f,iceHeight)):0,0);
+        void Tri(Vector3 a,Vector3 b,Vector3 c,Color color){int n=vertices.Count;vertices.Add(transform.InverseTransformPoint(a));vertices.Add(transform.InverseTransformPoint(b));vertices.Add(transform.InverseTransformPoint(c));colors.Add(color);colors.Add(color);colors.Add(color);iceData.Add(IceData(a));iceData.Add(IceData(b));iceData.Add(IceData(c));indices.Add(n);indices.Add(n+1);indices.Add(n+2);}
         void Quad(Vector3 a,Vector3 b,Vector3 c,Vector3 d,Color color){Tri(a,b,c,color);Tri(a,c,d,color);}
         void Line(Vector3 a,Vector3 b,float width,Color color){Vector3 s=Vector3.Cross(b-a,Vector3.up).normalized*width*.5f;if(s.sqrMagnitude<.000001f)s=Vector3.right*width*.5f;Quad(a-s,a+s,b+s,b-s,color);}
         void Crystal(Vector3 p,float height,float width,float alpha,float seed)
         {
             height*=VisualScale;width*=VisualScale;
             if(height<.01f)return;
+            if(enemy&&enemy.Kind==WinterMonsterEnemy.Species.Golem){DetailedCrystal(p,height,width,alpha,seed);return;}
             Vector3 tip=p+new Vector3(Mathf.Sin(seed)*height*.25f,height,Mathf.Cos(seed)*height*.18f);
             for(int i=0;i<5;i++)
             {
@@ -36,6 +41,38 @@ namespace DogLife
                 Line(xx,tip,.008f,A(White,alpha*.75f));
                 Line(x,xx,.006f,A(White,alpha*.4f));
             }
+        }
+        // 큰 얼음은 비대칭 파단면으로 만들고 작은 파편도 같은 재질을 사용합니다.
+        void DetailedCrystal(Vector3 p,float height,float width,float alpha,float seed,bool fragments=true)
+        {
+            iceSurface=1;iceSeed=seed;iceBase=p.y;iceHeight=height;
+            const int sides=7;
+            Vector3 lean=new Vector3(Mathf.Sin(seed*1.7f),0,Mathf.Cos(seed*2.3f))*height*.16f;
+            for(int side=0;side<sides;side++)
+            {
+                float a=side*Mathf.PI*2/sides+seed,b=(side+1)*Mathf.PI*2/sides+seed;
+                float ra=width*(1+.16f*Mathf.Sin(side*4.7f+seed));
+                float rb=width*(1+.16f*Mathf.Sin(((side+1)%sides)*4.7f+seed));
+                Vector3 da=new Vector3(Mathf.Cos(a),0,Mathf.Sin(a))*ra;
+                Vector3 db=new Vector3(Mathf.Cos(b),0,Mathf.Sin(b))*rb;
+                Vector3 a0=p+da*1.18f,b0=p+db*1.18f;
+                Vector3 a1=p+da+lean*.36f+Vector3.up*height*.38f;
+                Vector3 b1=p+db+lean*.36f+Vector3.up*height*.38f;
+                Vector3 a2=p+da*.73f+lean*.78f+Vector3.up*height*(.73f+.09f*Mathf.Sin(side*2.1f+seed));
+                Vector3 b2=p+db*.73f+lean*.78f+Vector3.up*height*(.73f+.09f*Mathf.Sin(((side+1)%sides)*2.1f+seed));
+                Vector3 tip=p+lean+Vector3.up*height;
+                Color tint=A(Color.Lerp(new Color(.64f,.81f,.88f),White,.35f+.15f*Mathf.Sin(side+seed)),alpha);
+                Quad(a0,b0,b1,a1,tint);Quad(a1,b1,b2,a2,tint);Tri(a2,b2,tip,tint);
+            }
+            iceSurface=0;
+            // 밑동의 작은 파단 조각으로 지면과 큰 결정의 경계를 연결합니다.
+            if(fragments&&height>.45f)
+                for(int i=0;i<2;i++)
+                {
+                    float angle=seed+i*2.4f;
+                    Vector3 offset=new Vector3(Mathf.Cos(angle),0,Mathf.Sin(angle))*width*1.12f;
+                    DetailedCrystal(p+offset,height*(.20f+.08f*i),width*.50f,alpha,seed+17+i,false);
+                }
         }
         Vector3 Dir(Vector3 forward,float degrees)=>Quaternion.AngleAxis(degrees,Vector3.up)*forward;
         void Arc(Vector3 p,Vector3 forward,float radius,float angle,float width,Color color)
@@ -63,6 +100,7 @@ namespace DogLife
         }
         void Cracks(Vector3 p,Vector3 forward,float range,float angle,float growth,float alpha)
         {
+            bool glacier=enemy&&enemy.Kind==WinterMonsterEnemy.Species.Golem;
             for(int lane=0;lane<5;lane++)
             {
                 Vector3 direction=Dir(forward,(lane-2)*angle*.21f),side=Vector3.Cross(Vector3.up,direction);Vector3 prev=p;
@@ -70,8 +108,8 @@ namespace DogLife
                 {
                     float distance=range*j/10;if(distance>range*growth)break;
                     Vector3 next=p+direction*distance+side*Mathf.Sin(j*7+lane*3)*.12f;
-                    Line(prev,next,.10f,A(Deep,alpha));Line(prev+Vector3.up*.008f,next+Vector3.up*.008f,.036f,A(White,alpha));
-                    Vector3 branch=next+Dir(direction,(j%2==0?1:-1)*55)*.35f;Line(next,branch,.028f,A(Ice,alpha));prev=next;
+                    Line(prev,next,glacier?.055f:.10f,A(Deep,alpha*(glacier?.42f:1)));Line(prev+Vector3.up*.008f,next+Vector3.up*.008f,glacier?.015f:.036f,A(White,alpha*(glacier?.5f:1)));
+                    Vector3 branch=next+Dir(direction,(j%2==0?1:-1)*55)*.35f;Line(next,branch,glacier?.012f:.028f,A(Ice,alpha*(glacier?.5f:1)));prev=next;
                 }
             }
         }
@@ -113,7 +151,7 @@ namespace DogLife
         }
         void LateUpdate()
         {
-            vertices.Clear();colors.Clear();indices.Clear();
+            vertices.Clear();colors.Clear();indices.Clear();iceData.Clear();iceSurface=0;
             if(patch&&patch.IsActive)DrawPatch();
             else if(enemy&&(enemy.isActiveAndEnabled||MonsterAnimationPreview.IsPreviewing(enemy))&&health&&!health.Dead)
             {
@@ -124,8 +162,7 @@ namespace DogLife
                     if(kind==WinterMonsterEnemy.Species.Wolf){if(enemy.ClawPhase)Warning(enemy.Origin,enemy.Forward,enemy.Range,enemy.Angle,t);else Warning(enemy.TargetPoint,enemy.Forward,enemy.LandingRadius,360,t);}
                     else if(kind==WinterMonsterEnemy.Species.Spirit){Warning(enemy.TargetPoint,enemy.Forward,enemy.IceRadius,360,t);Cracks(p,enemy.Forward,Vector3.Distance(enemy.TargetPoint,enemy.Origin),30,t,.7f);}
                     else Warning(kind==WinterMonsterEnemy.Species.Mammoth?enemy.TargetPoint:enemy.Origin,enemy.Forward,enemy.Range,enemy.Angle,t);
-                    if(kind==WinterMonsterEnemy.Species.Mammoth)
-                        for(int side=-1;side<=1;side+=2){Vector3 q=p+enemy.Forward*.9f*VisualScale+Vector3.Cross(Vector3.up,enemy.Forward)*side*.48f*VisualScale+Vector3.up*.55f*VisualScale;Crystal(q,.4f*t,.09f,.8f,side);Snowflake(q,.22f,.8f,Time.time*30);}
+                    // 매머드 준비 동작은 엄니 장식 없이 바닥의 공격 범위만 표시합니다.
                 }
                 else if(enemy.Attacking)
                 {
@@ -180,7 +217,7 @@ namespace DogLife
                     }
                 }
             }
-            mesh.Clear();mesh.SetVertices(vertices);mesh.SetColors(colors);mesh.SetTriangles(indices,0);mesh.RecalculateBounds();surface.enabled=vertices.Count>0;
+            mesh.Clear();mesh.SetVertices(vertices);mesh.SetColors(colors);mesh.SetUVs(0,iceData);mesh.SetTriangles(indices,0);mesh.RecalculateBounds();surface.enabled=vertices.Count>0;
         }
         void OnDisable(){if(surface)surface.enabled=false;}
         void OnDestroy(){if(mesh)Destroy(mesh);}

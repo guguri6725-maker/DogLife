@@ -1,0 +1,23 @@
+// Recompute anatomical joint anchors after all clip blending, preserving rotations and timings.
+var model=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/HarvestReaper/Models/HarvestReaper.fbx");int changed=0;float worst=0;
+foreach(var name in new[]{"LHand","LFoot","RFoot"}){
+ var bone=model.GetComponentsInChildren<Transform>(true).First(x=>x.name==name);
+ var point=model.transform.TransformPoint(name=="LHand"?new Vector3(1.37f,4.32f,.65f):name=="LFoot"?new Vector3(.87f,.65f,-.32f):new Vector3(-1.59f,.65f,-.42f));
+ var parentPoint=bone.parent.InverseTransformPoint(point);var localPoint=bone.InverseTransformPoint(point);var path=AnimationUtility.CalculateTransformPath(bone,model.transform);
+ foreach(var guid in AssetDatabase.FindAssets("t:AnimationClip",new[]{"Assets/Art/HarvestReaper/Animations"})){
+ var file=AssetDatabase.GUIDToAssetPath(guid);if(!file.EndsWith(".anim"))continue;var clip=AssetDatabase.LoadAssetAtPath<AnimationClip>(file);
+ var dict=AnimationUtility.GetCurveBindings(clip).Where(b=>b.path==path).ToDictionary(b=>b.propertyName,b=>AnimationUtility.GetEditorCurve(clip,b));if(dict.Count==0)continue;
+ System.Func<string,float,float,float> val=(p,t,d)=>dict.ContainsKey(p)?dict[p].Evaluate(t):d;
+ System.Func<float,Vector3> target=t=>{
+ var q=new Quaternion(val("m_LocalRotation.x",t,bone.localRotation.x),val("m_LocalRotation.y",t,bone.localRotation.y),val("m_LocalRotation.z",t,bone.localRotation.z),val("m_LocalRotation.w",t,bone.localRotation.w)).normalized;
+ var s=new Vector3(val("m_LocalScale.x",t,bone.localScale.x),val("m_LocalScale.y",t,bone.localScale.y),val("m_LocalScale.z",t,bone.localScale.z));
+ return parentPoint-q*Vector3.Scale(s,localPoint);};
+ var times=new System.Collections.Generic.SortedSet<float>(dict.Values.SelectMany(c=>c.keys.Select(k=>k.time)));int n=Mathf.CeilToInt(clip.length*120);for(int i=0;i<=n;i++)times.Add(clip.length*i/n);
+ for(int pass=0;pass<12;pass++){var ts=times.ToArray();var add=new System.Collections.Generic.List<float>();for(int i=0;i<ts.Length-1;i++){float mid=(ts[i]+ts[i+1])*.5f;if(bone.parent.TransformVector((target(ts[i])+target(ts[i+1]))*.5f-target(mid)).magnitude>.001f&&ts[i+1]-ts[i]>.00002f)add.Add(mid);}if(add.Count==0)break;foreach(var t in add)times.Add(t);}
+ var tt=times.Select(t=>(float)Math.Round(t,5)).Distinct().OrderBy(t=>t).ToArray();var curves=new AnimationCurve[3];var bindings=new EditorCurveBinding[3];
+ for(int a=0;a<3;a++){var curve=new AnimationCurve(tt.Select(t=>new Keyframe(t,target(t)[a])).ToArray());for(int k=0;k<curve.length;k++){AnimationUtility.SetKeyLeftTangentMode(curve,k,AnimationUtility.TangentMode.Linear);AnimationUtility.SetKeyRightTangentMode(curve,k,AnimationUtility.TangentMode.Linear);}curves[a]=curve;bindings[a]=EditorCurveBinding.FloatCurve(path,typeof(Transform),"m_LocalPosition."+"xyz"[a]);}
+ AnimationUtility.SetEditorCurves(clip,bindings,curves);
+ for(int i=0;i<tt.Length-1;i++){float t=(tt[i]+tt[i+1])*.5f;var actual=new Vector3(curves[0].Evaluate(t),curves[1].Evaluate(t),curves[2].Evaluate(t));worst=Mathf.Max(worst,bone.parent.TransformVector(actual-target(t)).magnitude);}
+ EditorUtility.SetDirty(clip);changed++;
+ }}
+AssetDatabase.SaveAssets();return "Rebaked "+changed+" joint/clip pairs; interpolation residual="+worst.ToString("F6")+"m";

@@ -11,7 +11,9 @@ namespace DogLife
         public Vector3 throneCamera=new Vector3(5,3.5f,9), throneLook=new Vector3(0,2.1f,0);
         public Vector3 mountCamera=new Vector3(-7,4,9), mountLook=new Vector3(0,2.5f,0);
         public Vector3 deathCamera=new Vector3(-7,4.2f,10),deathLook=new Vector3(0,3,0);
-        bool deathShot;
+        // 긴 대검이 머리 위를 지날 때 칼끝까지 담는 발도 전용 구도입니다.
+        public Vector3 drawCamera=new Vector3(7,6.4f,17),drawLook=new Vector3(0,4.8f,0);
+        bool deathShot,drawShot;
         public Vector3 iceCamera=new Vector3(-8,9,12),iceLook=new Vector3(0,0,0);
         bool iceShot;Vector3 iceOrigin;Quaternion iceRotation;
         [Range(20,80)] public float fieldOfView=43;
@@ -33,7 +35,7 @@ namespace DogLife
             if(view){oldFov=view.fieldOfView;fromPosition=view.transform.position;fromRotation=view.transform.rotation;}
             if(follow)follow.enabled=false;
             subject=actor;mountedShot=mounting;blend=0;locked=true;
-            deathShot=false;iceShot=false;
+            deathShot=false;iceShot=false;drawShot=false;
         }
         public void BeginDeath(PlayerMotor player,Transform actor){Begin(player,actor,true);deathShot=true;}
         // 검의 기울기 대신 보스의 정면을 기준으로 바닥을 내려다봅니다.
@@ -42,6 +44,7 @@ namespace DogLife
             iceOrigin=new Vector3(sword.position.x,actor.position.y,sword.position.z);
             iceRotation=Quaternion.Euler(0,actor.eulerAngles.y,0);iceShot=true;ResetShot();
         }
+        public void ShowDraw(){drawShot=true;ResetShot();}
         public void ShowMount(Transform actor){subject=actor;iceShot=false;mountedShot=true;ResetShot();}
         void ResetShot(){if(view){fromPosition=view.transform.position;fromRotation=view.transform.rotation;}blend=0;}
         void LateUpdate()
@@ -50,8 +53,8 @@ namespace DogLife
             blend+=Time.unscaledDeltaTime/Mathf.Max(.01f,shotBlend);float t=Mathf.SmoothStep(0,1,blend);
             // 피사체 기준 구도로 왕좌/탑승 지점이 달라도 같은 화면 구성을 유지합니다.
             var rotation=Quaternion.Euler(0,subject.eulerAngles.y,0);
-            Vector3 look=subject.position+rotation*(deathShot?deathLook:mountedShot?mountLook:throneLook);
-            Vector3 position=subject.position+rotation*(deathShot?deathCamera:mountedShot?mountCamera:throneCamera);
+            Vector3 look=subject.position+rotation*(deathShot?deathLook:mountedShot?mountLook:drawShot?drawLook:throneLook);
+            Vector3 position=subject.position+rotation*(deathShot?deathCamera:mountedShot?mountCamera:drawShot?drawCamera:throneCamera);
             if(iceShot){look=iceOrigin+iceRotation*iceLook;position=iceOrigin+iceRotation*iceCamera;}
             view.transform.SetPositionAndRotation(Vector3.Lerp(fromPosition,position,t),Quaternion.Slerp(fromRotation,Quaternion.LookRotation(look-position),t));
             view.fieldOfView=Mathf.Lerp(oldFov,fieldOfView,t);

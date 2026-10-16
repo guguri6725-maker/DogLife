@@ -1,0 +1,19 @@
+// Repair isolated rotation flips and blend the cast into the existing idle stance.
+var clip=AssetDatabase.LoadAssetAtPath<AnimationClip>("Assets/Art/FrozenKnight/Animations/IceWallFull.anim");
+var idle=AssetDatabase.LoadAssetAtPath<AnimationClip>("Assets/Art/FrozenKnight/Animations/Idle.anim");
+var idleBindings=AnimationUtility.GetCurveBindings(idle);int count=Mathf.CeilToInt(clip.length*60)+1;float duration=clip.length;
+var results=new System.Collections.Generic.List<object>();
+foreach(var group in AnimationUtility.GetCurveBindings(clip).Where(b=>b.propertyName.StartsWith("m_LocalRotation.")&&b.path.Contains("/Spine")).GroupBy(b=>b.path)){
+ var bindings=group.ToDictionary(b=>b.propertyName.Last(),b=>b);var curves=bindings.ToDictionary(x=>x.Key,x=>AnimationUtility.GetEditorCurve(clip,x.Value));
+ var samples=new Quaternion[count];for(int i=0;i<count;i++){float t=Mathf.Min(duration,i/60f);samples[i]=new Quaternion(curves['x'].Evaluate(t),curves['y'].Evaluate(t),curves['z'].Evaluate(t),curves['w'].Evaluate(t)).normalized;}
+ var spans=new System.Collections.Generic.List<int[]>();float before=0;
+ for(int i=1;i<count;i++){float angle=Quaternion.Angle(samples[i-1],samples[i]);before=Mathf.Max(before,angle);if(angle>25){int lo=Mathf.Max(0,i-7),hi=Mathf.Min(count-1,i+7);if(spans.Count>0&&lo<=spans[spans.Count-1][1])spans[spans.Count-1][1]=hi;else spans.Add(new[]{lo,hi});}}
+ foreach(var span in spans){int lo=span[0],hi=span[1];var a=samples[lo];var b=samples[hi];for(int i=lo+1;i<hi;i++)samples[i]=Quaternion.Slerp(a,b,Mathf.SmoothStep(0,1,(float)(i-lo)/(hi-lo)));}
+ for(int pass=0;pass<3;pass++){var previous=(Quaternion[])samples.Clone();for(int i=2;i<count-2;i++){var pair=Quaternion.Slerp(previous[i-2],previous[i+2],.5f);samples[i]=Quaternion.Slerp(previous[i],pair,.35f);}}
+ var idleQ=new float[4];for(int k=0;k<4;k++){var binding=idleBindings.FirstOrDefault(b=>b.path==group.Key&&b.propertyName=="m_LocalRotation."+"xyzw"[k]);var curve=AnimationUtility.GetEditorCurve(idle,binding);idleQ[k]=curve!=null?curve.Evaluate(0):samples[0][k];}
+ var neutral=new Quaternion(idleQ[0],idleQ[1],idleQ[2],idleQ[3]).normalized;
+ for(int i=0;i<count;i++){float t=Mathf.Min(duration,i/60f);float weight=Mathf.SmoothStep(0,1,Mathf.Min(t/.28f,(duration-t)/.38f));samples[i]=Quaternion.Slerp(neutral,samples[i],weight);if(i>0&&Quaternion.Dot(samples[i-1],samples[i])<0)samples[i]=new Quaternion(-samples[i].x,-samples[i].y,-samples[i].z,-samples[i].w);}
+ for(int k=0;k<4;k++){var curve=new AnimationCurve(Enumerable.Range(0,count).Select(i=>new Keyframe(Mathf.Min(duration,i/60f),samples[i][k])).ToArray());for(int i=0;i<count;i++){AnimationUtility.SetKeyLeftTangentMode(curve,i,AnimationUtility.TangentMode.Linear);AnimationUtility.SetKeyRightTangentMode(curve,i,AnimationUtility.TangentMode.Linear);}AnimationUtility.SetEditorCurve(clip,bindings["xyzw"[k]],curve);}
+ float after=0;for(int i=1;i<count;i++)after=Mathf.Max(after,Quaternion.Angle(samples[i-1],samples[i]));results.Add(new{bone=group.Key.Split('/').Last(),before=before,after=after,repairs=spans.Count});
+}
+clip.EnsureQuaternionContinuity();EditorUtility.SetDirty(clip);AssetDatabase.SaveAssets();return results;

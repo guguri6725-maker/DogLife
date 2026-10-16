@@ -6,7 +6,7 @@ using UnityEngine;
 namespace DogLife
 {
     [DefaultExecutionOrder(100)]
-    public sealed class KrakenPhaseTwo:CombatPhaseTransition
+    public sealed partial class KrakenPhaseTwo:CombatPhaseTransition
     {
         [Serializable] public class Pattern
         {
@@ -20,7 +20,9 @@ namespace DogLife
         [SerializeField] Material armMaterial;
         [SerializeField] Material waterMaterial;
         [SerializeField] float bodyWidth=12,bodyHeight=6.2f,bodyFloatHeight=.65f,armLength=16,armRadius=.65f;
-        [SerializeField,Min(.1f)] float armSocketRadius=1.75f,armSocketHeight=1.6f;
+        [SerializeField,Min(.1f)] float armSocketRadius=1.75f;
+        // 음수 높이는 촉수 뿌리를 해저 아래에 숨깁니다.
+        [SerializeField] float armSocketHeight=1.6f;
         [Header("Player movement barrier (world units)")]
         [SerializeField,Min(.1f)] float bodyBlockRadius=2.7f;
         CapsuleCollider bodyBarrier;
@@ -318,7 +320,7 @@ namespace DogLife
         {
             Sound.StopAll();Sound.Cue("Kraken_Death");
             Play("Groggy",deathTime);Vector3 from=bodyVisual.position;var sand=Effect(KrakenDeepVfx.Form.Sand,new Vector3(center.x,arena.min.y,center.z));sand.Size=new Vector3(sandRadius,sandHeight*.5f,0);
-            for(float t=0;t<deathTime;t+=Time.deltaTime){float q=Mathf.SmoothStep(0,1,t/deathTime);bodyVisual.position=from-Vector3.up*q*bodyFloatHeight;SetIdleArms(1-q*.5f);sand.Intensity=1-q;yield return null;}
+            for(float t=0;t<deathTime;t+=Time.deltaTime){float q=Mathf.SmoothStep(0,1,t/deathTime);bodyVisual.position=from-Vector3.up*q*Mathf.Max(.65f,Mathf.Abs(bodyFloatHeight));SetIdleArms(1-q*.5f);sand.Intensity=1-q;yield return null;}
             ClearEffects();if(animator)animator.speed=0;health.CompleteDeferredDeath(true);if(first)first.FinishUnderwaterEncounter();
         }
         public void Cancel()

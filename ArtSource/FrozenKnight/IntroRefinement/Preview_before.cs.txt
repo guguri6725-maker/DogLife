@@ -1,0 +1,378 @@
+using System;
+using System.Linq;
+using UnityEngine;
+using UnityEngine.Animations;
+using UnityEngine.Playables;
+using UnityEngine.UI;
+
+namespace DogLife
+{
+    // 전용 씬에 미리 배치한 모델과 UI만 사용하며 전투 프리팹은 변경하지 않습니다.
+    public sealed class MonsterAnimationPreview : MonoBehaviour
+    {
+        [SerializeField] Transform subjects;
+        [SerializeField] Camera previewCamera;
+        [SerializeField] Text subjectLabel, clipLabel, statusLabel, catalogLabel;
+        [SerializeField] float playbackSpeed = 1f;
+        [SerializeField] bool loop = true;
+        [SerializeField] bool showEffects = true;
+        static Transform previewSubject;
+        MonsterPreviewEffects effects;
+        public static bool IsPreviewing(Component component) => component && previewSubject && component.transform.IsChildOf(previewSubject);
+        Transform[] models, poseBones;
+        Vector3[] positions, scales;
+        Quaternion[] rotations;
+        Animator[] animators;
+        MonsterPreviewCatalog.Action[] actions = Array.Empty<MonsterPreviewCatalog.Action>();
+        Animator actor;
+        PlayableGraph graph;
+        PreviewTrack[] tracks = Array.Empty<PreviewTrack>();
+        Transform rider, seat;
+        Transform previewSword;
+        KrakenPhaseTwo krakenPreview;
+        Quaternion riderRotation;
+        float Duration => actions.Length == 0 ? 0 : actions[clipIndex].Length;
+        int PhaseCount => models[modelIndex].name.Contains("KrakenBoss") || models[modelIndex].name.Contains("FrozenKnight") || models[modelIndex].name.Contains("SpringBoarBoss") ? 2 : 1;
+        int modelIndex, rigIndex, clipIndex;
+        double time;
+        bool paused;
+        Vector3 focus;
+        float distance = 8, yaw = 160, pitch = 12;
+        bool orbitDragging;
+        Vector3 previousMouse;
+        readonly float[] speeds = { .25f, .5f, 1f, 1.5f, 2f };
+        readonly string[] names = {
+            "봄 · 해골병사", "봄 · 꽃 정령", "봄 · 꽃 사슴", "봄 · 벚꽃 토끼",
+            "여름 · 뼈 거북", "여름 · 해파리", "여름 · 인어", "여름 · 소라게",
+            "가을 · 균사 해골", "가을 · 허수아비", "가을 · 낙엽 고슴도치", "가을 · 뼈 까마귀",
+            "겨울 · 눈 정령", "겨울 · 얼음 골렘", "겨울 · 눈 늑대", "겨울 · 매머드",
+            "봄 보스", "여름 보스 · 크라켄", "가을 보스 · 수확의 사신", "겨울 보스 · 얼어붙은 기사",
+            "얼음 군마", "크라켄 · 자연 촉수", "크라켄 · 공격 촉수" };
+
+        void Start()
+        {
+            if (!subjects || !previewCamera) { enabled = false; return; }
+            foreach (Transform model in subjects) model.gameObject.SetActive(false);
+            models = subjects.Cast<Transform>().Where(t => !t.name.Contains("KrakenTentacle") && t.name != "Preview_IceHorse").ToArray();
+            subjects.gameObject.SetActive(true);
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+            SelectModel(0);
+        }
+
+        void Update()
+        {
+            if (Input.GetKeyDown(KeyCode.RightArrow)) NextClip();
+            if (Input.GetKeyDown(KeyCode.LeftArrow)) PreviousClip();
+            if (Input.GetKeyDown(KeyCode.DownArrow)) NextMonster();
+            if (Input.GetKeyDown(KeyCode.UpArrow)) PreviousMonster();
+            if (Input.GetKeyDown(KeyCode.Space)) TogglePause();
+            if (Input.GetKeyDown(KeyCode.Period)) StepFrame();
+            if (Input.GetKeyDown(KeyCode.R)) Restart();
+            if (Input.GetKeyDown(KeyCode.F)) FrameModel();
+            if (Input.GetKeyDown(KeyCode.Tab)) NextRig();
+            if (Input.GetKeyDown(KeyCode.Alpha1)) ViewFront();
+            if (Input.GetKeyDown(KeyCode.Alpha2)) ViewLeft();
+            if (Input.GetKeyDown(KeyCode.Alpha3)) ViewRight();
+            if (Input.GetKeyDown(KeyCode.Alpha4)) ViewBack();
+            if (Input.GetKey(KeyCode.Q)) yaw -= 90 * Time.unscaledDeltaTime;
+            if (Input.GetKey(KeyCode.E)) yaw += 90 * Time.unscaledDeltaTime;
+            // 모델 표시 영역에서 시작한 드래그만 받아 UI 버튼 조작과 분리합니다.
+            var mouse = Input.mousePosition;
+            bool overModel = mouse.x > Screen.width * .27f && mouse.y > Screen.height * .27f && mouse.y < Screen.height * .94f;
+            if ((Input.GetMouseButtonDown(0) || Input.GetMouseButtonDown(1)) && overModel)
+            {
+                orbitDragging = true;
+                previousMouse = mouse;
+            }
+            if (!Input.GetMouseButton(0) && !Input.GetMouseButton(1)) orbitDragging = false;
+            if (orbitDragging)
+            {
+                var delta = (mouse - previousMouse) * (180f / Mathf.Max(1, Screen.height));
+                yaw += delta.x;
+                pitch = Mathf.Clamp(pitch - delta.y, -20, 85);
+                previousMouse = mouse;
+            }
+            if (overModel) distance = Mathf.Clamp(distance * Mathf.Exp(-Input.mouseScrollDelta.y * .12f), .3f, 250);
+            if (graph.IsValid() && actions.Length > 0)
+            {
+                if (!paused) time += Time.unscaledDeltaTime * playbackSpeed;
+                double length = Math.Max(.001, Duration);
+                if (time > length) { if (loop) time %= length; else { time = length; paused = true; } }
+            }
+            UpdateCamera();
+            if (statusLabel) statusLabel.text = string.Format("{0}   |   {1:0.##}×   |   {2:0.00} / {3:0.00}s   |   반복 {4}",
+                paused ? "일시정지" : "재생 중", playbackSpeed, time, Duration, loop ? "ON" : "OFF");
+        }
+
+        void LateUpdate()
+        {
+            if (!graph.IsValid() || actions.Length == 0) return;
+            // Animator의 자동 평가 이후 포즈를 적용해야 기존 Idle 상태가 덮어쓰지 않습니다.
+            foreach (var track in tracks) track.Sample(time, Duration);
+            if (krakenPreview && rigIndex == 1)
+            {
+                krakenPreview.SamplePreview(actions[clipIndex].RuntimePattern, (float)time, out string bodyClip, out float bodyProgress);
+                tracks[0].SampleNamed(bodyClip, bodyProgress);
+            }
+            graph.Evaluate(0);
+            if (tracks.Length > 0 && tracks[0].Current.name.Contains("P2Death"))
+                models[modelIndex].GetComponent<SpringBoarDeath>()?.SamplePreview(actor, (float)(time / Duration));
+            // 말의 애니메이션 평가가 끝난 뒤 기존 안장 위치에 기사를 맞춥니다.
+            if (rider && seat && rigIndex == 1) rider.SetPositionAndRotation(seat.position, seat.rotation * riderRotation);
+            if (tracks.Length > 0) effects?.Render(tracks[0].Current.name, tracks[0].Progress, showEffects && !krakenPreview);
+            if (krakenPreview && rigIndex == 1) krakenPreview.SamplePreviewWater(actions[clipIndex].RuntimePattern, (float)time, showEffects);
+        }
+
+        public void NextMonster() { SelectModel(modelIndex + 1); }
+        public void PreviousMonster() { SelectModel(modelIndex - 1); }
+        public void NextRig() { if (models != null) { rigIndex = (rigIndex + 1) % PhaseCount; SelectRig(); } }
+        public void ShowSpringPhaseTwo() { ShowBossPhaseTwo("SpringBoarBoss"); }
+        public void ShowSummerPhaseTwo() { ShowBossPhaseTwo("KrakenBoss"); }
+        public void ShowWinterPhaseTwo() { ShowBossPhaseTwo("FrozenKnight"); }
+
+        // Hierarchy의 바로보기 버튼에서 보스와 2페이즈를 한 번에 선택합니다.
+        void ShowBossPhaseTwo(string modelName)
+        {
+            if (models == null) return;
+            int index = Array.FindIndex(models, model => model.name.Contains(modelName));
+            if (index < 0) return;
+            SelectModel(index);
+            rigIndex = 1;
+            SelectRig();
+        }
+        public void NextClip() { SelectClip(clipIndex + 1); }
+        public void PreviousClip() { SelectClip(clipIndex - 1); }
+        public void TogglePause() { paused = !paused; }
+        public void ToggleLoop() { loop = !loop; }
+        public void ToggleEffects() { showEffects = !showEffects; }
+        public void Restart() { time = 0; paused = false; }
+        public void StepFrame() { paused = true; time = Math.Min(Duration, time + 1d / 30); }
+        public void ChangeSpeed() { int i = Array.FindIndex(speeds, x => Mathf.Approximately(x, playbackSpeed)); playbackSpeed = speeds[(i + 1) % speeds.Length]; }
+
+        void SelectModel(int index)
+        {
+            if (models == null || models.Length == 0) return;
+            models[modelIndex].GetComponent<SpringBoarDeath>()?.ResetPreview();
+            DestroyGraph(); RestorePose();
+            foreach (var model in models) model.gameObject.SetActive(false);
+            modelIndex = (index + models.Length) % models.Length;
+            var selected = models[modelIndex];
+            krakenPreview = selected.GetComponent<KrakenPhaseTwo>();
+            previewSubject = selected;
+            selected.gameObject.SetActive(true);
+            effects = new MonsterPreviewEffects(selected);
+            poseBones = selected.GetComponentsInChildren<Transform>(true);
+            positions = poseBones.Select(t => t.localPosition).ToArray();
+            rotations = poseBones.Select(t => t.localRotation).ToArray();
+            scales = poseBones.Select(t => t.localScale).ToArray();
+            animators = selected.GetComponentsInChildren<Animator>(true).Where(a => a.runtimeAnimatorController).ToArray();
+            rider = null; seat = null; previewSword = null;
+            var knight = selected.GetComponent<FrozenKnightBoss>();
+            if (knight)
+            {
+                var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+                rider = (Transform)typeof(FrozenKnightBoss).GetField("riderRoot", flags).GetValue(knight);
+                seat = (Transform)typeof(FrozenKnightBoss).GetField("mountSeat", flags).GetValue(knight);
+                previewSword = (Transform)typeof(FrozenKnightBoss).GetField("swordRoot", flags).GetValue(knight);
+                riderRotation = rider.localRotation;
+            }
+            rigIndex = 0;
+            SelectRig();
+        }
+
+        void SelectRig()
+        {
+            DestroyGraph(); RestorePose();
+            if (animators.Length == 0) { actions = Array.Empty<MonsterPreviewCatalog.Action>(); return; }
+            string model = models[modelIndex].name;
+            bool kraken = model.Contains("KrakenBoss"), boar = model.Contains("SpringBoarBoss");
+            actor = kraken ? animators.First(a => rigIndex == 0 ? a.name == "RiggedTentacle" : a.name == "RiggedBody") :
+                boar ? animators.First(a => rigIndex == 0 ? a.name.Contains("Phase1") : !a.name.Contains("Phase1")) : animators.First(a => a.name != "HarvestReaperDeathPreview");
+            // 페이즈에 필요한 모델만 표시하고 본체와 보조 모델을 함께 평가합니다.
+            foreach (var a in animators)
+            {
+                a.enabled = kraken ? a == actor || (rigIndex == 0 && a.name == "RiggedTentacle") : rider ? rigIndex == 1 || a == actor : a == actor;
+                if (a.enabled) for (var t = a.transform; t && t != subjects; t = t.parent) t.gameObject.SetActive(true);
+            }
+            foreach (var r in models[modelIndex].GetComponentsInChildren<Renderer>(true))
+            {
+                var owner = r.GetComponentInParent<Animator>(true);
+                if (owner) r.enabled = owner.enabled;
+            }
+            // 기승 시 손에 든 검을 숨기고 도보 페이즈에서는 복원합니다.
+            if (previewSword) previewSword.gameObject.SetActive(rigIndex == 0);
+            if (krakenPreview)
+            {
+                if (rigIndex == 1) krakenPreview.PreparePreview();
+                krakenPreview.ShowPreviewArms(rigIndex == 1);
+            }
+            actions = MonsterPreviewCatalog.Build(actor, model, rigIndex);
+            string phase = PhaseCount == 1 ? (model.Contains("CoralMermaid") ? "세부 동작 · 제자리 자세 미리보기" : "기본 동작") : (rigIndex + 1) + "페이즈 · " +
+                (kraken ? (rigIndex == 0 ? "촉수" : "본체 + 촉수") : rider ? (rigIndex == 0 ? "도보 보스" : "기승 보스 + 군마") : (rigIndex == 0 ? "숲 멧돼지" : "개화 보스"));
+            if (subjectLabel) subjectLabel.text = string.Format("{0:00} / {1:00}   {2}\n{3}", modelIndex + 1, models.Length,
+                modelIndex < names.Length ? names[modelIndex] : model, phase);
+            SelectClip(0);
+            FrameSubject(false);
+        }
+
+        void SelectClip(int index)
+        {
+            if (!actor || actions.Length == 0) return;
+            models[modelIndex].GetComponent<SpringBoarDeath>()?.ResetPreview();
+            DestroyGraph(); RestorePose();
+            foreach (var a in animators.Where(a => a.enabled)) a.Rebind();
+            clipIndex = (index + actions.Length) % actions.Length;
+            time = 0; paused = false;
+            // 수동 Playable 시간으로 원본 속도, 정지, 프레임 단위 재생을 일관되게 처리합니다.
+            graph = PlayableGraph.Create("Monster animation preview");
+            graph.SetTimeUpdateMode(DirectorUpdateMode.Manual);
+            var action = actions[clipIndex];
+            // 사망 전용 의상 관절과 스킨을 인게임과 동일하게 사용합니다.
+            if (models[modelIndex].GetComponent<HarvestReaperDeath>())
+            {
+                bool death = action.Clips.Any(c => c.name.EndsWith("_Death", StringComparison.Ordinal));
+                var deathActor = animators.FirstOrDefault(a => a.name == "HarvestReaperDeathPreview");
+                if (deathActor)
+                {
+                    actor = death ? deathActor : animators.First(a => a != deathActor);
+                    foreach (var a in animators)
+                    {
+                        a.enabled = a == actor;
+                        foreach (var skin in a.GetComponentsInChildren<Renderer>(true)) skin.enabled = a == actor;
+                    }
+                    actor.Rebind();
+                }
+            }
+            tracks = animators.Where(a => a.enabled).OrderBy(a => a == actor ? 0 : 1).Select(a =>
+            {
+                var source = a.runtimeAnimatorController.animationClips;
+                var sequence = a == actor ? action.Clips : action.Companion == null ? action.Clips.Select(c => MonsterPreviewCatalog.Find(source, c.name)).Where(c => c).ToArray() :
+                    action.Companion.Select(n => MonsterPreviewCatalog.Find(source, n)).Where(c => c).ToArray();
+                if (sequence.Length == 0) sequence = new[] { MonsterPreviewCatalog.Find(source, "Idle") ?? source[0] };
+                return new PreviewTrack(graph, a, sequence, action.Start, action.End, action.PhaseDurations);
+            }).ToArray();
+            graph.Play(); LateUpdate();
+            if (clipLabel) clipLabel.text = string.Format("동작 {0}/{1}\n{2}", clipIndex + 1, actions.Length, action.Name);
+            if (catalogLabel)
+            {
+                int start = Mathf.Clamp(clipIndex - 5, 0, Mathf.Max(0, actions.Length - 12));
+                catalogLabel.text = "동작 / 패턴\n\n" + string.Join("\n", actions.Skip(start).Take(12).Select((c, i) =>
+                    (start + i == clipIndex ? "▶  " : "    ") + c.Name));
+            }
+        }
+
+        public void FrameModel()
+        { FrameSubject(showEffects); }
+        // 장면의 월드 방향이 아닌 선택한 몬스터의 정면을 기준으로 시점을 맞춥니다.
+        public void ViewFront() { SetView(180); }
+        public void ViewLeft() { SetView(90); }
+        public void ViewRight() { SetView(270); }
+        public void ViewBack() { SetView(0); }
+        void SetView(float angle)
+        {
+            if (models == null || models.Length == 0) return;
+            yaw = models[modelIndex].eulerAngles.y + angle;
+            pitch = 10;
+            orbitDragging = false;
+            UpdateCamera();
+        }
+        void OnApplicationFocus(bool focused) { if (!focused) orbitDragging = false; }
+        void FrameSubject(bool includeEffects)
+        {
+            if (!actor) return;
+            var renderers = models[modelIndex].GetComponentsInChildren<Renderer>().Where(r => r.enabled && r.GetComponentInParent<Animator>() && (r is SkinnedMeshRenderer ||
+                (r is MeshRenderer && !r.GetComponent<MonoBehaviour>()))).ToArray();
+            if (renderers.Length == 0) return;
+            Bounds bounds = renderers[0].bounds;
+            foreach (var r in renderers) bounds.Encapsulate(r.bounds);
+            if (includeEffects)
+                foreach (var r in models[modelIndex].GetComponentsInChildren<Renderer>())
+                    if (r.enabled && (r is MeshRenderer || r is LineRenderer) && r.bounds.size.sqrMagnitude > .01f)
+                        bounds.Encapsulate(r.bounds);
+            focus = bounds.center;
+            float halfFov = previewCamera.fieldOfView * .5f * Mathf.Deg2Rad;
+            distance = Mathf.Max(1, bounds.extents.magnitude / Mathf.Sin(halfFov) * 1.3f);
+            yaw = 160; pitch = includeEffects ? 28 : 12;
+            UpdateCamera();
+        }
+
+        void UpdateCamera()
+        {
+            var rotation = Quaternion.Euler(pitch, yaw, 0);
+            var center = focus - rotation * Vector3.right * distance * .17f - rotation * Vector3.up * distance * .08f;
+            previewCamera.transform.position = center + rotation * new Vector3(0, 0, -distance);
+            previewCamera.transform.LookAt(center);
+        }
+        void RestorePose()
+        {
+            if (poseBones == null) return;
+            for (int i = 0; i < poseBones.Length; i++) if (poseBones[i])
+            { poseBones[i].localPosition = positions[i]; poseBones[i].localRotation = rotations[i]; poseBones[i].localScale = scales[i]; }
+        }
+        void DestroyGraph() { if (graph.IsValid()) graph.Destroy(); }
+        void OnDisable() { DestroyGraph(); RestorePose(); previewSubject = null; }
+
+        // 동작 하나의 전체 시간에 맞춰 준비 → 타격 → 회복과 보조 모델을 동기화합니다.
+        sealed class PreviewTrack
+        {
+            readonly AnimationClip[] clips;
+            readonly AnimationClipPlayable[] nodes;
+            readonly AnimationMixerPlayable mixer;
+            readonly double length;
+            readonly float[] phaseDurations;
+            readonly float start, end;
+            public AnimationClip Current { get; private set; }
+            public float Progress { get; private set; }
+            public PreviewTrack(PlayableGraph graph, Animator animator, AnimationClip[] sequence, float start = 0, float end = 1, float[] phaseDurations = null)
+            {
+                this.start = start; this.end = end;
+                this.phaseDurations = phaseDurations != null && phaseDurations.Length == sequence.Length ? phaseDurations : null;
+                clips = sequence; length = clips.Sum(c => (double)c.length); Current = clips[0];
+                mixer = AnimationMixerPlayable.Create(graph, clips.Length);
+                nodes = clips.Select(c => AnimationClipPlayable.Create(graph, c)).ToArray();
+                for (int i = 0; i < nodes.Length; i++)
+                {
+                    nodes[i].SetApplyFootIK(false); nodes[i].SetSpeed(0);
+                    graph.Connect(nodes[i], 0, mixer, i);
+                }
+                AnimationPlayableOutput.Create(graph, animator.name, animator).SetSourcePlayable(mixer);
+            }
+            public void Sample(double time, double duration)
+            {
+                double fraction = Math.Max(0, Math.Min(1, time / Math.Max(.001, duration)));
+                double local = (start + fraction * (end - start)) * length;
+                int segment = 0;
+                if (phaseDurations != null)
+                {
+                    // 구간별 실제 시간을 클립 시간으로 바꿔 긴 지속 모션을 정확히 보여줍니다.
+                    local = Math.Max(0, time);
+                    while (segment < clips.Length - 1 && local >= phaseDurations[segment])
+                        local -= phaseDurations[segment++];
+                    local = Math.Min(1, local / Math.Max(.001, phaseDurations[segment])) * clips[segment].length;
+                }
+                else while (segment < clips.Length - 1 && local >= clips[segment].length)
+                    local -= clips[segment++].length;
+                for (int i = 0; i < nodes.Length; i++) mixer.SetInputWeight(i, i == segment ? 1 : 0);
+                nodes[segment].SetTime(local);
+                // 경계 직후 짧게 섞어서 클립 연결 때 포즈가 튀는 현상을 줄입니다.
+                float blend = Mathf.Clamp01((float)local / .08f);
+                if (segment > 0 && blend < 1)
+                {
+                    nodes[segment - 1].SetTime(clips[segment - 1].length);
+                    mixer.SetInputWeight(segment - 1, 1 - blend); mixer.SetInputWeight(segment, blend);
+                }
+                Current = clips[segment]; Progress = (float)(local / Math.Max(.001, Current.length));
+            }
+            public void SampleNamed(string name, float progress)
+            {
+                var clip = MonsterPreviewCatalog.Find(clips, name);
+                int index = Array.IndexOf(clips, clip);
+                if (index < 0) return;
+                for (int i = 0; i < nodes.Length; i++) mixer.SetInputWeight(i, i == index ? 1 : 0);
+                nodes[index].SetTime(Mathf.Clamp01(progress) * clip.length);
+                Current = clip; Progress = Mathf.Clamp01(progress);
+            }
+        }
+    }
+}

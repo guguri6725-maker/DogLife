@@ -49,7 +49,17 @@ namespace DogLife
         }
         void LateUpdate()
         {
-            v.Clear();ix.Clear();col.Clear();uv.Clear();mesh.Clear();float q=Mathf.Clamp01(Progress),time=Time.time;
+            RenderVisual(Time.time);
+        }
+        // 미리보기에서도 일시정지된 시간에 맞춰 동일한 수중 이펙트를 그립니다.
+        public void SamplePreview(float time)
+        {
+            if (!mesh) Awake();
+            RenderVisual(time);
+        }
+        void RenderVisual(float time)
+        {
+            v.Clear();ix.Clear();col.Clear();uv.Clear();mesh.Clear();float q=Mathf.Clamp01(Progress);
             var camera=Camera.main;if(camera){viewForward=transform.InverseTransformDirection(camera.transform.forward);viewRight=transform.InverseTransformDirection(camera.transform.right);viewUp=transform.InverseTransformDirection(camera.transform.up);}
             Color edge=Color.Lerp(new Color(.15f,.65f,.82f,.7f),Foam,q);
             if(Shape==Form.Sector){DrawSector(q,time);}

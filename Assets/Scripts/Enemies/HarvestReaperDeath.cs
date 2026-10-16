@@ -26,8 +26,14 @@ namespace DogLife
                 foreach(var source in original)if(source.name==bone.name)
                 {bone.localPosition=source.localPosition;bone.localRotation=source.localRotation;bone.localScale=source.localScale;break;}
             }
-            var materials=visual.GetComponentInChildren<SkinnedMeshRenderer>().sharedMaterials;
-            foreach(var skin in body.GetComponentsInChildren<SkinnedMeshRenderer>()){skin.sharedMaterials=materials;skin.updateWhenOffscreen=true;}
+            // 몸체와 분리된 낫의 재질을 각각 유지해 사망 시 무기 텍스처가 바뀌지 않도록 합니다.
+            var originalSkins=visual.GetComponentsInChildren<SkinnedMeshRenderer>();
+            foreach(var skin in body.GetComponentsInChildren<SkinnedMeshRenderer>())
+            {
+                foreach(var originalSkin in originalSkins)
+                    if(originalSkin.name==skin.name){skin.sharedMaterials=originalSkin.sharedMaterials;break;}
+                skin.updateWhenOffscreen=true;
+            }
             var room=GetComponentInParent<ForestRoom>();
             if(room)body.transform.SetParent(room.transform,true);
             else UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(body,gameObject.scene);

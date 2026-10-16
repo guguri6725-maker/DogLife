@@ -659,16 +659,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2555bf94588e1dd48bbec482aca33ffe, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DogLife.KrakenPhaseTwo
+  previewArms: []
+  previewWater: {fileID: 0}
   bodyVisual: {fileID: 5016746915996984329}
   armModel: {fileID: 919132149155446097, guid: 44eea4f656e03ed40a58aa8931117599, type: 3}
-  slimArmMesh: {fileID: 4300000, guid: 8b9e4a62c60056a48a41af5f35619b74, type: 2}
-  armMaterial: {fileID: 2100000, guid: ee3f6c469333eb548a4eb7ca44a2cfef, type: 2}
+  slimArmMesh: {fileID: 4300000, guid: f6fe4750047b66644ac85c2690682469, type: 2}
+  armMaterial: {fileID: 2100000, guid: cb035abd79df358449224592ce91e03e, type: 2}
   waterMaterial: {fileID: 2100000, guid: 6d1453c11ca63784f820f18972e5977b, type: 2}
   bodyWidth: 12
   bodyHeight: 6.2
-  bodyFloatHeight: 0.65
+  bodyFloatHeight: -0.65
   armLength: 16
   armRadius: 0.65
+  armSocketRadius: 3.2
+  armSocketHeight: -0.5
+  bodyBlockRadius: 2.7
   sandLead: 2
   emergeTime: 5.5
   unfurlTime: 2.5
@@ -1056,6 +1061,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: -3413437501573254027, guid: 1feafcb974a31a9439a4d13bd2ce2604, type: 3}
+      propertyPath: m_Mesh
+      value: 
+      objectReference: {fileID: 8202269870987923505, guid: 1feafcb974a31a9439a4d13bd2ce2604, type: 3}
     - target: {fileID: -3413437501573254027, guid: 1feafcb974a31a9439a4d13bd2ce2604, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 

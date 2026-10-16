@@ -115,6 +115,18 @@ namespace DogLife
         }
         void OnDisable(){if(cinematic&&Dying)cinematic.End();}
         void OnDestroy(){if(contactMesh)Destroy(contactMesh);}
+        // 실제 사망의 접지 보정을 미리보기에도 공유하되 전투 종료와 카메라는 실행하지 않습니다.
+        public void SamplePreview(Animator animator, float progress)
+        {
+            Dying = true; Progress = Mathf.Clamp01(progress);
+            actor = animator;
+            if (!skin) skin = actor.GetComponentInChildren<SkinnedMeshRenderer>();
+            if (!hips) foreach (var bone in actor.GetComponentsInChildren<Transform>()) if (bone.name == "Hips") hips = bone;
+            if (!contactMesh) contactMesh = new Mesh();
+            previousHipY = hips ? hips.position.y : transform.position.y;
+            Ground(Mathf.SmoothStep(0, 1, Mathf.InverseLerp(.1f, .4f, progress)));
+        }
+        public void ResetPreview() { Dying = false; Progress = 0; }
         static void Solve(Support s,Vector3 target)
         {
             if(!s.upper||!s.lower||!s.foot)return;
