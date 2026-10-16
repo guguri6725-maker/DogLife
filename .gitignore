@@ -80,6 +80,12 @@ ArtSource/**/*.blend1
 ArtSources/**/*.blend
 ArtSources/**/*.blend1
 
+# Pre-refinement backup snapshots: kept locally for reference only, not used by the game
+ArtSource/**/[Bb]efore*/
+ArtSources/**/[Bb]efore*/
+ArtSource/**/*[Bb]efore*
+ArtSources/**/*[Bb]efore*
+
 # WebGL/Burst build output accidentally emitted at project root
 /Data/
 
