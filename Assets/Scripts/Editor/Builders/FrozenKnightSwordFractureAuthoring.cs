@@ -10,7 +10,7 @@ namespace DogLife.EditorTools
         // 손잡이와 중심 날은 남기고 양쪽 날이 순서대로 떨어져 나가는 실제 손상 메시입니다.
         public static string Build()
         {
-            var prefab=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/monster/FrozenKnight.prefab");
+            var prefab=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Monster/Winter/FrozenKnight/FrozenKnight.prefab");
             var sword=prefab.GetComponentsInChildren<Transform>(true).First(t=>t.name=="Sword").GetComponentInChildren<MeshFilter>().sharedMesh;
             var vertices=sword.vertices;var bounds=sword.bounds;
             for(int stage=1;stage<=2;stage++)
@@ -29,7 +29,7 @@ namespace DogLife.EditorTools
                     }
                     mesh.SetTriangles(triangles,sub);
                 }
-                mesh.RecalculateBounds();string path="Assets/Art/FrozenKnight/Models/"+mesh.name+".asset";
+                mesh.RecalculateBounds();string path="Assets/Models/Monster/Winter/FrozenKnight/"+mesh.name+".asset";
                 var old=AssetDatabase.LoadAssetAtPath<Mesh>(path);if(old){EditorUtility.CopySerialized(mesh,old);Object.DestroyImmediate(mesh);}else AssetDatabase.CreateAsset(mesh,path);
             }
             AssetDatabase.SaveAssets();return "Two chipped sword meshes authored";

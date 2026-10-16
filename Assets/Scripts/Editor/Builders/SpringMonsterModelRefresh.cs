@@ -13,12 +13,14 @@ namespace DogLife.EditorTools
             int count=0;
             foreach(var name in new[]{"BlossomSkeleton","FloralDeer","SakuraRabbit","BlossomSpirit"})
             {
-                string folder="Assets/Art/Enemies/"+name+"/";
-                var clips=AssetDatabase.LoadAllAssetsAtPath(folder+name+".fbx").OfType<AnimationClip>().Where(c=>!c.name.StartsWith("__preview__")).ToArray();
+                string modelsFolder="Assets/Models/Monster/Spring/"+name+"/";
+                string animFolder="Assets/Animations/Monster/Spring/"+name+"/";
+                var clips=AssetDatabase.LoadAllAssetsAtPath(modelsFolder+name+".fbx").OfType<AnimationClip>().Where(c=>!c.name.StartsWith("__preview__")).ToArray();
                 foreach(var source in clips)
                 {
                     string clipName=source.name.Split('|').Last();
-                    var clip=AssetDatabase.LoadAssetAtPath<AnimationClip>(folder+clipName+".anim");
+                    string suffix=clipName.Contains("_")?clipName.Substring(clipName.LastIndexOf('_')+1):clipName;
+                    var clip=AssetDatabase.LoadAssetAtPath<AnimationClip>(animFolder+suffix+".anim");
                     if(!clip)continue;
                     var settings=AnimationUtility.GetAnimationClipSettings(clip);
                     var events=AnimationUtility.GetAnimationEvents(clip);
@@ -27,7 +29,7 @@ namespace DogLife.EditorTools
                     AnimationUtility.SetAnimationClipSettings(clip,updated);AnimationUtility.SetAnimationEvents(clip,events);
                     EditorUtility.SetDirty(clip);count++;
                 }
-                string prefabPath="Assets/Prefabs/monster/"+name+".prefab";
+                string prefabPath="Assets/Prefabs/Monster/Spring/"+name+"/"+name+".prefab";
                 var root=PrefabUtility.LoadPrefabContents(prefabPath);
                 try
                 {
@@ -57,7 +59,7 @@ namespace DogLife.EditorTools
                         finally { UnityEngine.Object.DestroyImmediate(mesh); }
                     }
                     // Sampling is only for culling bounds; restore imported bind transforms before saving.
-                    var imported=AssetDatabase.LoadAssetAtPath<GameObject>(folder+name+".fbx");
+                    var imported=AssetDatabase.LoadAssetAtPath<GameObject>(modelsFolder+name+".fbx");
                     foreach(var t in animator.GetComponentsInChildren<Transform>(true))
                     {
                         if(t==animator.transform)continue;

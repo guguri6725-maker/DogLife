@@ -9,15 +9,19 @@ namespace DogLife.EditorTools
 {
     public static class SummerMonsterBuilder
     {
-        const string Art="Assets/Art/SummerMonsters";
+        const string Shared="Assets/Materials/Monster/Summer/Shared";
         public static readonly string[] Names={"CoralMermaid","BlueJellyfish","BoneTortoise","HermitCrab"};
+        static string Models(string name)=>"Assets/Models/Monster/Summer/"+name;
+        static string Textures(string name)=>"Assets/Textures/Monster/Summer/"+name;
+        static string Materials(string name)=>"Assets/Materials/Monster/Summer/"+name;
+        static string Animations(string name)=>"Assets/Animations/Monster/Summer/"+name;
         static void Folder(string p){if(AssetDatabase.IsValidFolder(p))return;int i=p.LastIndexOf('/');Folder(p.Substring(0,i));AssetDatabase.CreateFolder(p.Substring(0,i),p.Substring(i+1));}
         static void Set(UnityEngine.Object target,string field,UnityEngine.Object value){var s=new SerializedObject(target);s.FindProperty(field).objectReferenceValue=value;s.ApplyModifiedPropertiesWithoutUndo();}
         static void Float(UnityEngine.Object target,string field,float value){var s=new SerializedObject(target);s.FindProperty(field).floatValue=value;s.ApplyModifiedPropertiesWithoutUndo();}
         public static string Build()
         {
-            Folder(Art+"/Animations");Folder(Art+"/Materials");
-            string fxPath=Art+"/Materials/SummerWater.mat";
+            Folder(Shared);
+            string fxPath=Shared+"/SummerWater.mat";
             var fx=AssetDatabase.LoadAssetAtPath<Material>(fxPath);
             if(!fx){fx=new Material(Shader.Find("DogLife/Summer Water VFX"));AssetDatabase.CreateAsset(fx,fxPath);}
             for(int i=0;i<Names.Length;i++)BuildOne(Names[i],i,fx);
@@ -25,11 +29,11 @@ namespace DogLife.EditorTools
         }
         static void BuildOne(string name,int kind,Material fx)
         {
-            string modelPath=Art+"/Models/"+name+".fbx";
+            string modelPath=Models(name)+"/"+name+".fbx";
             var importer=(ModelImporter)AssetImporter.GetAtPath(modelPath);
             importer.animationType=ModelImporterAnimationType.Generic;importer.importAnimation=true;importer.avatarSetup=ModelImporterAvatarSetup.CreateFromThisModel;importer.SaveAndReimport();
             var clips=AssetDatabase.LoadAllAssetsAtPath(modelPath).OfType<AnimationClip>().Where(c=>!c.name.StartsWith("__preview")).ToArray();
-            string ctrlPath=Art+"/Animations/"+name+".controller";
+            string ctrlPath=Animations(name)+"/"+name+".controller";
             var controller=AssetDatabase.LoadAssetAtPath<AnimatorController>(ctrlPath);
             if(!controller)controller=AnimatorController.CreateAnimatorControllerAtPath(ctrlPath);
             var sm=controller.layers[0].stateMachine;foreach(var s in sm.states)sm.RemoveState(s.state);
@@ -37,7 +41,7 @@ namespace DogLife.EditorTools
             foreach(var source in clips)
             {
                 string stateName=source.name.Substring(source.name.LastIndexOf(name+"_",StringComparison.Ordinal)+name.Length+1);
-                string path=Art+"/Animations/"+name+"_"+stateName+".anim";
+                string path=Animations(name)+"/"+stateName+".anim";
                 var clip=AssetDatabase.LoadAssetAtPath<AnimationClip>(path);if(!clip){clip=UnityEngine.Object.Instantiate(source);AssetDatabase.CreateAsset(clip,path);}else EditorUtility.CopySerialized(source,clip);
                 clip.name=name+"_"+stateName;
                 bool loop=stateName=="Idle"||stateName=="Walk"||stateName=="Burrow"||stateName=="GuardLoop";
@@ -49,8 +53,8 @@ namespace DogLife.EditorTools
             var idle=sm.states.First(s=>s.state.name=="Idle").state;var walk=sm.states.First(s=>s.state.name=="Walk").state;
             var transition=idle.AddTransition(walk);transition.hasExitTime=false;transition.duration=.15f;transition.AddCondition(AnimatorConditionMode.If,0,"Moving");
             transition=walk.AddTransition(idle);transition.hasExitTime=false;transition.duration=.15f;transition.AddCondition(AnimatorConditionMode.IfNot,0,"Moving");
-            var material=AssetDatabase.LoadAssetAtPath<Material>(Art+"/Materials/"+name+".mat");if(!material){material=new Material(Shader.Find("Standard"));AssetDatabase.CreateAsset(material,Art+"/Materials/"+name+".mat");}
-            material.mainTexture=AssetDatabase.LoadAssetAtPath<Texture2D>(Art+"/Textures/"+name+"_BaseColor.png");material.SetFloat("_Glossiness",kind==1?.4f:.18f);
+            var material=AssetDatabase.LoadAssetAtPath<Material>(Materials(name)+"/"+name+".mat");if(!material){material=new Material(Shader.Find("Standard"));AssetDatabase.CreateAsset(material,Materials(name)+"/"+name+".mat");}
+            material.mainTexture=AssetDatabase.LoadAssetAtPath<Texture2D>(Textures(name)+"/BaseColor.png");material.SetFloat("_Glossiness",kind==1?.4f:.18f);
             if(kind==1){material.EnableKeyword("_EMISSION");material.SetColor("_EmissionColor",Color.black);}
             var root=new GameObject(name);root.layer=0;
             try
@@ -59,7 +63,7 @@ namespace DogLife.EditorTools
                 var rb=root.AddComponent<Rigidbody>();rb.isKinematic=true;rb.constraints=RigidbodyConstraints.FreezeRotation;
                 var body=root.AddComponent<CapsuleCollider>();body.radius=kind==2?.65f:.45f;body.height=kind==0?2.2f:kind==1?2.0f:1.4f;body.center=Vector3.up*body.height*.5f;
                 var agent=root.AddComponent<NavMeshAgent>();agent.radius=body.radius;agent.height=body.height;agent.baseOffset=0;agent.speed=2;agent.angularSpeed=180;agent.acceleration=12;
-                var example=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/monster/FloralDeer.prefab");if(example)agent.agentTypeID=example.GetComponent<NavMeshAgent>().agentTypeID;
+                var example=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Monster/Spring/FloralDeer/FloralDeer.prefab");if(example)agent.agentTypeID=example.GetComponent<NavMeshAgent>().agentTypeID;
                 var visual=new GameObject("Visual").transform;visual.SetParent(root.transform,false);
                 var model=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(modelPath));model.transform.SetParent(visual,false);
                 foreach(var renderer in model.GetComponentsInChildren<Renderer>()){renderer.sharedMaterial=material;if(renderer is SkinnedMeshRenderer skin)skin.updateWhenOffscreen=true;}
@@ -78,13 +82,13 @@ namespace DogLife.EditorTools
                 var vfxGo=new GameObject("SummerAttackVFX");vfxGo.transform.SetParent(root.transform,false);var vfx=vfxGo.AddComponent<SummerWaterVfx>();vfx.enemy=enemy;Set(vfx,"material",fx);vfxGo.GetComponent<MeshRenderer>().sharedMaterial=fx;Set(enemy,"presentation",vfx);
                 root.AddComponent<CombatFeedback>();var hp=root.AddComponent<SeasonEnemyHealthBar>();var hs=new SerializedObject(hp);hs.FindProperty("fillColor").colorValue=new Color(.2f,.65f,.75f);hs.FindProperty("highlightColor").colorValue=new Color(.65f,.95f,1);hs.ApplyModifiedPropertiesWithoutUndo();
                 foreach(var t in root.GetComponentsInChildren<Transform>())t.gameObject.layer=0;
-                PrefabUtility.SaveAsPrefabAsset(root,"Assets/Prefabs/monster/"+name+".prefab");
+                PrefabUtility.SaveAsPrefabAsset(root,"Assets/Prefabs/Monster/Summer/"+name+"/"+name+".prefab");
             }
             finally{UnityEngine.Object.DestroyImmediate(root);}
         }
         public static string ConnectRooms()
         {
-            var prefabs=Names.Select(n=>AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/monster/"+n+".prefab")).ToArray();int count=0;
+            var prefabs=Names.Select(n=>AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Monster/Summer/"+n+"/"+n+".prefab")).ToArray();int count=0;
             foreach(var guid in AssetDatabase.FindAssets("t:Scene",new[]{"Assets/Scenes/SeasonRooms/SummerJourney7","Assets/Scenes/SeasonRooms/Summer"}))
             {
                 var path=AssetDatabase.GUIDToAssetPath(guid);var scene=EditorSceneManager.OpenScene(path,OpenSceneMode.Additive);

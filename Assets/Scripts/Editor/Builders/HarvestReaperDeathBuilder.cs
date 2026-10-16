@@ -10,8 +10,8 @@ namespace DogLife.EditorTools
     {
         public static string Build()
         {
-            const string model="Assets/Art/HarvestReaper/Models/HarvestReaperDeath.fbx";
-            const string clipPath="Assets/Art/HarvestReaper/Animations/HarvestReaper_Death.anim";
+            const string model="Assets/Models/Monster/Autumn/HarvestReaper/Death.fbx";
+            const string clipPath="Assets/Animations/Monster/Autumn/HarvestReaper/Death.anim";
             var importer=(ModelImporter)AssetImporter.GetAtPath(model);
             importer.animationType=ModelImporterAnimationType.Generic;importer.importAnimation=true;
             importer.animationCompression=ModelImporterAnimationCompression.Off;importer.SaveAndReimport();
@@ -20,7 +20,7 @@ namespace DogLife.EditorTools
             if(!clip){clip=new AnimationClip();AssetDatabase.CreateAsset(clip,clipPath);}
             EditorUtility.CopySerialized(source,clip);clip.name="HarvestReaper_Death";
             var settings=AnimationUtility.GetAnimationClipSettings(clip);settings.loopTime=false;AnimationUtility.SetAnimationClipSettings(clip,settings);
-            var root=PrefabUtility.LoadPrefabContents("Assets/Prefabs/monster/HarvestReaperBoss.prefab");
+            var root=PrefabUtility.LoadPrefabContents("Assets/Prefabs/Monster/Autumn/HarvestReaper/Boss.prefab");
             try
             {
                 var animator=root.GetComponentInChildren<Animator>();var ctrl=(AnimatorController)animator.runtimeAnimatorController;
@@ -29,7 +29,7 @@ namespace DogLife.EditorTools
                 var death=root.GetComponent<HarvestReaperDeath>()??root.AddComponent<HarvestReaperDeath>();var so=new SerializedObject(death);
                 so.FindProperty("visual").objectReferenceValue=animator;so.FindProperty("deathClip").objectReferenceValue=clip;
                 so.FindProperty("deathVisual").objectReferenceValue=AssetDatabase.LoadAssetAtPath<GameObject>(model);so.ApplyModifiedPropertiesWithoutUndo();
-                PrefabUtility.SaveAsPrefabAsset(root,"Assets/Prefabs/monster/HarvestReaperBoss.prefab");AssetDatabase.SaveAssets();
+                PrefabUtility.SaveAsPrefabAsset(root,"Assets/Prefabs/Monster/Autumn/HarvestReaper/Boss.prefab");AssetDatabase.SaveAssets();
                 return "Blender death imported: "+clip.length+" seconds";
             }
             finally{PrefabUtility.UnloadPrefabContents(root);}

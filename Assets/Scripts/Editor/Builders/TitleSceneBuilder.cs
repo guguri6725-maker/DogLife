@@ -61,7 +61,7 @@ namespace DogLife.EditorTools
             if(System.IO.File.Exists(path))throw new System.InvalidOperationException("Title scene already exists.");
             if(EditorSceneManager.GetActiveScene().isDirty)throw new System.InvalidOperationException("Save the current scene before building Title.");
             var scene=EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);
-            font=AssetDatabase.LoadAssetAtPath<Font>("Assets/Art/UI/Fonts/NanumGothic-Regular.ttf");
+            font=AssetDatabase.LoadAssetAtPath<Font>("Assets/Fonts/UI/NanumGothic-Regular.ttf");
             circle=AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Knob.psd");
             var camera=new GameObject("Main Camera",typeof(Camera),typeof(AudioListener)).GetComponent<Camera>();
             camera.tag="MainCamera";camera.clearFlags=CameraClearFlags.SolidColor;camera.backgroundColor=Ink;

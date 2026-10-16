@@ -17,7 +17,7 @@ namespace DogLife.EditorTools
         void Place(Vector3 p){Set(player,"knockbackUntil",0f);player.MoveInput=Vector2.zero;var rb=player.GetComponent<Rigidbody>();rb.position=p;rb.linearVelocity=Vector3.zero;player.transform.position=p;hp.Restore();Physics.SyncTransforms();}
         WinterMonsterEnemy Spawn(string name)
         {
-            if(enemy)Destroy(enemy.gameObject);var go=Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/monster/"+name+".prefab"));go.name=name;enemy=go.GetComponent<WinterMonsterEnemy>();Set(enemy,"nextAttack",Time.time+100);Check(go.transform.localScale==Vector3.one*(name=="SnowSpirit"?1:2),name+" has expected XYZ scale");return enemy;
+            if(enemy)Destroy(enemy.gameObject);var go=Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Monster/Winter/"+name+"/"+name+".prefab"));go.name=name;enemy=go.GetComponent<WinterMonsterEnemy>();Set(enemy,"nextAttack",Time.time+100);Check(go.transform.localScale==Vector3.one*(name=="SnowSpirit"?1:2),name+" has expected XYZ scale");return enemy;
         }
         void Shot(string name){ScreenCapture.CaptureScreenshot("Builds/VfxValidation/Winter_"+name+".png");}
         IEnumerator Start()

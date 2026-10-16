@@ -8,7 +8,7 @@ namespace DogLife.EditorTools
     // 발굽의 접지/회수 궤적을 클립으로 굽는 도구입니다. 실제 이동은 기존 NavMesh가 담당합니다.
     public static class FrozenHorseWalkAuthoring
     {
-        const string Folder="Assets/Art/FrozenKnight/Animations/";
+        const string Folder="Assets/Animations/Monster/Winter/FrozenKnight/";
         static Transform Bone(Transform rig,string name)=>rig.GetComponentsInChildren<Transform>(true).First(t=>t.name==name);
         static void Solve(Transform upper,Transform lower,Transform hoof,Vector3 target,Vector3 bend)
         {

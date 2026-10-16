@@ -20,7 +20,7 @@ namespace DogLife.EditorTools
         }
         public static string Build()
         {
-            var controller=AssetDatabase.LoadAssetAtPath<AnimatorController>("Assets/Art/Player3D/DogLight/Animations/DogLight.controller");
+            var controller=AssetDatabase.LoadAssetAtPath<AnimatorController>("Assets/Animations/Player/DogLight.controller");
             var machine=controller.layers[0].stateMachine;
             var locomotion=machine.states.First(x=>x.state.name=="Locomotion").state;
             var idle=((BlendTree)locomotion.motion).children[0].motion as AnimationClip;
@@ -100,7 +100,7 @@ namespace DogLife.EditorTools
                         }
                         foreach(var pair in curves)for(int j=0;j<7;j++)AnimationUtility.SetEditorCurve(clip,EditorCurveBinding.FloatCurve(AnimationUtility.CalculateTransformPath(pair.Key,model),typeof(Transform),j<3?"m_LocalPosition."+"xyz"[j]:"m_LocalRotation."+"xyzw"[j-3]),pair.Value[j]);
                         clip.EnsureQuaternionContinuity();var settings=AnimationUtility.GetAnimationClipSettings(clip);settings.loopTime=false;AnimationUtility.SetAnimationClipSettings(clip,settings);
-                        string path="Assets/Art/Player3D/DogLight/Animations/BasicWeapons/"+clip.name+".anim";var old=AssetDatabase.LoadAssetAtPath<AnimationClip>(path);
+                        string path="Assets/Animations/Player/DogLight_BasicWeapons_"+clip.name+".anim";var old=AssetDatabase.LoadAssetAtPath<AnimationClip>(path);
                         if(old){EditorUtility.CopySerialized(clip,old);Object.DestroyImmediate(clip);clip=old;}else AssetDatabase.CreateAsset(clip,path);
                         profile.attacks[step]=clip;profile.strikeTimes[step]=hit;if(spear&&step==1)profile.secondaryStrikeTimes[step]=.57f;
                         var sm=upper?upperMachine:machine;var state=sm.states.FirstOrDefault(s=>s.state.name==clip.name).state;if(!state)state=sm.AddState(clip.name);state.motion=clip;state.writeDefaultValues=!upper;

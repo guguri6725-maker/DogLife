@@ -21,9 +21,9 @@ namespace DogLife.EditorTools
         }
         public static string Build()
         {
-            const string folder="Assets/Art/Player3D/DogLight/Animations/BasicWeapons";
+            const string folder="Assets/Animations/Player";
             System.IO.Directory.CreateDirectory(folder);System.IO.Directory.CreateDirectory("Assets/Data/WeaponMovesets");AssetDatabase.Refresh();
-            var controller=AssetDatabase.LoadAssetAtPath<AnimatorController>("Assets/Art/Player3D/DogLight/Animations/DogLight.controller");
+            var controller=AssetDatabase.LoadAssetAtPath<AnimatorController>("Assets/Animations/Player/DogLight.controller");
             var machine=controller.layers[0].stateMachine;var locomotion=machine.states.First(s=>s.state.name=="Locomotion").state;
             var idle=((BlendTree)locomotion.motion).children[0].motion as AnimationClip;
             var root=PrefabUtility.LoadPrefabContents("Assets/Prefabs/SeasonGameplay.prefab");
@@ -42,7 +42,7 @@ namespace DogLife.EditorTools
                     string category=((InventoryWeapon.WeaponCategory)kind).ToString();string profilePath="Assets/Data/WeaponMovesets/"+category+".asset";
                     var profile=AssetDatabase.LoadAssetAtPath<BasicWeaponMoveset>(profilePath);if(!profile){profile=ScriptableObject.CreateInstance<BasicWeaponMoveset>();AssetDatabase.CreateAsset(profile,profilePath);}
                     profile.category=(InventoryWeapon.WeaponCategory)kind;profile.attacks=new AnimationClip[3];profile.strikeTimes=new float[3];profile.reach=ranges[kind];profile.projectileSpeed=kind==3?16:10;
-                    profile.effectMaterial=AssetDatabase.LoadAssetAtPath<Material>("Assets/Art/Enemies/BlossomTelegraph.mat");
+                    profile.effectMaterial=AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/Monster/Spring/Shared/BlossomTelegraph.mat");
                     for(int step=0;step<3;step++)
                     {
                         float duration=durations[kind]*(step==2?1.22f:1);int frames=Mathf.CeilToInt(duration*30);duration=frames/30f;
@@ -80,7 +80,7 @@ namespace DogLife.EditorTools
                         }
                         foreach(var pair in curves)for(int j=0;j<7;j++)AnimationUtility.SetEditorCurve(clip,EditorCurveBinding.FloatCurve(pair.Key,typeof(Transform),j<3?"m_LocalPosition."+"xyz"[j]:"m_LocalRotation."+"xyzw"[j-3]),pair.Value[j]);
                         clip.EnsureQuaternionContinuity();var settings=AnimationUtility.GetAnimationClipSettings(clip);settings.loopTime=false;AnimationUtility.SetAnimationClipSettings(clip,settings);
-                        string clipPath=folder+"/"+name+".anim";var existing=AssetDatabase.LoadAssetAtPath<AnimationClip>(clipPath);if(existing){EditorUtility.CopySerialized(clip,existing);Object.DestroyImmediate(clip);clip=existing;}else AssetDatabase.CreateAsset(clip,clipPath);
+                        string clipPath=folder+"/DogLight_BasicWeapons_"+name+".anim";var existing=AssetDatabase.LoadAssetAtPath<AnimationClip>(clipPath);if(existing){EditorUtility.CopySerialized(clip,existing);Object.DestroyImmediate(clip);clip=existing;}else AssetDatabase.CreateAsset(clip,clipPath);
                         profile.attacks[step]=clip;profile.strikeTimes[step]=duration*.5f;
                         var state=machine.states.FirstOrDefault(s=>s.state.name==name).state;if(!state)state=machine.AddState(name);state.motion=clip;
                         if(state.transitions.Length==0){var transition=state.AddTransition(locomotion);transition.hasExitTime=true;transition.exitTime=1;transition.hasFixedDuration=true;transition.duration=.1f;}

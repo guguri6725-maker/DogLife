@@ -7,7 +7,10 @@ namespace DogLife.EditorTools
 {
     public static class SpringBoarPhaseBuilder
     {
-        const string Art="Assets/Art/SpringBoar";
+        const string Models="Assets/Models/Monster/Spring/SpringBoar";
+        const string Textures="Assets/Textures/Monster/Spring/SpringBoar";
+        const string Materials="Assets/Materials/Monster/Spring/SpringBoar";
+        const string Animations="Assets/Animations/Monster/Spring/SpringBoar";
         static void Link(Object obj,string field,Object value)
         {
             var serialized=new SerializedObject(obj);
@@ -16,26 +19,26 @@ namespace DogLife.EditorTools
         }
         public static string Build()
         {
-            string animationModel=Art+"/Phase1/Models/SpringBoarMetamorphosis.fbx";
+            string animationModel=Models+"/Phase1_SpringBoarMetamorphosis.fbx";
             var animationImporter=AssetImporter.GetAtPath(animationModel) as ModelImporter;
             if(animationImporter)
             {
                 animationImporter.animationType=ModelImporterAnimationType.Generic;
                 animationImporter.importAnimation=true;animationImporter.SaveAndReimport();
                 var source=AssetDatabase.LoadAllAssetsAtPath(animationModel).OfType<AnimationClip>().First(c=>!c.name.StartsWith("__preview"));
-                string clipPath=Art+"/Animations/SpringBoar_Metamorphosis.anim";
+                string clipPath=Animations+"/Metamorphosis.anim";
                 var clip=AssetDatabase.LoadAssetAtPath<AnimationClip>(clipPath);
                 if(!clip) {clip=new AnimationClip();AssetDatabase.CreateAsset(clip,clipPath);}
                 EditorUtility.CopySerialized(source,clip);clip.name="SpringBoar_Metamorphosis";
                 var settings=AnimationUtility.GetAnimationClipSettings(clip);settings.loopTime=false;AnimationUtility.SetAnimationClipSettings(clip,settings);
-                var controller=AssetDatabase.LoadAssetAtPath<AnimatorController>(Art+"/Animations/SpringBoar.controller");
+                var controller=AssetDatabase.LoadAssetAtPath<AnimatorController>(Animations+"/SpringBoar.controller");
                 var machine=controller.layers[0].stateMachine;
                 var state=machine.states.Select(s=>s.state).FirstOrDefault(s=>s.name=="Metamorphosis");
                 if(!state)state=machine.AddState("Metamorphosis");
                 state.motion=clip;state.speed=clip.length;state.speedParameter="PhaseSpeed";state.speedParameterActive=true;
                 EditorUtility.SetDirty(clip);EditorUtility.SetDirty(controller);
             }
-            string model=Art+"/Phase1/Models/SpringBoarPhase1.fbx";
+            string model=Models+"/Phase1_SpringBoarPhase1.fbx";
             var importer=(ModelImporter)AssetImporter.GetAtPath(model);
             importer.animationType=ModelImporterAnimationType.Generic;
             importer.avatarSetup=ModelImporterAvatarSetup.CreateFromThisModel;
@@ -43,20 +46,20 @@ namespace DogLife.EditorTools
             importer.SaveAndReimport();
             foreach(var suffix in new[]{"BaseColor","Normal"})
             {
-                var texture=(TextureImporter)AssetImporter.GetAtPath(Art+"/Phase1/Textures/SpringBoarPhase1_"+suffix+".png");
+                var texture=(TextureImporter)AssetImporter.GetAtPath(Textures+"/Phase1_SpringBoarPhase1_"+suffix+".png");
                 texture.maxTextureSize=2048;
                 texture.textureType=suffix=="Normal"?TextureImporterType.NormalMap:TextureImporterType.Default;
                 texture.textureCompression=TextureImporterCompression.Compressed;
                 texture.SaveAndReimport();
             }
-            string matPath=Art+"/Phase1/SpringBoarPhase1.mat";
+            string matPath=Materials+"/Phase1_SpringBoarPhase1.mat";
             var mat=AssetDatabase.LoadAssetAtPath<Material>(matPath);
             if(!mat) { mat=new Material(Shader.Find("Standard")); AssetDatabase.CreateAsset(mat,matPath); }
-            mat.mainTexture=AssetDatabase.LoadAssetAtPath<Texture2D>(Art+"/Phase1/Textures/SpringBoarPhase1_BaseColor.png");
-            mat.SetTexture("_BumpMap",AssetDatabase.LoadAssetAtPath<Texture2D>(Art+"/Phase1/Textures/SpringBoarPhase1_Normal.png"));
+            mat.mainTexture=AssetDatabase.LoadAssetAtPath<Texture2D>(Textures+"/Phase1_SpringBoarPhase1_BaseColor.png");
+            mat.SetTexture("_BumpMap",AssetDatabase.LoadAssetAtPath<Texture2D>(Textures+"/Phase1_SpringBoarPhase1_Normal.png"));
             mat.EnableKeyword("_NORMALMAP"); mat.SetFloat("_BumpScale",.3f); mat.SetFloat("_Glossiness",.18f);
             EditorUtility.SetDirty(mat);
-            const string path="Assets/Prefabs/monster/SpringBoarBoss.prefab";
+            const string path="Assets/Prefabs/Monster/Spring/SpringBoar/Boss.prefab";
             var root=PrefabUtility.LoadPrefabContents(path);
             try
             {
@@ -81,7 +84,7 @@ namespace DogLife.EditorTools
                 foreach(var renderer in flesh.GetComponentsInChildren<Renderer>(true)) renderer.sharedMaterial=mat;
                 var animator=flesh.GetComponent<Animator>();
                 if(!animator) animator=flesh.AddComponent<Animator>();
-                animator.runtimeAnimatorController=AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(Art+"/Animations/SpringBoar.controller");
+                animator.runtimeAnimatorController=AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(Animations+"/SpringBoar.controller");
                 animator.applyRootMotion=false;
                 animator.cullingMode=AnimatorCullingMode.AlwaysAnimate;
                 var oldAnimator=skeleton.GetComponentInChildren<Animator>(true);
@@ -92,7 +95,7 @@ namespace DogLife.EditorTools
                 Link(phase,"fleshAnimator",animator); Link(phase,"skeletonAnimator",oldAnimator);
                 Link(phase,"phaseOne",boss); Link(phase,"attacks",root.GetComponentInChildren<SpringBoarVfx>(true));
                 Link(phase,"peelingShader",Shader.Find("DogLife/Spring Boar Peeling"));
-                string fxMatPath=Art+"/Phase1/MetamorphosisVfx.mat";
+                string fxMatPath=Materials+"/Phase1_MetamorphosisVfx.mat";
                 var fxMat=AssetDatabase.LoadAssetAtPath<Material>(fxMatPath);
                 if(!fxMat) {fxMat=new Material(Shader.Find("DogLife/Spring Metamorphosis VFX"));AssetDatabase.CreateAsset(fxMat,fxMatPath);}
                 var fx=root.GetComponentInChildren<SpringBoarMetamorphosisVfx>(true);

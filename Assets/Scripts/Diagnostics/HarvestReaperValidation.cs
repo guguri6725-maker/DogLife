@@ -19,7 +19,7 @@ namespace DogLife.EditorTools
   IEnumerator Start()
   {
    Application.runInBackground=true;System.IO.Directory.CreateDirectory("Builds/VfxValidation");player=FindFirstObjectByType<PlayerMotor>();hp=player.GetComponent<CombatHealth>();hp.Restore();
-   boss=Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/monster/HarvestReaperBoss.prefab")).GetComponent<HarvestReaperBoss>();bh=boss.GetComponent<CombatHealth>();Place(new Vector3(0,0,6));yield return null;Set("nextAttack",Time.time+1000);
+   boss=Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Monster/Autumn/HarvestReaper/Boss.prefab")).GetComponent<HarvestReaperBoss>();bh=boss.GetComponent<CombatHealth>();Place(new Vector3(0,0,6));yield return null;Set("nextAttack",Time.time+1000);
    var cam=Camera.main;cam.transform.position=new Vector3(22,27,27);cam.transform.LookAt(Vector3.up*2);cam.orthographicSize=25;
    Vector3 origin=boss.transform.position;Begin(HarvestReaperBoss.Pattern.Sweep);Vector3 forward=boss.Forward;Check(boss.Contains(new Vector3(0,1,10))&&!boss.Contains(new Vector3(0,1,-5)),"Sweep front 180 degrees; rear safe");
    yield return new WaitForSeconds(.5f);Check(hp.Current==1000,"Warning cannot damage");Place(new Vector3(4,0,5));Check(Vector3.Dot(forward,boss.Forward)>.999f,"Warning locks attack direction");Enter(HarvestReaperBoss.Phase.Active);yield return new WaitForSeconds(.7f);Check(hp.Current==999,"Sweep damages exactly once");yield return new WaitForSeconds(.4f);Check(hp.Current==999,"No duplicate active hit");

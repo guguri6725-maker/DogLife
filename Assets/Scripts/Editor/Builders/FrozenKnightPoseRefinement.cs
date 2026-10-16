@@ -9,7 +9,7 @@ namespace DogLife.EditorTools
     // 편집 중 클립에 자세를 굽습니다. 게임 실행 중 관절을 강제로 돌리지 않습니다.
     public static class FrozenKnightPoseRefinement
     {
-        const string Folder="Assets/Art/FrozenKnight/Animations/";
+        const string Folder="Assets/Animations/Monster/Winter/FrozenKnight/";
         static AnimationClip Load(string name)=>AssetDatabase.LoadAssetAtPath<AnimationClip>(Folder+name+".anim");
         static float Ease(float a,float b,float t)=>Mathf.SmoothStep(0,1,Mathf.InverseLerp(a,b,t));
         static Transform Bone(Transform root,string name)=>root.GetComponentsInChildren<Transform>(true).First(t=>t.name==name);

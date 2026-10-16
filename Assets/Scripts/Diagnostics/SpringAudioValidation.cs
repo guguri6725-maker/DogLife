@@ -20,7 +20,8 @@ namespace DogLife
         static void Property(object o,string name,object value)=>o.GetType().GetProperty(name).SetValue(o,value);
         GameObject Spawn(string name)
         {
-            var go=Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/monster/"+name+".prefab"),new Vector3(1000,0,1000),Quaternion.identity);
+            string path=name=="SpringBoarBoss"?"Assets/Prefabs/Monster/Spring/SpringBoar/Boss.prefab":"Assets/Prefabs/Monster/Spring/"+name+"/"+name+".prefab";
+            var go=Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(path),new Vector3(1000,0,1000),Quaternion.identity);
             temporary.Add(go);var agent=go.GetComponent<UnityEngine.AI.NavMeshAgent>();if(agent)agent.enabled=false;return go;
         }
         bool Playing(string key)=>FindFirstObjectByType<GameAudio>().GetComponentsInChildren<AudioSource>().Any(s=>s.clip&&s.clip.name==key&&s.isPlaying);

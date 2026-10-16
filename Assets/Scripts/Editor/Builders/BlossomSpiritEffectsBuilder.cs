@@ -6,7 +6,8 @@ namespace DogLife.EditorTools
 {
     public static class BlossomSpiritEffectsBuilder
     {
-        const string Folder="Assets/Art/Enemies/BlossomSpirit/";
+        const string Models="Assets/Models/Monster/Spring/BlossomSpirit/";
+        const string Materials="Assets/Materials/Monster/Spring/BlossomSpirit/";
         static ParticleSystem Petals(Transform parent,string name,Material material,Mesh mesh,float rate,float size)
         {
             var go=new GameObject(name);go.transform.SetParent(parent,false);
@@ -23,15 +24,15 @@ namespace DogLife.EditorTools
         }
         public static void Attach(GameObject root)
         {
-            var petal=AssetDatabase.LoadAssetAtPath<Mesh>(Folder+"EnergyPetal.asset");
+            var petal=AssetDatabase.LoadAssetAtPath<Mesh>(Models+"EnergyPetal.asset");
             if(!petal)
             {
                 petal=new Mesh{name="EnergyPetal"};
                 petal.vertices=new[]{new Vector3(0,-.5f,0),new Vector3(.35f,0,0),new Vector3(.25f,.5f,0),new Vector3(0,.33f,0),new Vector3(-.25f,.5f,0),new Vector3(-.35f,0,0),Vector3.zero};
-                petal.triangles=new[]{6,0,1,6,1,2,6,2,3,6,3,4,6,4,5,6,5,0};petal.colors=Enumerable.Repeat(Color.white,7).ToArray();petal.RecalculateBounds();petal.RecalculateNormals();AssetDatabase.CreateAsset(petal,Folder+"EnergyPetal.asset");
+                petal.triangles=new[]{6,0,1,6,1,2,6,2,3,6,3,4,6,4,5,6,5,0};petal.colors=Enumerable.Repeat(Color.white,7).ToArray();petal.RecalculateBounds();petal.RecalculateNormals();AssetDatabase.CreateAsset(petal,Models+"EnergyPetal.asset");
             }
-            var energy=AssetDatabase.LoadAssetAtPath<Material>(Folder+"PetalEnergy.mat");
-            if(!energy){energy=new Material(Shader.Find("DogLife/Blossom Petal Energy")){name="PetalEnergy",color=new Color(1,.38f,.65f)};AssetDatabase.CreateAsset(energy,Folder+"PetalEnergy.mat");}
+            var energy=AssetDatabase.LoadAssetAtPath<Material>(Materials+"PetalEnergy.mat");
+            if(!energy){energy=new Material(Shader.Find("DogLife/Blossom Petal Energy")){name="PetalEnergy",color=new Color(1,.38f,.65f)};AssetDatabase.CreateAsset(energy,Materials+"PetalEnergy.mat");}
             var shot=new GameObject("BlossomPetalProjectile");
             try
             {
@@ -44,12 +45,12 @@ namespace DogLife.EditorTools
                     var core=new GameObject("PetalCore"+i);core.transform.SetParent(shot.transform,false);core.transform.localRotation=Quaternion.Euler(i*31,i*53,i*137);core.transform.localScale=Vector3.one*.22f;
                     core.AddComponent<MeshFilter>().sharedMesh=petal;core.AddComponent<MeshRenderer>().sharedMaterial=energy;
                 }
-                PrefabUtility.SaveAsPrefabAsset(shot,"Assets/Prefabs/monster/BlossomPetalProjectile.prefab");
+                PrefabUtility.SaveAsPrefabAsset(shot,"Assets/Prefabs/Monster/Spring/Shared/BlossomPetalProjectile.prefab");
             }finally{Object.DestroyImmediate(shot);}
             var enemy=root.GetComponent<BlossomSpiritEnemy>();var model=enemy.modelAnimator;
             enemy.leftHand=model.GetComponentsInChildren<Transform>().First(x=>x.name=="LeftHand");enemy.rightHand=model.GetComponentsInChildren<Transform>().First(x=>x.name=="RightHand");
             enemy.leftCharge=Petals(enemy.leftHand,"GatherPetals_L",energy,petal,35,.13f);enemy.rightCharge=Petals(enemy.rightHand,"GatherPetals_R",energy,petal,35,.13f);
-            enemy.projectilePrefab=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/monster/BlossomPetalProjectile.prefab");root.GetComponent<CombatHealth>().maxHealth=22;
+            enemy.projectilePrefab=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Monster/Spring/Shared/BlossomPetalProjectile.prefab");root.GetComponent<CombatHealth>().maxHealth=22;
         }
     }
 }

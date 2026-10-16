@@ -7,11 +7,11 @@ namespace DogLife.EditorTools
 {
     public static class SpringBoarPhaseTwoBuilder
     {
-        const string Art="Assets/Art/SpringBoar/Animations/";
+        const string Art="Assets/Animations/Monster/Spring/SpringBoar/";
         public static string Build()
         {
             var controller=AssetDatabase.LoadAssetAtPath<AnimatorController>(Art+"SpringBoar.controller");
-            var prefab=PrefabUtility.LoadPrefabContents("Assets/Prefabs/monster/SpringBoarBoss.prefab");
+            var prefab=PrefabUtility.LoadPrefabContents("Assets/Prefabs/Monster/Spring/SpringBoar/Boss.prefab");
             try
             {
                 var phase=new SerializedObject(prefab.GetComponent<SpringBoarPhaseTransition>());
@@ -25,7 +25,7 @@ namespace DogLife.EditorTools
                     var head=bones.First(t=>t.name=="Head");var chest=bones.First(t=>t.name=="Chest");
                     for(int n=0;n<names.Length;n++)
                     {
-                        var source=AssetDatabase.LoadAssetAtPath<AnimationClip>(Art+"SpringBoar_"+sources[n]+".anim");
+                        var source=AssetDatabase.LoadAssetAtPath<AnimationClip>(Art+sources[n]+".anim");
                         var curves=new AnimationCurve[bones.Length,7];for(int b=0;b<bones.Length;b++)for(int k=0;k<7;k++)curves[b,k]=new AnimationCurve();
                         for(int frame=0;frame<=40;frame++)
                         {
@@ -52,7 +52,7 @@ namespace DogLife.EditorTools
                                 for(int k=0;k<7;k++)curves[b,k].AddKey(new Keyframe(t,values[k]));
                             }
                         }
-                        string path=Art+"SpringBoar_"+names[n]+".anim";var clip=AssetDatabase.LoadAssetAtPath<AnimationClip>(path);
+                        string path=Art+names[n]+".anim";var clip=AssetDatabase.LoadAssetAtPath<AnimationClip>(path);
                         if(!clip){clip=new AnimationClip();AssetDatabase.CreateAsset(clip,path);}clip.ClearCurves();clip.frameRate=40;clip.name="SpringBoar_"+names[n];
                         string[] properties={"m_LocalPosition.x","m_LocalPosition.y","m_LocalPosition.z","m_LocalRotation.x","m_LocalRotation.y","m_LocalRotation.z","m_LocalRotation.w"};
                         for(int b=0;b<bones.Length;b++)for(int k=0;k<7;k++)AnimationUtility.SetEditorCurve(clip,EditorCurveBinding.FloatCurve(AnimationUtility.CalculateTransformPath(bones[b],clone.transform),typeof(Transform),properties[k]),curves[b,k]);
@@ -66,7 +66,7 @@ namespace DogLife.EditorTools
                 if(!prefab.GetComponent<SpringBoarDeath>())prefab.AddComponent<SpringBoarDeath>();
                 var settingsTwo=new SerializedObject(two);settingsTwo.FindProperty("animator").objectReferenceValue=skeleton;settingsTwo.FindProperty("effects").objectReferenceValue=prefab.GetComponentInChildren<SpringBoarVfx>(true);settingsTwo.ApplyModifiedPropertiesWithoutUndo();
                 prefab.GetComponentInChildren<SpringBoarVfx>(true).phaseTwo=two;
-                PrefabUtility.SaveAsPrefabAsset(prefab,"Assets/Prefabs/monster/SpringBoarBoss.prefab");EditorUtility.SetDirty(controller);AssetDatabase.SaveAssets();
+                PrefabUtility.SaveAsPrefabAsset(prefab,"Assets/Prefabs/Monster/Spring/SpringBoar/Boss.prefab");EditorUtility.SetDirty(controller);AssetDatabase.SaveAssets();
             }
             finally{PrefabUtility.UnloadPrefabContents(prefab);}
             SpringBoarDeathBuilder.Build();

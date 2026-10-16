@@ -9,11 +9,11 @@ namespace DogLife.EditorTools
     // 원본의 관절 길이와 중립 자세를 보존하고 회전 키만 다시 작성합니다.
     public static class CoralMermaidMotionRefinement
     {
-        const string Folder = "Assets/Art/SummerMonsters/Animations/CoralMermaid_";
+        const string Folder = "Assets/Animations/Monster/Summer/CoralMermaid/";
         public static string Build(string only = null)
         {
             if (EditorApplication.isPlaying) throw new InvalidOperationException("Stop preview before authoring clips.");
-            var neutral = AssetDatabase.LoadAssetAtPath<AnimationClip>("Assets/Art/SummerMonsters/Animations/Reference/CoralMermaid_Neutral.anim");
+            var neutral = AssetDatabase.LoadAssetAtPath<AnimationClip>("Assets/Animations/Monster/Summer/CoralMermaid/Neutral.anim");
             var bindings = AnimationUtility.GetCurveBindings(neutral);
             var rest = bindings.ToDictionary(b => b.path + ":" + b.propertyName, b => AnimationUtility.GetEditorCurve(neutral, b).Evaluate(0));
             var paths = bindings.Where(b => b.propertyName == "m_LocalRotation.w").Select(b => b.path).ToArray();

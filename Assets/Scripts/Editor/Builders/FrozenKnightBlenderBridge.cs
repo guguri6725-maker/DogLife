@@ -9,14 +9,14 @@ namespace DogLife.EditorTools
     // Blender에서 실제 메시와 검을 보며 고친 본 회전을 Unity 클립으로 왕복합니다.
     public static class FrozenKnightBlenderBridge
     {
-        const string Folder="Assets/Art/FrozenKnight/Animations/",Exchange="Temp/FrozenKnight/";
+        const string Folder="Assets/Animations/Monster/Winter/FrozenKnight/",Exchange="Temp/FrozenKnight/";
         [Serializable] public class Bone {public string name,path;public int parent;public Vector3 p,s;public Quaternion q;}
         [Serializable] public class Motion {public string name;public float duration;public int frames;public Vector3[] positions,scales;public Quaternion[] rotations;}
         [Serializable] public class Skin {public Vector3[] vertices;public int[] triangles,indices;public float[] weights;}
         [Serializable] public class Payload {public Bone[] bones;public Motion[] motions;public Skin skin;public Vector3[] sword;public int[] swordTriangles;public int hand;public Vector3 grip,tip;}
         public static string Export(bool cinematic=false,bool riding=false)
         {
-            var prefab=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/monster/FrozenKnight.prefab");
+            var prefab=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Monster/Winter/FrozenKnight/FrozenKnight.prefab");
             var rig=prefab.GetComponentsInChildren<Animator>(true).First(a=>a.name=="Knight").transform;
             var transforms=rig.GetComponentsInChildren<Transform>(true).Where(t=>AnimationUtility.CalculateTransformPath(t,rig).StartsWith("skel/")&&!t.name.StartsWith("Sword")&&!t.GetComponent<MeshFilter>()).ToArray();
             var data=new Payload{bones=transforms.Select(t=>new Bone{name=t.name,path=AnimationUtility.CalculateTransformPath(t,rig),parent=Array.IndexOf(transforms,t.parent),p=t.localPosition,q=t.localRotation,s=t.localScale}).ToArray()};
@@ -25,7 +25,7 @@ namespace DogLife.EditorTools
             if(riding)sources=new[]{"MountedIdle","MountedCharge","MountedReady","MountedStompReady","MountedStompImpact","MountedGroggy","MountedCommand","MountedBackDash","MountedDeath","IceWallMounted","IceSwordMounted","SpearThrow","SpearRelease","Mount","CinematicMount"};
             data.motions=sources.Select(name=>
             {
-                var clip=AssetDatabase.LoadAssetAtPath<AnimationClip>(name=="SitUp"?"Assets/VARCO3DImports/WinterBoss/SitUp.anim":name=="Spin3Sword"?"Assets/VARCO3DImports/WinterBoss/3타.anim":Folder+name+".anim");
+                var clip=AssetDatabase.LoadAssetAtPath<AnimationClip>(name=="SitUp"?"Assets/Animations/Monster/Winter/FrozenKnight/_Source/SitUp.anim":name=="Spin3Sword"?"Assets/Animations/Monster/Winter/FrozenKnight/_Source/3타.anim":Folder+name+".anim");
                 int frames=Mathf.RoundToInt(clip.length*30)+1,count=frames*data.bones.Length;
                 var motion=new Motion{name=name,duration=clip.length,frames=frames,positions=new Vector3[count],rotations=new Quaternion[count],scales=new Vector3[count]};
                 for(int b=0;b<data.bones.Length;b++)

@@ -11,7 +11,7 @@ namespace DogLife.EditorTools
         public static string Build()
         {
             if(EditorApplication.isPlaying)throw new InvalidOperationException("Edit mode required");
-            const string prefab="Assets/Prefabs/monster/FrozenKnight.prefab";
+            const string prefab="Assets/Prefabs/Monster/Winter/FrozenKnight/FrozenKnight.prefab";
             var root=PrefabUtility.LoadPrefabContents(prefab);
             var report=new System.Text.StringBuilder();
             try
@@ -21,7 +21,7 @@ namespace DogLife.EditorTools
                 PrefabUtility.SaveAsPrefabAsset(root,prefab);
                 foreach(string name in new[]{"Walk","UnarmedWalk"})
                 {
-                    var clip=AssetDatabase.LoadAssetAtPath<AnimationClip>("Assets/Art/FrozenKnight/Animations/"+name+".anim");
+                    var clip=AssetDatabase.LoadAssetAtPath<AnimationClip>("Assets/Animations/Monster/Winter/FrozenKnight/"+name+".anim");
                     var events=AnimationUtility.GetAnimationEvents(clip).Where(e=>e.functionName!="KnightFootContact").ToList();
                     for(int side=0;side<2;side++)
                     {

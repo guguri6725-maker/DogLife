@@ -14,7 +14,7 @@ namespace DogLife
         GameObject Cube(float x){var go=GameObject.CreatePrimitive(PrimitiveType.Cube);go.transform.position=new Vector3(1000+x,100,1000);objects.Add(go);return go;}
         CombatProjectile Shot(float start)
         {
-            var go=Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/monster/BlossomPetalProjectile.prefab"),new Vector3(1000+start,100,1000),Quaternion.identity);objects.Add(go);
+            var go=Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Monster/Spring/Shared/BlossomPetalProjectile.prefab"),new Vector3(1000+start,100,1000),Quaternion.identity);objects.Add(go);
             var shot=go.GetComponent<CombatProjectile>();shot.hostile=true;shot.direction=Vector3.right;shot.speed=10;shot.range=20;shot.damage=1;shot.impactSound="Blossom_Burst";return shot;
         }
         IEnumerator Start()

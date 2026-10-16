@@ -34,14 +34,14 @@ namespace DogLife.EditorTools
                 var scaler=canvas.GetComponent<CanvasScaler>();scaler.uiScaleMode=CanvasScaler.ScaleMode.ScaleWithScreenSize;scaler.referenceResolution=new Vector2(1920,1080);scaler.matchWidthOrHeight=.5f;
                 var frame=Rect("Title Artwork",canvas.transform,new Vector2(.5f,.5f),new Vector2(1920,1080));
                 var fitter=frame.gameObject.AddComponent<AspectRatioFitter>();fitter.aspectMode=AspectRatioFitter.AspectMode.FitInParent;fitter.aspectRatio=646f/363;
-                var art=frame.gameObject.AddComponent<RawImage>();art.texture=AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Art/UI/TitleWinter.png");art.raycastTarget=false;
+                var art=frame.gameObject.AddComponent<RawImage>();art.texture=AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Textures/UI/Title/TitleWinter.png");art.raycastTarget=false;
                 var controller=new GameObject("Title Controller").AddComponent<TitleScreen>();
-                var font=AssetDatabase.LoadAssetAtPath<Font>("Assets/Art/UI/Fonts/NanumGothic-Regular.ttf");
+                var font=AssetDatabase.LoadAssetAtPath<Font>("Assets/Fonts/UI/NanumGothic-Regular.ttf");
                 var status=Rect("Loading Status",frame,new Vector2(.78f,.025f),new Vector2(800,34)).gameObject.AddComponent<Text>();
                 status.font=font;status.fontSize=22;status.alignment=TextAnchor.MiddleCenter;status.color=new Color(1,.94f,.80f);status.raycastTarget=false;
                 status.gameObject.AddComponent<Outline>().effectColor=new Color(.08f,.05f,.03f,.9f);
                 string[] names={"START","LOAD","OPTION","EXIT"};
-                var sheet=AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Art/UI/TitleMenu.png");
+                var sheet=AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Textures/UI/Title/TitleMenu.png");
                 Button first=null;
                 for(int i=0;i<4;i++)
                 {

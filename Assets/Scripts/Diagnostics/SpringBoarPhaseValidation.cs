@@ -17,7 +17,7 @@ namespace DogLife
         IEnumerator Start()
         {
             System.IO.Directory.CreateDirectory("Builds/SpringBoarPhaseValidation");
-            boss=Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/monster/SpringBoarBoss.prefab"),new Vector3(1000,0,1000),Quaternion.identity);
+            boss=Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Monster/Spring/SpringBoar/Boss.prefab"),new Vector3(1000,0,1000),Quaternion.identity);
             var floor=GameObject.CreatePrimitive(PrimitiveType.Cube);floor.name="Death validation ground";floor.layer=8;
             floor.transform.position=boss.transform.position+Vector3.down*.85f;floor.transform.localScale=new Vector3(40,1,40);
             var brain=boss.GetComponent<SpringBoarBoss>();

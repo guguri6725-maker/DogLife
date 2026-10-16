@@ -7,14 +7,14 @@ namespace DogLife.EditorTools
     // 기존 검을 잡은 자세를 보존하면서 반동·무릎 굽힘을 베이크한 짧은 후퇴 클립입니다.
     public static class FrozenKnightBackDashAuthoring
     {
-        const string Folder="Assets/Art/FrozenKnight/Animations/";
+        const string Folder="Assets/Animations/Monster/Winter/FrozenKnight/";
         public static string Build()
         {
             BuildClip("Idle","BackDash",false,false);
             BuildClip("MountedIdle","MountedBackDash",true,false);
             BuildClip("Horse_Idle","Horse_BackDash",true,true);
             var mesh=Object.Instantiate(Resources.GetBuiltinResource<Mesh>("Cube.fbx"));mesh.name="IceWallRectangle";
-            const string path="Assets/Art/FrozenKnight/Models/IceWallRectangle.asset";
+            const string path="Assets/Models/Monster/Winter/FrozenKnight/IceWallRectangle.asset";
             var old=AssetDatabase.LoadAssetAtPath<Mesh>(path);if(old){EditorUtility.CopySerialized(mesh,old);Object.DestroyImmediate(mesh);}else AssetDatabase.CreateAsset(mesh,path);
             AssetDatabase.SaveAssets();return "Authored three back-dash clips and rectangular wall mesh";
         }

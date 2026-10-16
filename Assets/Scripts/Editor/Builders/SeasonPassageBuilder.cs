@@ -11,11 +11,13 @@ namespace DogLife.EditorTools
 {
     public static class SeasonPassageBuilder
     {
-        public const string Folder="Assets/Art/SeasonPassages";
+        public const string Folder="Assets/Models/Environment/Shared/SeasonPassages";
         public const float Gap=18, HalfWidth=4.3f, FloorThickness=.5f, Height=9;
         public static readonly string[] Scenes={"Assets/Scenes/Stage1_Spring.unity","Assets/Scenes/Stage3_Summer.unity","Assets/Scenes/Stage3_Fall.unity","Assets/Scenes/Stage4_Winter.unity"};
         static readonly string[] Seasons={"Spring","Summer","Fall","Winter"};
-        static readonly string[] StonePaths={"Assets/MapDesigne/Spring/Materials/Spring_CubeWall.mat","Assets/Art/SummerRebuilt/CoastalStone.mat","Assets/Art/AutumnCrafted/Materials/Crafted_Stone.mat","Assets/Art/WinterOriginal/Materials/Slate.mat"};
+        static readonly string[] SeasonFolders={"Spring","Summer","Autumn","Winter"};
+        public static string MaterialsFolder(int season)=>"Assets/Materials/Environment/"+SeasonFolders[season]+"/SeasonPassages";
+        static readonly string[] StonePaths={"Assets/MapDesigne/Spring/Materials/Spring_CubeWall.mat","Assets/Materials/Environment/Summer/SummerRebuilt/CoastalStone.mat","Assets/Materials/Environment/Autumn/AutumnCrafted/Crafted_Stone.mat","Assets/Materials/Environment/Winter/WinterOriginal/Slate.mat"};
         static readonly float[] Floors={.24f,-.17f,.25f,.25f};
         public static string Build(int season)
         {
@@ -30,8 +32,8 @@ namespace DogLife.EditorTools
                 var stream=main.GetRootGameObjects().SelectMany(g=>g.GetComponentsInChildren<ForestRoomStreaming>(true)).Single();
                 var old=main.GetRootGameObjects().FirstOrDefault(g=>g.name=="Season Connecting Passages");if(old)Object.DestroyImmediate(old);
                 var group=new GameObject("Season Connecting Passages");SceneManager.MoveGameObjectToScene(group,main);
-                var stone=CopyMaterial(StonePaths[season],Seasons[season]+"_Stone",season==3?new Color(.64f,.73f,.82f):Color.white);
-                var floor=CopyMaterial(season==3?"Assets/Art/WinterOriginal/Materials/Snow.mat":season==1?"Assets/MapDesigne/Summer/Materials/WaterRevision/CoastalCave_Ground.mat":"Assets/MapDesigne/Spring/Materials/Journey_Ground.mat",Seasons[season]+"_Floor",season==3?new Color(.82f,.88f,.94f):season==2?new Color(.8f,.69f,.5f):Color.white);
+                var stone=CopyMaterial(StonePaths[season],season,Seasons[season]+"_Stone",season==3?new Color(.64f,.73f,.82f):Color.white);
+                var floor=CopyMaterial(season==3?"Assets/Materials/Environment/Winter/WinterOriginal/Snow.mat":season==1?"Assets/MapDesigne/Summer/Materials/WaterRevision/CoastalCave_Ground.mat":"Assets/MapDesigne/Spring/Materials/Journey_Ground.mat",season,Seasons[season]+"_Floor",season==3?new Color(.82f,.88f,.94f):season==2?new Color(.8f,.69f,.5f):Color.white);
                 float previousExit=0;
                 for(int i=0;i<stream.roomScenePaths.Length;i++)
                 {

@@ -6,11 +6,11 @@ namespace DogLife.EditorTools
 {
     public static class SpringBoarDeathBuilder
     {
-        const string Art="Assets/Art/SpringBoar/Animations/";
+        const string Art="Assets/Animations/Monster/Spring/SpringBoar/";
         static float Ease(float a,float b,float t)=>Mathf.SmoothStep(0,1,Mathf.InverseLerp(a,b,t));
         public static string Build()
         {
-            var prefab=PrefabUtility.LoadPrefabContents("Assets/Prefabs/monster/SpringBoarBoss.prefab");
+            var prefab=PrefabUtility.LoadPrefabContents("Assets/Prefabs/Monster/Spring/SpringBoar/Boss.prefab");
             try
             {
                 var so=new SerializedObject(prefab.GetComponent<SpringBoarPhaseTransition>());
@@ -19,7 +19,7 @@ namespace DogLife.EditorTools
                 try
                 {
                     var bones=clone.GetComponentsInChildren<Transform>().Where(t=>t!=clone.transform).ToArray();
-                    var source=AssetDatabase.LoadAssetAtPath<AnimationClip>(Art+"SpringBoar_Idle.anim");
+                    var source=AssetDatabase.LoadAssetAtPath<AnimationClip>(Art+"Idle.anim");
                     var controller=AssetDatabase.LoadAssetAtPath<AnimatorController>(Art+"SpringBoar.controller");
                     var hips=bones.First(t=>t.name=="Hips");var chest=bones.First(t=>t.name=="Chest");var neck=bones.First(t=>t.name=="Neck");var head=bones.First(t=>t.name=="Head");var jaw=bones.First(t=>t.name=="Jaw");
                     foreach(int side in new[]{-1,1})
@@ -64,7 +64,7 @@ namespace DogLife.EditorTools
                                 for(int k=0;k<7;k++)curves[b,k].AddKey(t,v[k]);
                             }
                         }
-                        string name=side<0?"P2DeathLeft":"P2DeathRight",path=Art+"SpringBoar_"+name+".anim";
+                        string name=side<0?"P2DeathLeft":"P2DeathRight",path=Art+name+".anim";
                         var clip=AssetDatabase.LoadAssetAtPath<AnimationClip>(path);if(!clip){clip=new AnimationClip();AssetDatabase.CreateAsset(clip,path);}clip.ClearCurves();clip.frameRate=30;clip.name="SpringBoar_"+name;
                         string[] props={"m_LocalPosition.x","m_LocalPosition.y","m_LocalPosition.z","m_LocalRotation.x","m_LocalRotation.y","m_LocalRotation.z","m_LocalRotation.w"};
                         for(int b=0;b<bones.Length;b++)for(int k=0;k<7;k++)
@@ -76,7 +76,7 @@ namespace DogLife.EditorTools
                 }
                 finally{Object.DestroyImmediate(clone);}
                 var death=prefab.GetComponent<SpringBoarDeath>();var settingsDeath=new SerializedObject(death);settingsDeath.FindProperty("deathDuration").floatValue=5.2f;settingsDeath.ApplyModifiedPropertiesWithoutUndo();
-                PrefabUtility.SaveAsPrefabAsset(prefab,"Assets/Prefabs/monster/SpringBoarBoss.prefab");AssetDatabase.SaveAssets();
+                PrefabUtility.SaveAsPrefabAsset(prefab,"Assets/Prefabs/Monster/Spring/SpringBoar/Boss.prefab");AssetDatabase.SaveAssets();
             }
             finally{PrefabUtility.UnloadPrefabContents(prefab);}
             return "Leg-collapse death animations baked: chest then pelvis settle onto the ground without side roll";

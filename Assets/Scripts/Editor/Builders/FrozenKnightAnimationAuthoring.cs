@@ -8,7 +8,7 @@ namespace DogLife.EditorTools
     // 모델/씬을 생성하지 않고 원본에서 편집한 동작을 독립 AnimationClip 에셋으로 저장합니다.
     public static class FrozenKnightAnimationAuthoring
     {
-        const string Source="Assets/VARCO3DImports/WinterBoss/", Output="Assets/Art/FrozenKnight/Animations/";
+        const string Source="Assets/Animations/Monster/Winter/FrozenKnight/_Source/", SourceModel="Assets/Models/Monster/Winter/FrozenKnight/_Source/", Output="Assets/Animations/Monster/Winter/FrozenKnight/";
         static AnimationClip SourceClip(string name)=>AssetDatabase.LoadAssetAtPath<AnimationClip>(Source+name+".anim");
         public static string BuildPlant()=>FrozenKnightPlantAuthoring.Build();
         public static string Build()
@@ -24,7 +24,7 @@ namespace DogLife.EditorTools
             Bake("MountedReady","내려찍기",.16f,.28f,1,false);
             Bake("MountedCharge","Idle",0,1,1,true);
             Bake("MountedGroggy","Idle",0,1,2,true);
-            var clips=AssetDatabase.LoadAllAssetsAtPath("Assets/Art/FrozenKnight/Models/IceHorse_Rigged.fbx").OfType<AnimationClip>().Where(a=>!a.name.StartsWith("__preview__")).ToArray();
+            var clips=AssetDatabase.LoadAllAssetsAtPath("Assets/Models/Monster/Winter/FrozenKnight/IceHorse_Rigged.fbx").OfType<AnimationClip>().Where(a=>!a.name.StartsWith("__preview__")).ToArray();
             foreach(var source in clips)
             {
                 string name=source.name.Split('|').Last();
@@ -37,7 +37,7 @@ namespace DogLife.EditorTools
         public static void BakeArmorMesh()
         {
             // 망토가 팔/다리에 끌려 길게 늘어나는 원본 웨이트만 몸통 쪽으로 부드럽게 보정합니다.
-            var renderer=AssetDatabase.LoadAssetAtPath<GameObject>(Source+"WinterBoss_Prefab.usdz").GetComponentInChildren<SkinnedMeshRenderer>();
+            var renderer=AssetDatabase.LoadAssetAtPath<GameObject>(SourceModel+"WinterBoss_Prefab.usdz").GetComponentInChildren<SkinnedMeshRenderer>();
             var mesh=UnityEngine.Object.Instantiate(renderer.sharedMesh);mesh.name="FrozenKnight_StableArmor";
             var vertices=mesh.vertices;var weights=mesh.boneWeights;
             int hips=Array.FindIndex(renderer.bones,b=>b.name=="Hips"),spine=Array.FindIndex(renderer.bones,b=>b.name=="Spine"),chest=Array.FindIndex(renderer.bones,b=>b.name=="Spine2");
@@ -54,20 +54,20 @@ namespace DogLife.EditorTools
                 weights[i]=new BoneWeight{boneIndex0=indices[0],weight0=sums[indices[0]]/total,boneIndex1=indices[1],weight1=sums[indices[1]]/total,boneIndex2=indices[2],weight2=sums[indices[2]]/total,boneIndex3=indices[3],weight3=sums[indices[3]]/total};
             }
             mesh.boneWeights=weights;
-            const string path="Assets/Art/FrozenKnight/Models/FrozenKnight_StableArmor.asset";var old=AssetDatabase.LoadAssetAtPath<Mesh>(path);
+            const string path="Assets/Models/Monster/Winter/FrozenKnight/StableArmor.asset";var old=AssetDatabase.LoadAssetAtPath<Mesh>(path);
             if(old){EditorUtility.CopySerialized(mesh,old);UnityEngine.Object.DestroyImmediate(mesh);}else AssetDatabase.CreateAsset(mesh,path);
         }
         public static void BakeCrystal()
         {
             // FBX 노드의 축/단위를 메시 자체에 굽습니다. Graphics.DrawMesh에는 FBX 루트 변환이 적용되지 않습니다.
-            var source=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/FrozenKnight/Models/FrostCrystal.fbx").GetComponentInChildren<MeshFilter>();
+            var source=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Models/Monster/Winter/FrozenKnight/FrostCrystal.fbx").GetComponentInChildren<MeshFilter>();
             var mesh=UnityEngine.Object.Instantiate(source.sharedMesh);mesh.name="FrostCrystal";
             var matrix=source.transform.localToWorldMatrix;var axis=Quaternion.Euler(-90,0,0);
             mesh.vertices=mesh.vertices.Select(v=>axis*matrix.MultiplyPoint3x4(v)).ToArray();mesh.RecalculateBounds();
             var bounds=mesh.bounds;float scale=1/Mathf.Max(.001f,bounds.size.y);
             mesh.vertices=mesh.vertices.Select(v=>(v-new Vector3(bounds.center.x,bounds.min.y,bounds.center.z))*scale).ToArray();
             mesh.colors=Enumerable.Repeat(Color.white,mesh.vertexCount).ToArray();mesh.RecalculateNormals();mesh.RecalculateBounds();
-            const string path="Assets/Art/FrozenKnight/Models/FrostCrystal.asset";var old=AssetDatabase.LoadAssetAtPath<Mesh>(path);
+            const string path="Assets/Models/Monster/Winter/FrozenKnight/FrostCrystal.asset";var old=AssetDatabase.LoadAssetAtPath<Mesh>(path);
             if(old){EditorUtility.CopySerialized(mesh,old);UnityEngine.Object.DestroyImmediate(mesh);}else AssetDatabase.CreateAsset(mesh,path);
             AssetDatabase.SaveAssets();
         }

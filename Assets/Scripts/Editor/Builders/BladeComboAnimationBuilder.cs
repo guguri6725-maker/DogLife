@@ -27,7 +27,7 @@ namespace DogLife.EditorTools
         }
         public static string Build(bool daggerOnly=false,bool swordOnly=false)
         {
-            var controller=AssetDatabase.LoadAssetAtPath<AnimatorController>("Assets/Art/Player3D/DogLight/Animations/DogLight.controller");
+            var controller=AssetDatabase.LoadAssetAtPath<AnimatorController>("Assets/Animations/Player/DogLight.controller");
             var machine=controller.layers[0].stateMachine;
             var idle=((BlendTree)machine.states.First(s=>s.state.name=="Locomotion").state.motion).children[0].motion as AnimationClip;
             var root=PrefabUtility.LoadPrefabContents("Assets/Prefabs/SeasonGameplay.prefab");
@@ -144,7 +144,7 @@ namespace DogLife.EditorTools
         }
         static void ConfigureBladeLayer(AnimatorController controller,Transform model,Transform spine)
         {
-            const string path="Assets/Art/Player3D/DogLight/Animations/DaggerUpperBody.mask";
+            const string path="Assets/Animations/Player/DogLight_DaggerUpperBody.mask";
             var mask=AssetDatabase.LoadAssetAtPath<AvatarMask>(path);
             if(!mask){mask=new AvatarMask();AssetDatabase.CreateAsset(mask,path);}
             for(int i=0;i<(int)AvatarMaskBodyPart.LastBodyPart;i++)mask.SetHumanoidBodyPartActive((AvatarMaskBodyPart)i,i==(int)AvatarMaskBodyPart.Body||i==(int)AvatarMaskBodyPart.Head||i==(int)AvatarMaskBodyPart.LeftArm||i==(int)AvatarMaskBodyPart.RightArm||i==(int)AvatarMaskBodyPart.LeftFingers||i==(int)AvatarMaskBodyPart.RightFingers);

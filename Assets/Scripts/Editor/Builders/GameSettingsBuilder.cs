@@ -28,7 +28,7 @@ namespace DogLife.EditorTools
         {
             const string path="Assets/Resources/UI/GameSettings.prefab";
             System.IO.Directory.CreateDirectory("Assets/Resources/UI");AssetDatabase.Refresh();
-            font=AssetDatabase.LoadAssetAtPath<Font>("Assets/Art/UI/Fonts/NanumGothic-Regular.ttf");
+            font=AssetDatabase.LoadAssetAtPath<Font>("Assets/Fonts/UI/NanumGothic-Regular.ttf");
             var root=new GameObject("Game Settings",typeof(RectTransform),typeof(Canvas),typeof(CanvasScaler),typeof(GraphicRaycaster));
             try
             {

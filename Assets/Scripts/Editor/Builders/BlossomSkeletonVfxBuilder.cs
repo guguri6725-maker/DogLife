@@ -9,9 +9,10 @@ namespace DogLife.EditorTools
         [MenuItem("DogLife/Monsters/Update Blossom Slash VFX")]
         public static void Build()
         {
-            const string path="Assets/Prefabs/monster/BlossomSkeleton.prefab";
-            const string folder="Assets/Art/Enemies/BlossomSkeleton/";
-            var clip=AssetDatabase.LoadAssetAtPath<AnimationClip>(folder+"Attack.anim");
+            const string path="Assets/Prefabs/Monster/Spring/BlossomSkeleton/BlossomSkeleton.prefab";
+            const string animFolder="Assets/Animations/Monster/Spring/BlossomSkeleton/";
+            const string matFolder="Assets/Materials/Monster/Spring/BlossomSkeleton/";
+            var clip=AssetDatabase.LoadAssetAtPath<AnimationClip>(animFolder+"Attack.anim");
             var points=new Vector3[100];var grips=new Vector3[100];Bounds bounds=default;
             var root=PrefabUtility.LoadPrefabContents(path);
             try
@@ -39,8 +40,8 @@ namespace DogLife.EditorTools
                 }}finally{Object.DestroyImmediate(baked);}
             }
             finally{PrefabUtility.UnloadPrefabContents(root);}
-            var material=AssetDatabase.LoadAssetAtPath<Material>(folder+"BlossomSlash.mat");
-            if(!material){material=new Material(Shader.Find("Sprites/Default")){name="BlossomSlash"};AssetDatabase.CreateAsset(material,folder+"BlossomSlash.mat");}
+            var material=AssetDatabase.LoadAssetAtPath<Material>(matFolder+"BlossomSlash.mat");
+            if(!material){material=new Material(Shader.Find("Sprites/Default")){name="BlossomSlash"};AssetDatabase.CreateAsset(material,matFolder+"BlossomSlash.mat");}
             root=PrefabUtility.LoadPrefabContents(path);
             try
             {

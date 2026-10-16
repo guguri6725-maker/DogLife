@@ -36,7 +36,7 @@ namespace DogLife.EditorTools
         SummerMonsterEnemy Spawn(string name)
         {
             if(enemy)Destroy(enemy.gameObject);
-            var go=Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/monster/"+name+".prefab"));go.name=name;
+            var go=Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Monster/Summer/"+name+"/"+name+".prefab"));go.name=name;
             enemy=go.GetComponent<SummerMonsterEnemy>();return enemy;
         }
         void Shot(string name){ScreenCapture.CaptureScreenshot("Builds/VfxValidation/"+name+".png");}
@@ -77,7 +77,7 @@ namespace DogLife.EditorTools
             yield return new WaitForSeconds(.28f);var bubbles=FindObjectsByType<SummerHomingBubble>(FindObjectsSortMode.None);Check(bubbles.Length==3,"Crab launches exactly three bubbles");Check(bubbles.Length==3&&Vector3.Distance(bubbles[0].transform.position,bubbles[1].transform.position)>.25f,"Bubbles start separated");Shot("CrabBubbles");
             if(bubbles.Length==3){Place(bubbles[0].transform.position-Vector3.up*.8f);Vector3 bubbleStart=player.transform.position;yield return new WaitForSeconds(.08f);Check(FindObjectsByType<SummerHomingBubble>(FindObjectsSortMode.None).Length==2,"Collision removes only the contacted bubble");Check(player.IsKnockedBack&&Vector3.ProjectOnPlane(player.transform.position-bubbleStart,Vector3.up).magnitude<.2f&&hp.Current==hp.maxHealth,"Bubble gives tiny push without health damage");}
             Place(new Vector3(10,0,10));var debuff=player.GetComponent<BubbleDebuff>();Check(debuff&&debuff.Active,"Bubble applies debuff");
-            var fx=AssetDatabase.LoadAssetAtPath<Material>("Assets/Art/SummerMonsters/Materials/SummerWater.mat");if(!debuff)debuff=player.gameObject.AddComponent<BubbleDebuff>();debuff.Apply(.3f,.3f,1,fx);yield return new WaitForSeconds(.6f);debuff.Apply(.3f,.3f,1,fx);yield return new WaitForSeconds(.6f);Check(debuff.Active&&Mathf.Approximately(debuff.MoveMultiplier,.7f)&&Mathf.Approximately(debuff.RollMultiplier,.7f),"Reapplying slow refreshes time without stacking");yield return new WaitForSeconds(.5f);Check(!debuff.Active&&debuff.MoveMultiplier==1&&debuff.RollMultiplier==1,"Debuff restores movement and roll multipliers");
+            var fx=AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/Monster/Summer/Shared/SummerWater.mat");if(!debuff)debuff=player.gameObject.AddComponent<BubbleDebuff>();debuff.Apply(.3f,.3f,1,fx);yield return new WaitForSeconds(.6f);debuff.Apply(.3f,.3f,1,fx);yield return new WaitForSeconds(.6f);Check(debuff.Active&&Mathf.Approximately(debuff.MoveMultiplier,.7f)&&Mathf.Approximately(debuff.RollMultiplier,.7f),"Reapplying slow refreshes time without stacking");yield return new WaitForSeconds(.5f);Check(!debuff.Active&&debuff.MoveMultiplier==1&&debuff.RollMultiplier==1,"Debuff restores movement and roll multipliers");
             Set(crab,"nextAttack",Time.time+100);Enter(crab,SummerMonsterEnemy.Phase.Idle);Set(crab,"nextAttack",Time.time+100);yield return new WaitForSeconds(5.5f);Check(FindObjectsByType<SummerHomingBubble>(FindObjectsSortMode.None).Length==0,"Escaped bubbles expire");
             System.IO.File.WriteAllLines("Builds/VfxValidation/SummerValidation.txt",checks);Debug.Log("Summer validation complete: "+string.Join("; ",checks));
         }

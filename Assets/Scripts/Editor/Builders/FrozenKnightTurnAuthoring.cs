@@ -7,7 +7,7 @@ namespace DogLife.EditorTools
     // 기존 보행과 검 파지 자세를 유지한 채 좌우 디딤·기울임을 베이크합니다.
     public static class FrozenKnightTurnAuthoring
     {
-        const string Folder="Assets/Art/FrozenKnight/Animations/";
+        const string Folder="Assets/Animations/Monster/Winter/FrozenKnight/";
         public static string Build()
         {
             foreach(int side in new[]{-1,1})

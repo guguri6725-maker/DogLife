@@ -22,7 +22,7 @@ namespace DogLife.EditorTools
         {
             Application.runInBackground=true;System.IO.Directory.CreateDirectory("Builds/VfxValidation");player=FindFirstObjectByType<PlayerMotor>();hp=player.GetComponent<CombatHealth>();
             Camera.main.transform.position=new Vector3(15,15,19);Camera.main.transform.LookAt(new Vector3(0,3,3));Camera.main.orthographicSize=12;
-            boss=Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/monster/SpringBoarBoss.prefab")).GetComponent<SpringBoarBoss>();bossHealth=boss.GetComponent<CombatHealth>();
+            boss=Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Monster/Spring/SpringBoar/Boss.prefab")).GetComponent<SpringBoarBoss>();bossHealth=boss.GetComponent<CombatHealth>();
             Place(new Vector3(0,0,6));yield return null;Set(boss,"nextAttack",Time.time+1000);
             Check(boss.transform.localScale==Vector3.one*10,"XYZ scale is 10");
             bool highHasSpikes=false;var choose=typeof(SpringBoarBoss).GetMethod("Choose",Flags);for(int i=0;i<100;i++)if((SpringBoarBoss.Pattern)choose.Invoke(boss,new object[]{10f,0f})==SpringBoarBoss.Pattern.Spikes)highHasSpikes=true;

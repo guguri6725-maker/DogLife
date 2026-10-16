@@ -9,7 +9,7 @@ namespace DogLife.EditorTools
     {
         public static string Apply(string name,float blendSeconds)
         {
-            string path="Assets/Art/FrozenKnight/Animations/"+name+".anim";
+            string path="Assets/Animations/Monster/Winter/FrozenKnight/"+name+".anim";
             string backup="ArtSource/FrozenKnight/"+name+"_BeforeLoop.anim";
             if(!File.Exists(backup))File.Copy(path,backup);
             var clip=AssetDatabase.LoadAssetAtPath<AnimationClip>(path);

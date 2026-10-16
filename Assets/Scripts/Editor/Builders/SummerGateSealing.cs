@@ -18,7 +18,7 @@ namespace DogLife.EditorTools
         }
         public static string Apply()
         {
-            var material=AssetDatabase.LoadAssetAtPath<Material>("Assets/Art/SummerRebuilt/CoastalStone.mat");
+            var material=AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/Environment/Summer/SummerRebuilt/CoastalStone.mat");
             if(!material)throw new System.InvalidOperationException("Missing coastal stone material");
             int count=0;
             foreach(var path in System.IO.Directory.GetFiles("Assets/Scenes/SeasonRooms/Summer","*.unity"))

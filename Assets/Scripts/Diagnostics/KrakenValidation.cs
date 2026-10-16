@@ -17,7 +17,7 @@ namespace DogLife.EditorTools
   IEnumerator Start()
   {
    p=FindFirstObjectByType<PlayerMotor>();hp=p.GetComponent<CombatHealth>();hp.player=true;hp.maxHealth=1000;hp.Restore();
-   b=Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/monster/KrakenBoss.prefab")).GetComponent<KrakenBoss>();bh=b.GetComponent<CombatHealth>();Place(new Vector3(0,0,7));yield return null;typeof(KrakenBoss).GetField("nextAttack",F).SetValue(b,Time.time+1000);
+   b=Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Monster/Summer/Kraken/Boss.prefab")).GetComponent<KrakenBoss>();bh=b.GetComponent<CombatHealth>();Place(new Vector3(0,0,7));yield return null;typeof(KrakenBoss).GetField("nextAttack",F).SetValue(b,Time.time+1000);
    foreach(string key in new[]{"slam","cross","capture","wave"})Shorten(key);
    Vector3 origin=b.transform.position;b.Begin(KrakenBoss.Pattern.Slam);yield return new WaitForSeconds(.1f);Check(hp.Current==1000,"Slam warning harmless");Place(new Vector3(8,0,7));yield return new WaitForSeconds(.4f);Check(hp.Current==1000,"Slam saved direction dodge");
    var t=b.Tentacles[0];var hit=t.transform.Find("HitColliderLine").GetComponent<Collider>();Check(hit.enabled&&hit.GetComponentInParent<CombatHealth>()==bh,"Exposed tentacle resolves to only boss HP");float before=bh.Current;hit.GetComponentInParent<CombatHealth>().Damage(10);Check(bh.Current==before-10,"Tentacle damage forwarded to body");yield return WaitIdle();Check(!hit.enabled,"Retracted tentacle no longer targetable");

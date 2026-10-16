@@ -7,7 +7,7 @@ namespace DogLife.EditorTools
     // 기존 리그의 클립만 다듬습니다. 씬 생성이나 실시간 관절 강제 보정은 하지 않습니다.
     public static class FrozenKnightMotionPolish
     {
-        const string Folder="Assets/Art/FrozenKnight/Animations/";
+        const string Folder="Assets/Animations/Monster/Winter/FrozenKnight/";
         static AnimationClip Load(string name)=>AssetDatabase.LoadAssetAtPath<AnimationClip>(Folder+name+".anim");
         static Quaternion Rotation(AnimationClip clip,string path,float time)
         {

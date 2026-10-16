@@ -8,7 +8,7 @@ namespace DogLife.EditorTools
     // 새 동작과 결정 메시만 에셋으로 제작합니다. Hierarchy/Inspector 연결은 Editor에서 합니다.
     public static class FrozenKnightEncounterAuthoring
     {
-        const string Folder="Assets/Art/FrozenKnight/Animations/";
+        const string Folder="Assets/Animations/Monster/Winter/FrozenKnight/";
         static Quaternion Rotation(AnimationClip clip,string path,float time=0)
         {
             var q=Quaternion.identity;for(int i=0;i<4;i++){var c=AnimationUtility.GetEditorCurve(clip,EditorCurveBinding.FloatCurve(path,typeof(Transform),"m_LocalRotation."+"xyzw"[i]));if(c!=null)q[i]=c.Evaluate(time);}return q.normalized;
@@ -100,13 +100,13 @@ namespace DogLife.EditorTools
             var tris=new List<Vector3>();foreach(int n in faces)tris.Add(points[n]);
             for(int level=0;level<2;level++){var next=new List<Vector3>();for(int i=0;i<tris.Count;i+=3){var a=tris[i];var b=tris[i+1];var c=tris[i+2];var ab=(a+b).normalized;var bc=(b+c).normalized;var ca=(c+a).normalized;next.AddRange(new[]{a,ab,ca,ab,b,bc,ca,bc,c,ab,bc,ca});}tris=next;}
             var mesh=new Mesh{name="FacetedFrostOrb"};mesh.SetVertices(tris.Select(v=>v*.5f).ToList());mesh.SetTriangles(Enumerable.Range(0,tris.Count).ToArray(),0);mesh.colors=Enumerable.Repeat(Color.white,tris.Count).ToArray();mesh.RecalculateNormals();mesh.RecalculateBounds();
-            const string output="Assets/Art/FrozenKnight/Models/FrostOrb.asset";var oldMesh=AssetDatabase.LoadAssetAtPath<Mesh>(output);if(oldMesh){EditorUtility.CopySerialized(mesh,oldMesh);Object.DestroyImmediate(mesh);}else AssetDatabase.CreateAsset(mesh,output);
+            const string output="Assets/Models/Monster/Winter/FrozenKnight/FrostOrb.asset";var oldMesh=AssetDatabase.LoadAssetAtPath<Mesh>(output);if(oldMesh){EditorUtility.CopySerialized(mesh,oldMesh);Object.DestroyImmediate(mesh);}else AssetDatabase.CreateAsset(mesh,output);
             AssetDatabase.SaveAssets();return "Roar, spin, throw and faceted orb authored";
         }
         static void RefineArms(AnimationClip clip,AnimationClip source,string name)
         {
             // 팔 길이와 팔꿈치 평면을 보존한 키포즈를 클립에 굽습니다. 실행 중 팔을 강제 조종하지 않습니다.
-            var prefab=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/monster/FrozenKnight.prefab");
+            var prefab=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Monster/Winter/FrozenKnight/FrozenKnight.prefab");
             var rig=prefab.GetComponentsInChildren<Animator>(true).First(a=>a.name=="Knight").transform;
             var bones=rig.GetComponentsInChildren<Transform>(true).Where(t=>AnimationUtility.CalculateTransformPath(t,rig).StartsWith("skel/")&&!t.name.StartsWith("Sword")).ToArray();
             var paths=bones.Select(t=>AnimationUtility.CalculateTransformPath(t,rig)).ToArray();var parents=bones.Select(t=>System.Array.IndexOf(bones,t.parent)).ToArray();
@@ -165,7 +165,7 @@ namespace DogLife.EditorTools
             }
             for(int face=0;face<6;face++){float a=face*Mathf.PI/3,b=(face+1)*Mathf.PI/3;vertices.AddRange(new[]{new Vector3(0,1.06f,0),new Vector3(Mathf.Cos(b)*.15f,1-.05f*((face+1)%3),Mathf.Sin(b)*.15f),new Vector3(Mathf.Cos(a)*.15f,1-.05f*(face%3),Mathf.Sin(a)*.15f)});colors.AddRange(new[]{Color.white,Color.white,Color.white});}
             var mesh=new Mesh{name="FacetedFrostPillar"};mesh.SetVertices(vertices);mesh.SetColors(colors);mesh.SetTriangles(Enumerable.Range(0,vertices.Count).ToArray(),0);mesh.RecalculateNormals();mesh.RecalculateBounds();
-            const string path="Assets/Art/FrozenKnight/Models/FrostPillar.asset";var old=AssetDatabase.LoadAssetAtPath<Mesh>(path);if(old){EditorUtility.CopySerialized(mesh,old);Object.DestroyImmediate(mesh);}else AssetDatabase.CreateAsset(mesh,path);AssetDatabase.SaveAssets();return "Pillar mesh authored";
+            const string path="Assets/Models/Monster/Winter/FrozenKnight/FrostPillar.asset";var old=AssetDatabase.LoadAssetAtPath<Mesh>(path);if(old){EditorUtility.CopySerialized(mesh,old);Object.DestroyImmediate(mesh);}else AssetDatabase.CreateAsset(mesh,path);AssetDatabase.SaveAssets();return "Pillar mesh authored";
         }
         public static string BuildSpear()
         {
@@ -179,7 +179,7 @@ namespace DogLife.EditorTools
                 foreach(int n in new[]{0,1,2,0,2,3}){v.Add(q[n]);colors.Add(side%2==0?new Color(.6f,.9f,1,1):Color.white);}
             }
             var mesh=new Mesh{name="RoyalIceSpear"};mesh.SetVertices(v);mesh.SetColors(colors);mesh.SetTriangles(Enumerable.Range(0,v.Count).ToArray(),0);mesh.RecalculateNormals();mesh.RecalculateBounds();
-            const string path="Assets/Art/FrozenKnight/Models/RoyalIceSpear.asset";var old=AssetDatabase.LoadAssetAtPath<Mesh>(path);if(old){EditorUtility.CopySerialized(mesh,old);Object.DestroyImmediate(mesh);}else AssetDatabase.CreateAsset(mesh,path);AssetDatabase.SaveAssets();return "Royal spear authored";
+            const string path="Assets/Models/Monster/Winter/FrozenKnight/RoyalIceSpear.asset";var old=AssetDatabase.LoadAssetAtPath<Mesh>(path);if(old){EditorUtility.CopySerialized(mesh,old);Object.DestroyImmediate(mesh);}else AssetDatabase.CreateAsset(mesh,path);AssetDatabase.SaveAssets();return "Royal spear authored";
         }
     }
 }

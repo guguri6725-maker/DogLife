@@ -8,13 +8,13 @@ namespace DogLife.EditorTools
     {
         public static string Build()
         {
-            var prefab=PrefabUtility.LoadPrefabContents("Assets/Prefabs/monster/SpringBoarBoss.prefab");
+            var prefab=PrefabUtility.LoadPrefabContents("Assets/Prefabs/Monster/Spring/SpringBoar/Boss.prefab");
             try
             {
                 var so=new SerializedObject(prefab.GetComponent<SpringBoarPhaseTransition>());
                 var animator=(Animator)so.FindProperty("skeletonAnimator").objectReferenceValue;
                 var skin=animator.GetComponentInChildren<SkinnedMeshRenderer>(true);
-                var source=AssetDatabase.LoadAllAssetsAtPath("Assets/Art/SpringBoar/Models/SpringBoar.fbx").OfType<Mesh>().First(m=>m.vertexCount==118023);
+                var source=AssetDatabase.LoadAllAssetsAtPath("Assets/Models/Monster/Spring/SpringBoar/SpringBoar.fbx").OfType<Mesh>().First(m=>m.vertexCount==118023);
                 var mesh=Object.Instantiate(source);mesh.name="SpringBoar topology-smoothed skin";
                 var vertices=mesh.vertices;int count=vertices.Length,bones=skin.bones.Length;
                 var map=new int[count];var ids=new Dictionary<Vector3Int,int>();int groups=0;
@@ -49,9 +49,9 @@ namespace DogLife.EditorTools
                 }
                 for(int i=0;i<count;i++){int g=map[i],a=(int)next[g,0],b=(int)next[g,1],c=(int)next[g,2],d=(int)next[g,3];float sum=next[g,4];weights[i]=new BoneWeight{boneIndex0=a,boneIndex1=b,boneIndex2=c,boneIndex3=d,weight0=w[g,a]/sum,weight1=w[g,b]/sum,weight2=w[g,c]/sum,weight3=w[g,d]/sum};}
                 mesh.boneWeights=weights;
-                const string path="Assets/Art/SpringBoar/Models/SpringBoar_RepairedSkin.asset";
+                const string path="Assets/Models/Monster/Spring/SpringBoar/RepairedSkin.asset";
                 var saved=AssetDatabase.LoadAssetAtPath<Mesh>(path);if(saved){EditorUtility.CopySerialized(mesh,saved);Object.DestroyImmediate(mesh);}else{AssetDatabase.CreateAsset(mesh,path);saved=mesh;}
-                skin.sharedMesh=saved;PrefabUtility.SaveAsPrefabAsset(prefab,"Assets/Prefabs/monster/SpringBoarBoss.prefab");AssetDatabase.SaveAssets();
+                skin.sharedMesh=saved;PrefabUtility.SaveAsPrefabAsset(prefab,"Assets/Prefabs/Monster/Spring/SpringBoar/Boss.prefab");AssetDatabase.SaveAssets();
                 return "Repaired connected skin weights without changing vertices, UVs or triangles";
             }
             finally{PrefabUtility.UnloadPrefabContents(prefab);}

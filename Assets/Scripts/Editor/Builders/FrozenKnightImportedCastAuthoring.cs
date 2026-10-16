@@ -6,7 +6,7 @@ namespace DogLife.EditorTools
     // 원본 동작을 보존하고 상체 전용 클립에는 기존 하체 자세를 합성합니다.
     public static class FrozenKnightImportedCastAuthoring
     {
-        const string Source="Assets/VARCO3DImports/WinterBoss/",Output="Assets/Art/FrozenKnight/Animations/";
+        const string Source="Assets/Animations/Monster/Winter/FrozenKnight/_Source/",Output="Assets/Animations/Monster/Winter/FrozenKnight/";
         public static string Build()
         {
             Bake("Winter_IceSword","IceSwordMounted","MountedIdle",true);

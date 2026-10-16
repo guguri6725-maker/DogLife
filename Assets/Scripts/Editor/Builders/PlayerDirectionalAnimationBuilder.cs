@@ -10,12 +10,12 @@ namespace DogLife.EditorTools
 {
     public static class PlayerDirectionalAnimationBuilder
     {
-        const string Folder = "Assets/Art/Player3D/DogLight/Animations/Locomotion";
+        const string Folder = "Assets/Animations/Player";
         static string Swap(string path) => path.Replace("Left", "__LEFT__").Replace("Right", "Left").Replace("__LEFT__", "Right");
         public static string Build()
         {
             Directory.CreateDirectory(Folder); AssetDatabase.Refresh();
-            var controller = AssetDatabase.LoadAssetAtPath<AnimatorController>("Assets/Art/Player3D/DogLight/Animations/DogLight.controller");
+            var controller = AssetDatabase.LoadAssetAtPath<AnimatorController>("Assets/Animations/Player/DogLight.controller");
             var state = controller.layers[0].stateMachine.defaultState;
             if (state.motion is BlendTree) throw new InvalidOperationException("Locomotion is already configured.");
             var idle = state.motion as AnimationClip;
@@ -25,7 +25,7 @@ namespace DogLife.EditorTools
             for (int i=0;i<names.Length;i++)
             {
                 bool mirror=names[i]=="Left";
-                var source=AssetDatabase.LoadAssetAtPath<AnimationClip>("Assets/VARCO3DImports/Walk_"+(mirror?"Right":names[i])+".anim");
+                var source=AssetDatabase.LoadAssetAtPath<AnimationClip>("Assets/Animations/Player/DogLight/_Source/Walk_"+(mirror?"Right":names[i])+".anim");
                 var clip=mirror?new AnimationClip():UnityEngine.Object.Instantiate(source);
                 clip.name="Walk_"+names[i];clip.frameRate=source.frameRate;
                 if(mirror)

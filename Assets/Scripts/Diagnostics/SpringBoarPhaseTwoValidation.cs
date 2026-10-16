@@ -25,7 +25,7 @@ namespace DogLife
             {
                 hp.Restore();hp.invulnerable=true;player.readInput=false;player.enabled=true;rb.isKinematic=true;
                 floor=GameObject.CreatePrimitive(PrimitiveType.Cube);floor.transform.position=new Vector3(1000,-.55f,1000);floor.transform.localScale=new Vector3(90,1,90);floor.layer=8;
-                boss=Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/monster/SpringBoarBoss.prefab"),new Vector3(1000,0,1000),Quaternion.identity);
+                boss=Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Monster/Spring/SpringBoar/Boss.prefab"),new Vector3(1000,0,1000),Quaternion.identity);
                 boss.GetComponent<SpringBoarBoss>().enabled=false;boss.GetComponent<UnityEngine.AI.NavMeshAgent>().enabled=false;
                 var transition=boss.GetComponent<SpringBoarPhaseTransition>();var so=new SerializedObject(transition);var skeleton=(GameObject)so.FindProperty("skeletonBody").objectReferenceValue;
                 ((GameObject)so.FindProperty("fleshBody").objectReferenceValue).SetActive(false);skeleton.SetActive(true);

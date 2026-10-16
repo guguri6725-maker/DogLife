@@ -17,15 +17,15 @@ namespace DogLife.EditorTools
             }
             for(int kind=0;kind<4;kind++)
             {
-                string name=WinterMonsterBuilder.Names[kind],path="Assets/Prefabs/monster/"+name+".prefab";
+                string name=WinterMonsterBuilder.Names[kind],path="Assets/Prefabs/Monster/Winter/"+name+"/"+name+".prefab";
                 var root=PrefabUtility.LoadPrefabContents(path);
                 try
                 {
                     var animator=root.GetComponentInChildren<Animator>();
-                    var idle=AssetDatabase.LoadAssetAtPath<AnimationClip>("Assets/Art/WinterMonsters/Animations/"+name+"_Idle.anim");idle.SampleAnimation(animator.gameObject,0);
+                    var idle=AssetDatabase.LoadAssetAtPath<AnimationClip>("Assets/Animations/Monster/Winter/"+name+"/Idle.anim");idle.SampleAnimation(animator.gameObject,0);
                     var sound=AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Resources/Audio/Winter/"+Prefix[kind]+"_Death.wav");
                     float duration=Mathf.Max(1.8f,sound.length);
-                    string ap="Assets/Art/WinterMonsters/Animations/"+name+"_Death.anim";
+                    string ap="Assets/Animations/Monster/Winter/"+name+"/Death.anim";
                     var clip=AssetDatabase.LoadAssetAtPath<AnimationClip>(ap);if(!clip){clip=new AnimationClip();AssetDatabase.CreateAsset(clip,ap);}clip.ClearCurves();clip.frameRate=60;clip.name=name+"_Death";
                     var bones=animator.GetComponentsInChildren<Transform>().Where(t=>t!=animator.transform).ToArray();
                     foreach(var bone in bones)

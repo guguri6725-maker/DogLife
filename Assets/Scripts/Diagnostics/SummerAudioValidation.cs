@@ -39,7 +39,7 @@ namespace DogLife
             yield return new WaitForSeconds(.2f);heard.Clear();
             foreach(var name in new[]{"CoralMermaid","BlueJellyfish","BoneTortoise","HermitCrab"})
             {
-                var go=Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/monster/"+name+".prefab"),player.transform.position+Vector3.right*7,Quaternion.identity);
+                var go=Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Monster/Summer/"+name+"/"+name+".prefab"),player.transform.position+Vector3.right*7,Quaternion.identity);
                 var e=go.GetComponent<SummerMonsterEnemy>();e.enabled=false;go.GetComponent<NavMeshAgent>().enabled=false;yield return null;Call(e,"Start");
                 string attack=e.Kind==SummerMonsterEnemy.Species.Mermaid?"Mermaid_Emerge_Attack":e.Kind==SummerMonsterEnemy.Species.Jellyfish?"Jellyfish_Discharge":e.Kind==SummerMonsterEnemy.Species.Tortoise?"Tortoise_Bite":"Crab_Bubble_Cast";
                 if(e.Kind==SummerMonsterEnemy.Species.Mermaid){Call(e,"Enter",SummerMonsterEnemy.Phase.Dive);Call(e,"Enter",SummerMonsterEnemy.Phase.Burrow);Check(Playing("Mermaid_Underwater_Loop"),"Mermaid dive loop starts");}

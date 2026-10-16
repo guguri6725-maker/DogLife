@@ -33,7 +33,7 @@ namespace DogLife.EditorTools
             const string asset="Assets/Resources/Story/StoryLibrary.asset";
             var library=AssetDatabase.LoadAssetAtPath<StoryLibrary>(asset);
             if(!library){library=ScriptableObject.CreateInstance<StoryLibrary>();AssetDatabase.CreateAsset(library,asset);}
-            library.font=AssetDatabase.LoadAssetAtPath<Font>("Assets/Art/UI/Fonts/NanumGothic-Regular.ttf");
+            library.font=AssetDatabase.LoadAssetAtPath<Font>("Assets/Fonts/UI/NanumGothic-Regular.ttf");
             var pink=new Color(.96f,.67f,.72f);var blue=new Color(.54f,.8f,.9f);var amber=new Color(.94f,.67f,.38f);var ice=new Color(.73f,.86f,.94f);
             library.chapters=new[]{
                 C("prologue","처음의 기억","DOG LIFE · 사계절 너머의 너에게",null,null,amber,
@@ -134,10 +134,10 @@ namespace DogLife.EditorTools
             finally{if(previous.IsValid())SceneManager.SetActiveScene(previous);if(opened)EditorSceneManager.CloseScene(scene,true);}
         }
         public static void RefreshTitleArt()
-        {AddTitleButton(AssetDatabase.LoadAssetAtPath<Font>("Assets/Art/UI/Fonts/NanumGothic-Regular.ttf"));}
+        {AddTitleButton(AssetDatabase.LoadAssetAtPath<Font>("Assets/Fonts/UI/NanumGothic-Regular.ttf"));}
         static void ApplyMemoriesArt(Button button)
         {
-            const string path="Assets/Art/Story/MemoriesButton.png";
+            const string path="Assets/Textures/Story/Shared/MemoriesButton.png";
             if(!File.Exists(path))return;
             AssetDatabase.ImportAsset(path);
             var importer=(TextureImporter)AssetImporter.GetAtPath(path);

@@ -1,3 +1,4 @@
+using System.IO;
 using System.Linq;
 using UnityEngine;
 using UnityEditor;
@@ -10,11 +11,11 @@ namespace DogLife.EditorTools
     {
         public static string Build()
         {
-            const string dir="Assets/Art/FallMonsters/Animations";
-            if(!AssetDatabase.IsValidFolder(dir))AssetDatabase.CreateFolder("Assets/Art/FallMonsters","Animations");
             foreach(var name in new[]{"MyceliumSkeleton","Scarecrow","BoneCrow","LeafHedgehog"})
             {
-                string modelPath="Assets/Art/FallMonsters/Models/"+name+".fbx";
+                string dir="Assets/Animations/Monster/Autumn/"+name;
+                Directory.CreateDirectory(dir);AssetDatabase.Refresh();
+                string modelPath="Assets/Models/Monster/Autumn/"+name+"/"+name+".fbx";
                 var sourceClips=AssetDatabase.LoadAllAssetsAtPath(modelPath).OfType<AnimationClip>().Where(c=>!c.name.StartsWith("__preview")).ToArray();
                 var controller=AnimatorController.CreateAnimatorControllerAtPath(dir+"/"+name+".controller");
                 controller.AddParameter("Moving",AnimatorControllerParameterType.Bool);
@@ -40,7 +41,7 @@ namespace DogLife.EditorTools
         static void RetargetAttack(AnimationClip output,GameObject model)
         {
             // 제공된 공격의 회전 변화량만 새 리그 기준 자세에 적용해 위치·체형 차이를 제거합니다.
-            var original=AssetDatabase.LoadAssetAtPath<AnimationClip>("Assets/VARCO3DImports/Fall_Skelleton_Attack.anim");
+            var original=AssetDatabase.LoadAssetAtPath<AnimationClip>("Assets/Animations/Monster/Autumn/MyceliumSkeleton/_Source/Fall_Skelleton_Attack.anim");
             if(!original)throw new System.InvalidOperationException("Missing supplied skeleton attack");
             var bindings=AnimationUtility.GetCurveBindings(original);
             foreach(var path in bindings.Where(b=>b.propertyName=="m_LocalRotation.w").Select(b=>b.path).Distinct())

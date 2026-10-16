@@ -8,10 +8,10 @@ namespace DogLife.EditorTools
     // 대기 자세를 출발점으로 새 양손 꽂기/손 놓기/회수 동작을 굽습니다. 공격 클립은 재사용하지 않습니다.
     public static class FrozenKnightPlantAuthoring
     {
-        const string Folder="Assets/Art/FrozenKnight/Animations/";
+        const string Folder="Assets/Animations/Monster/Winter/FrozenKnight/";
         public static string Build()
         {
-            var prefab=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/monster/FrozenKnight.prefab");
+            var prefab=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Monster/Winter/FrozenKnight/FrozenKnight.prefab");
             var knight=prefab.GetComponentsInChildren<Animator>(true).First(a=>a.name=="Knight").transform;
             var bones=knight.GetComponentsInChildren<Transform>(true).Where(t=>AnimationUtility.CalculateTransformPath(t,knight).StartsWith("skel/")&&!t.name.StartsWith("Sword")).ToArray();
             var paths=bones.Select(t=>AnimationUtility.CalculateTransformPath(t,knight)).ToArray();

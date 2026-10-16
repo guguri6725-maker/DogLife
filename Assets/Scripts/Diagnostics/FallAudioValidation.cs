@@ -34,7 +34,7 @@ namespace DogLife
             yield return new WaitForSeconds(.2f);
             foreach(var name in new[]{"MyceliumSkeleton","Scarecrow","LeafHedgehog","BoneCrow"})
             {
-                heard.Clear();var go=Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/monster/"+name+".prefab"));
+                heard.Clear();var go=Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Monster/Autumn/"+name+"/"+name+".prefab"));
                 var e=go.GetComponent<FallMonsterEnemy>();e.enabled=false;go.GetComponent<NavMeshAgent>().enabled=false;Call(e,"Start");
                 string impact=e.AttackPattern==FallMonsterEnemy.Pattern.Spores?"Mycelium_Spore_Burst":e.AttackPattern==FallMonsterEnemy.Pattern.ArmSweep?"Scarecrow_Arm_Sweep":e.AttackPattern==FallMonsterEnemy.Pattern.Spikes?"Hedgehog_Spike_Erupt":"Crow_Dash";
                 Call(e,"Enter",FallMonsterEnemy.Phase.Anticipation);Check(heard.Count==1,name+" preparation cue");
@@ -46,7 +46,7 @@ namespace DogLife
                 Call(e,"Enter",FallMonsterEnemy.Phase.Recovery);Check(!Playing("Mycelium_Spore_Loop"),name+" no lingering spore loop");
                 go.SetActive(false);Destroy(go);yield return new WaitForSeconds(.1f);
             }
-            var root=Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/monster/HarvestReaperBoss.prefab"));
+            var root=Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Monster/Autumn/HarvestReaper/Boss.prefab"));
             var boss=root.GetComponent<HarvestReaperBoss>();boss.enabled=false;Call(boss,"Start");Set(boss,"engaged",true);
             foreach(var pattern in new[]{HarvestReaperBoss.Pattern.Sweep,HarvestReaperBoss.Pattern.Cleave,HarvestReaperBoss.Pattern.Shockwave})
             {

@@ -18,7 +18,7 @@ namespace DogLife.EditorTools
             var player=UnityEngine.Object.FindFirstObjectByType<PlayerMotor>();player.GetComponent<CombatHealth>().invulnerable=true;
             heard.Clear();deaths=0;GameAudio.EffectStarted+=Heard;
             subjects=WinterMonsterBuilder.Names.Select((name,i)=>{
-                var source=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/monster/"+name+".prefab");
+                var source=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Monster/Winter/"+name+"/"+name+".prefab");
                 NavMeshHit point;var pos=player.transform.position+Vector3.right*(i*3+4);NavMesh.SamplePosition(pos,out point,30,NavMesh.AllAreas);
                 var go=UnityEngine.Object.Instantiate(source,point.position,Quaternion.identity);go.name="Winter QA "+name;
                 go.GetComponent<WinterMonsterEnemy>().enabled=false;typeof(WinterMonsterEnemy).GetMethod("Start",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(go.GetComponent<WinterMonsterEnemy>(),null);go.GetComponent<CombatHealth>().Died+=()=>deaths++;return go;

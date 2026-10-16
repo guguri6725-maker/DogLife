@@ -24,7 +24,7 @@ namespace DogLife.EditorTools
         }
         public static string Save()
         {
-            const string path="Assets/Prefabs/monster/FloralDeer.prefab";
+            const string path="Assets/Prefabs/Monster/Spring/FloralDeer/FloralDeer.prefab";
             var root=PrefabUtility.LoadPrefabContents(path);
             try{Apply(root);PrefabUtility.SaveAsPrefabAsset(root,path);}
             finally{PrefabUtility.UnloadPrefabContents(root);}
