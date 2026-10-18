@@ -34,7 +34,7 @@ for p in rig.pose.bones:p.matrix_basis.identity()
 for o in bpy.context.scene.objects:o.select_set(False)
 obj.select_set(True);rig.select_set(True);bpy.context.view_layer.objects.active=rig
 pos=rig.location.copy();rig.location=(0,0,0);bpy.context.view_layer.update()
-bpy.ops.export_scene.fbx(filepath='C:/Users/mbc/Desktop/NC_AI/DogLife/Assets/Art/FallMonsters/Models/LeafHedgehog.fbx',use_selection=True,add_leaf_bones=False,bake_anim=True,bake_anim_use_all_actions=True,bake_anim_use_nla_strips=False,axis_forward='-Z',axis_up='Y')
+bpy.ops.export_scene.fbx(filepath='C:/Users/mbc/Desktop/NC_AI/DogLife/Assets/Models/Monster/Autumn/LeafHedgehog/LeafHedgehog.fbx',use_selection=True,add_leaf_bones=False,bake_anim=True,bake_anim_use_all_actions=True,bake_anim_use_nla_strips=False,axis_forward='-Z',axis_up='Y')
 rig.location=pos;bpy.context.view_layer.update()
 bpy.ops.wm.save_as_mainfile(filepath='C:/Users/mbc/Desktop/NC_AI/DogLife/ArtSource/FallMonsters/FallMonsters.blend')
 print('Dig preparation, dive and emergence clips saved')

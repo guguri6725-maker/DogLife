@@ -7,7 +7,7 @@ OUT = ROOT + '/Assets/Art/SummerPolish/Models'
 os.makedirs(OUT, exist_ok=True)
 collection = bpy.data.collections.new('SummerPolish_Authored')
 bpy.context.scene.collection.children.link(collection)
-atlas = bpy.data.images.load(ROOT + '/Assets/Art/SeasonCrafted/Textures/SeasonAtlas.png', check_existing=True)
+atlas = bpy.data.images.load(ROOT + '/Assets/Textures/Environment/Summer/SeasonCrafted/SeasonAtlas.png', check_existing=True)
 material = bpy.data.materials.new('SummerPolish_Atlas')
 material.use_nodes = True
 bs = material.node_tree.nodes.get('Principled BSDF')

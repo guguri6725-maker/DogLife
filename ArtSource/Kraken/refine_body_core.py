@@ -30,6 +30,6 @@ for v,old in zip(obj.data.vertices,weights):
  for n,w in selected:
   if w>0:obj.vertex_groups[n].add([v.index],w/total,'REPLACE')
 bpy.ops.object.select_all(action='DESELECT');rig.select_set(True);obj.select_set(True);bpy.context.view_layer.objects.active=rig
-bpy.ops.export_scene.fbx(filepath=ROOT+'/Assets/Art/SummerBossAssembly/Models/SummerBoss_Body_Rigged.fbx',use_selection=True,add_leaf_bones=False,bake_anim=False,axis_forward='-Z',axis_up='Y',path_mode='AUTO')
+bpy.ops.export_scene.fbx(filepath=ROOT+'/Assets/Models/Monster/Summer/Kraken/SummerBoss_Body_Rigged.fbx',use_selection=True,add_leaf_bones=False,bake_anim=False,axis_forward='-Z',axis_up='Y',path_mode='AUTO')
 bpy.data.libraries.write(ROOT+'/ArtSource/SummerBoss_BodyCoreRig.blend',{bpy.context.scene},fake_user=True)
 print('Body bones',len(rig.data.bones),'unweighted',sum(not v.groups for v in obj.data.vertices))

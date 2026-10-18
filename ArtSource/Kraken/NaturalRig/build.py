@@ -59,7 +59,7 @@ rig.animation_data.action=None
 for p in rig.pose.bones:p.matrix_basis.identity()
 scene.frame_start=1;scene.frame_end=181;scene.render.fps=30
 bpy.ops.object.select_all(action='DESELECT');rig.select_set(True);obj.select_set(True);bpy.context.view_layer.objects.active=rig
-out=ROOT+'/Assets/Art/Kraken/Models/Kraken_Tentacle_Natural.fbx'
+out=ROOT+'/Assets/Models/Monster/Summer/Kraken/Tentacle_Natural.fbx'
 bpy.ops.export_scene.fbx(filepath=out,use_selection=True,add_leaf_bones=False,bake_anim=True,bake_anim_use_all_actions=True,bake_anim_use_nla_strips=False,axis_forward='-Z',axis_up='Y')
 rig.animation_data.action=bpy.data.actions['NaturalTentacle_Idle']
 scene.frame_set(45)

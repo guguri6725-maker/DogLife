@@ -21,7 +21,11 @@ namespace DogLife
         public static readonly int[] Scales = { 50, 67, 75, 85, 100 };
         public static List<DisplayInfo> Displays()
         {
-            var list = new List<DisplayInfo>(); Screen.GetDisplayLayout(list); return list;
+            var list = new List<DisplayInfo>();
+#if UNITY_STANDALONE || UNITY_EDITOR
+            Screen.GetDisplayLayout(list);
+#endif
+            return list;
         }
         public static int MonitorIndex(GraphicsPreferences value, List<DisplayInfo> list)
         {

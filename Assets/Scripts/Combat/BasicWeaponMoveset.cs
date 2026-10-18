@@ -28,6 +28,10 @@ namespace DogLife
         public float attackSpeed=1f;
         [Min(.1f),Tooltip("일반형 대비 합성형 공격 속도 배율")]
         public float synthesizedAttackSpeed=2f;
+        [Range(0,1),Tooltip("창 마지막 연속 찌르기의 개별 타격 피해 배율")]
+        public float spearFlurryDamageMultiplier=.15f;
+        [Min(1),Tooltip("활 완충 시 기본 공격력에 곱하는 배율")]
+        public float bowFullChargeMultiplier=2.6f;
         public float projectileSpeed=10;
         [SerializeField, Min(.01f), Tooltip("투사체의 충돌 반경 (m)")]
         private float projectileHitRadius=.12f;

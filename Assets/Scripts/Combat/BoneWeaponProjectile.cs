@@ -34,7 +34,7 @@ namespace DogLife
             p.visual=go.AddComponent<LineRenderer>();p.visual.sharedMaterial=p.effectMaterial;p.visual.useWorldSpace=false;p.visual.startWidth=.07f*p.visualScale;p.visual.endWidth=.025f*p.visualScale;p.visual.startColor=p.visual.endColor=color;p.visual.numCapVertices=4;
             bool bow=item.weaponCategory==InventoryWeapon.WeaponCategory.Bow;
             if(!bow)p.flightSound=GameAudio.Play("BoomerangLoop",position,.22f,GameAudio.WeaponPitch(item),follow:go.transform,loop:true);
-            if(bow){p.power=1+charge;p.speedScale=Mathf.Lerp(.8f,1.4f,charge);p.visualScale*=Mathf.Lerp(1,1.5f,charge);}
+            if(bow){p.power=Mathf.Lerp(1,move.bowFullChargeMultiplier,Mathf.Clamp01(charge));p.speedScale=Mathf.Lerp(.8f,1.4f,charge);p.visualScale*=Mathf.Lerp(1,1.5f,charge);}
             go.transform.rotation=Quaternion.LookRotation(direction);
             if(!bow&&item.visualPrefab)
             {

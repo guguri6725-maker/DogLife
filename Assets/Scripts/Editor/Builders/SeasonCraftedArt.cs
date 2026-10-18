@@ -6,14 +6,16 @@ namespace DogLife.EditorTools
 {
     public static class SeasonCraftedArt
     {
-        public const string Art="Assets/Art/SeasonCrafted";
+        public const string Models="Assets/Models/Environment/Summer/SeasonCrafted";
+        public const string Textures="Assets/Textures/Environment/Summer/SeasonCrafted";
+        public const string Materials="Assets/Materials/Environment/Summer/SeasonCrafted";
         public static Material Bark,Stone,Leaf,Bronze,Blue,Canvas;
         public static Material Make(string name,Color color,int quadrant=-1)
         {
-            string path=Art+"/Materials/"+name+".mat";var m=AssetDatabase.LoadAssetAtPath<Material>(path);
+            string path=Materials+"/"+name+".mat";var m=AssetDatabase.LoadAssetAtPath<Material>(path);
             if(!m){m=new Material(Shader.Find(quadrant<0?"Standard":"DogLife/Season Atlas"));AssetDatabase.CreateAsset(m,path);}
             m.color=color;m.enableInstancing=true;
-            if(quadrant>=0){m.mainTexture=AssetDatabase.LoadAssetAtPath<Texture2D>(Art+"/Textures/SeasonAtlas.png");m.SetVector("_Atlas",new Vector4(quadrant%2*.5f,quadrant<2?.5f:0,.5f,.5f));}
+            if(quadrant>=0){m.mainTexture=AssetDatabase.LoadAssetAtPath<Texture2D>(Textures+"/SeasonAtlas.png");m.SetVector("_Atlas",new Vector4(quadrant%2*.5f,quadrant<2?.5f:0,.5f,.5f));}
             else m.SetFloat("_Glossiness",name=="Bronze"?.45f:.16f);
             if(name=="Bronze")m.SetFloat("_Metallic",.7f);
             EditorUtility.SetDirty(m);return m;
@@ -22,12 +24,12 @@ namespace DogLife.EditorTools
         {
             Bark=Make("AncientBark",Color.white,0);Stone=Make("CoastalStone",Color.white,2);Leaf=Make("PalmLeaf",Color.white,3);
             Bronze=Make("Bronze",new Color(.52f,.31f,.095f));Blue=Make("SeaCanvas",new Color(.08f,.58f,.74f));Canvas=Make("IvoryCanvas",new Color(.98f,.9f,.74f));
-            var importer=(TextureImporter)AssetImporter.GetAtPath(Art+"/Textures/SeasonAtlas.png");
+            var importer=(TextureImporter)AssetImporter.GetAtPath(Textures+"/SeasonAtlas.png");
             if(importer.maxTextureSize!=2048){importer.maxTextureSize=2048;importer.mipmapEnabled=true;importer.SaveAndReimport();}
         }
         public static GameObject Model(string name,Transform parent,Vector3 position,float scale,float yaw,bool solid=true)
         {
-            var go=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(Art+"/Models/"+name+".fbx"),parent);
+            var go=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(Models+"/"+name+".fbx"),parent);
             PrefabUtility.UnpackPrefabInstance(go,PrefabUnpackMode.Completely,InteractionMode.AutomatedAction);
             go.name=name;go.transform.position=position;go.transform.rotation=Quaternion.Euler(0,yaw,0);go.transform.localScale=Vector3.one*scale;
             foreach(var r in go.GetComponentsInChildren<Renderer>()){

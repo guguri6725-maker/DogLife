@@ -17,7 +17,11 @@ namespace DogLife.EditorTools
                 Directory.CreateDirectory(dir);AssetDatabase.Refresh();
                 string modelPath="Assets/Models/Monster/Autumn/"+name+"/"+name+".fbx";
                 var sourceClips=AssetDatabase.LoadAllAssetsAtPath(modelPath).OfType<AnimationClip>().Where(c=>!c.name.StartsWith("__preview")).ToArray();
-                var controller=AnimatorController.CreateAnimatorControllerAtPath(dir+"/"+name+".controller");
+                var controllerPath=dir+"/"+name+".controller";
+                var controller=AssetDatabase.LoadAssetAtPath<AnimatorController>(controllerPath);
+                if(!controller)controller=AnimatorController.CreateAnimatorControllerAtPath(controllerPath);
+                foreach(var state in controller.layers[0].stateMachine.states)controller.layers[0].stateMachine.RemoveState(state.state);
+                controller.parameters=new AnimatorControllerParameter[0];
                 controller.AddParameter("Moving",AnimatorControllerParameterType.Bool);
                 controller.AddParameter("PhaseSpeed",AnimatorControllerParameterType.Float);
                 var sm=controller.layers[0].stateMachine;
@@ -27,7 +31,10 @@ namespace DogLife.EditorTools
                     var clip=Object.Instantiate(source);clip.name=name+"_"+stateName;
                     var settings=AnimationUtility.GetAnimationClipSettings(clip);settings.loopTime=stateName=="Idle"||stateName=="Walk";AnimationUtility.SetAnimationClipSettings(clip,settings);
                     if(name=="MyceliumSkeleton"&&stateName=="Attack")RetargetAttack(clip,AssetDatabase.LoadAssetAtPath<GameObject>(modelPath));
-                    AssetDatabase.CreateAsset(clip,dir+"/"+clip.name+".anim");
+                    string clipPath=dir+"/"+stateName+".anim";
+                    var existing=AssetDatabase.LoadAssetAtPath<AnimationClip>(clipPath);
+                    if(existing){EditorUtility.CopySerialized(clip,existing);Object.DestroyImmediate(clip);clip=existing;}
+                    else AssetDatabase.CreateAsset(clip,clipPath);
                     var state=sm.AddState(stateName);state.motion=clip;
                     if(stateName!="Idle"&&stateName!="Walk"){state.speed=clip.length;state.speedParameter="PhaseSpeed";state.speedParameterActive=true;}
                     if(stateName=="Idle")sm.defaultState=state;

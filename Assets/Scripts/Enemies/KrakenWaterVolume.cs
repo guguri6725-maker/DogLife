@@ -29,6 +29,9 @@ namespace DogLife
         public bool IsRaised=>raised;
         public void EnterUnderwater()
         {
+            // Swimming spans the visible flooded room; actual scenery walls stop the player.
+            volume.SetMinMax(new Vector3(SurfaceBounds.min.x,volume.min.y,SurfaceBounds.min.z),new Vector3(SurfaceBounds.max.x,volume.max.y,SurfaceBounds.max.z));
+            if(swimmer){swimmer.SetWater(Height,volume);swimmer.ReleaseArenaLimits();}
             PrepareFlowDecoration();FadeFlowDecoration(1);
             foreach(var pair in stoppedDecorationWater)if(pair.Key)pair.Key.forceRenderingOff=true;
         }
@@ -59,6 +62,7 @@ namespace DogLife
         }
         bool surfacePrepared,raised;
         public Bounds SurfaceBounds{get;private set;}
+        public Bounds UnderwaterBounds=>volume;
         bool captured,fogWasOn;Color oldColor;float oldDensity,oldStart,oldEnd,blend;FogMode oldMode;
         CameraClearFlags oldClearFlags;Color oldBackground;
         public float Height{get;private set;}

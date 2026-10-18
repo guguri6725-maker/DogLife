@@ -158,10 +158,9 @@ namespace DogLife
 
         void Update()
         {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            // 임시 테스트 단축키: 일반 빌드에서도 사용합니다.
             if(Input.GetKeyDown(KeyCode.L)&&Time.timeScale>0&&!SkillWindow.BlocksGameplayInput)
                 RequestBossTestJump();
-#endif
             if (!Ready || !string.IsNullOrEmpty(LoadError) || Hud.health.Dead || Hud.completed) return;
             // 이전 방 해제 중 연속 처치가 발생해도 세 번째 방 로딩을 동시에 시작하지 않습니다.
             if (Busy) return;
@@ -187,6 +186,12 @@ namespace DogLife
             }
             if (cleared)
             {
+                if(CurrentRoom==rooms.Length-1)
+                {
+                    room.KeepBossDoorsClosed();
+                    Hud.objective="보스 처치 / 빛나는 추억에 다가가 F키로 상호작용";
+                    return;
+                }
                 // 통로 모드에서는 방 클리어 즉시 출구를 열고, 안쪽 석문이 로딩을 보호합니다.
                 bool nextReady = UsesPassages || CurrentRoom == rooms.Length - 1 || rooms[CurrentRoom + 1];
                 if (!Busy && nextReady)
@@ -195,14 +200,12 @@ namespace DogLife
                     else room.forwardGate.SetActive(false);
                     // 옆 공간은 현재 방 씬에 포함되어 메인 진행 순서를 바꾸지 않습니다.
                     foreach (var gate in room.sideVines) if (gate) gate.Open();
-                    Hud.objective = CurrentRoom == rooms.Length - 1 ? "GUARDIAN DEFEATED / Reach the green exit" : "ROOM CLEAR / Enter the next room";
+                    Hud.objective = "ROOM CLEAR / Enter the next room";
                     bool passageOpen = !room.forwardVines || room.forwardVines.IsOpen;
                     // 기존 씬의 전환도 지원하며, 새 통로 모드는 별도 트리거에서 처리합니다.
                     float advanceX = UsesPassages ? float.PositiveInfinity : loadNextOnClear && CurrentRoom + 1 < rooms.Length ? rooms[CurrentRoom + 1].entryX + 3f : room.exitX + 3f;
                     if (passageOpen && CurrentRoom < rooms.Length - 1 && Hud.motor.transform.position.x >= advanceX)
                         StartCoroutine(Advance());
-                    else if (!StoryBook.AwaitingClear && passageOpen && CurrentRoom == rooms.Length - 1 && room.exit && Vector3.Distance(Hud.motor.transform.position, room.exit.position) < 2f)
-                    { Hud.completed = true; director.EndRun(); }
                 }
                 else Hud.objective = "ROOM CLEAR / Preparing next room...";
             }
@@ -262,7 +265,6 @@ namespace DogLife
             StartCoroutine(PrepareNext());
         }
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
         // Test shortcut uses the same geometry/spawner pipeline as normal room progression.
         public bool RequestSummerBossTestJump()
         {
@@ -271,10 +273,10 @@ namespace DogLife
         public bool RequestBossTestJump()
         {
             if(!Ready||Busy||!string.IsNullOrEmpty(LoadError))return false;
-            int index=System.Array.FindIndex(roomScenePaths,p=>p!=null&&
-                (p.EndsWith("/Summer_Room04.unity",System.StringComparison.OrdinalIgnoreCase)||
-                 p.EndsWith("/Winter_Room04.unity",System.StringComparison.OrdinalIgnoreCase)));
-            if(index<0)return false;
+            // 계절 보스는 마지막 방입니다. 방 재배치 후에도 이전 씬 이름을 따라가지 않습니다.
+            if(roomScenePaths==null||roomScenePaths.Length==0)return false;
+            int index=roomScenePaths.Length-1;
+            if(string.IsNullOrEmpty(roomScenePaths[index]))return false;
             StartCoroutine(JumpToSummerBoss(index));return true;
         }
         IEnumerator JumpToSummerBoss(int target)
@@ -303,7 +305,6 @@ namespace DogLife
             if(room.rearSeal)room.rearSeal.SetActive(true);if(room.rearVines)room.rearVines.Close();
             Physics.SyncTransforms();room.BeginEncounter();Busy=false;
         }
-#endif
 
         IEnumerator Advance()
         {

@@ -65,7 +65,7 @@ for o in bpy.context.selected_objects:o.select_set(False)
 obj.select_set(True);rig.select_set(True);bpy.context.view_layer.objects.active=rig
 location=rig.location.copy();rig.location=(0,0,0)
 for tr in rig.animation_data.nla_tracks:tr.mute=False
-bpy.ops.export_scene.fbx(filepath='C:/unity/DogLife/Assets/Art/SummerMonsters/Models/BoneTortoise.fbx',use_selection=True,add_leaf_bones=False,bake_anim=True,bake_anim_use_all_actions=False,bake_anim_use_nla_strips=True,axis_forward='-Z',axis_up='Y')
+bpy.ops.export_scene.fbx(filepath='C:/unity/DogLife/Assets/Models/Monster/Summer/BoneTortoise/BoneTortoise.fbx',use_selection=True,add_leaf_bones=False,bake_anim=True,bake_anim_use_all_actions=False,bake_anim_use_nla_strips=True,axis_forward='-Z',axis_up='Y')
 for tr in rig.animation_data.nla_tracks:tr.mute=True
 rig.location=location
 print('Stable crawl and fully retracted guard exported')

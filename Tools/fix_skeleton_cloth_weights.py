@@ -53,6 +53,6 @@ print('Cloth vertices',len(cloth),'with incorrect arm influence',affected,'albed
 bpy.data.libraries.write(str(project/'ArtSources/BlossomSkeleton/BlossomSkeleton_ClothWeights.blend'),{scene},fake_user=True)
 for o in scene.objects: o.select_set(o.type in {'ARMATURE','MESH'})
 bpy.context.view_layer.objects.active = rig
-bpy.ops.export_scene.fbx(filepath=str(project/'Assets/Art/Enemies/BlossomSkeleton/BlossomSkeleton_ClothWeights.fbx'),
+bpy.ops.export_scene.fbx(filepath=str(project/'Assets/Models/Monster/Spring/BlossomSkeleton/ClothWeights.fbx'),
     use_selection=True,object_types={'ARMATURE','MESH'},add_leaf_bones=False,bake_anim=False,
     axis_forward='-Z',axis_up='Y',path_mode='STRIP')

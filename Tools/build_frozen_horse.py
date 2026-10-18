@@ -8,7 +8,7 @@ os.makedirs(ROOT+'/ArtSource/FrozenKnight',exist_ok=True)
 horse=bpy.data.objects.get('mesh_0')
 if horse is None:
     before=set(bpy.data.objects)
-    bpy.ops.wm.usd_import(filepath=ROOT+'/Assets/VARCO3DImports/WinterBoss/WinterBoss_horse.usdz')
+    bpy.ops.wm.usd_import(filepath=ROOT+'/Assets/Models/Monster/Winter/FrozenKnight/_Source/WinterBoss_horse.usdz')
     horse=next(o for o in bpy.data.objects if o not in before and o.type=='MESH')
 bpy.ops.object.select_all(action='DESELECT');horse.select_set(True);bpy.context.view_layer.objects.active=horse
 bpy.ops.object.transform_apply(location=True,rotation=True,scale=True)

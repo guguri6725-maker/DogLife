@@ -11,7 +11,9 @@ namespace DogLife.EditorTools
 {
     public static class SeasonStorySkyBuilder
     {
-        public const string Folder="Assets/Art/SeasonLighting/TimeOfDay";
+        static readonly string[] Seasons={"Spring","Summer","Autumn","Winter"};
+        static string MaterialFolder(int index)=>"Assets/Materials/Environment/"+Seasons[index]+"/SeasonLighting";
+        static string ModelFolder(int index)=>"Assets/Models/Environment/"+Seasons[index]+"/SeasonLighting";
         static readonly string[] Names={"Spring_Morning","Summer_Afternoon","Fall_Sunset","Winter_Predawn"};
         static readonly string[] Scenes={"Assets/Scenes/Stage1_Spring.unity","Assets/Scenes/Stage3_Summer.unity","Assets/Scenes/Stage3_Fall.unity","Assets/Scenes/Stage4_Winter.unity"};
         static Color C(float r,float g,float b)=>new Color(r,g,b,1);
@@ -19,7 +21,7 @@ namespace DogLife.EditorTools
         public static string Build()
         {
             var shader=Shader.Find("DogLife/Season Story Sky");if(!shader||ShaderUtil.ShaderHasError(shader))throw new InvalidOperationException("Sky shader is missing or has errors.");
-            Directory.CreateDirectory(Folder);Directory.CreateDirectory("Builds/SkyValidation");
+            foreach(var index in Enumerable.Range(0,4)){Directory.CreateDirectory(MaterialFolder(index));Directory.CreateDirectory(ModelFolder(index));}Directory.CreateDirectory("Builds/SkyValidation");
             var original=SceneManager.GetActiveScene();var result=new System.Collections.Generic.List<string>();
             for(int i=0;i<4;i++)
             {
@@ -29,10 +31,10 @@ namespace DogLife.EditorTools
                 try
                 {
                     SceneManager.SetActiveScene(scene);
-                    string name=Names[i];var mat=AssetDatabase.LoadAssetAtPath<Material>(Folder+"/"+name+".mat");
-                    if(!mat){mat=new Material(shader);AssetDatabase.CreateAsset(mat,Folder+"/"+name+".mat");}mat.shader=shader;
-                    var profile=AssetDatabase.LoadAssetAtPath<SeasonSkyProfile>(Folder+"/"+name+".asset");
-                    if(!profile){profile=ScriptableObject.CreateInstance<SeasonSkyProfile>();AssetDatabase.CreateAsset(profile,Folder+"/"+name+".asset");}
+                    string name=Names[i];var mat=AssetDatabase.LoadAssetAtPath<Material>(MaterialFolder(i)+"/"+name+".mat");
+                    if(!mat){mat=new Material(shader);AssetDatabase.CreateAsset(mat,MaterialFolder(i)+"/"+name+".mat");}mat.shader=shader;
+                    var profile=AssetDatabase.LoadAssetAtPath<SeasonSkyProfile>(ModelFolder(i)+"/"+name+".asset");
+                    if(!profile){profile=ScriptableObject.CreateInstance<SeasonSkyProfile>();AssetDatabase.CreateAsset(profile,ModelFolder(i)+"/"+name+".asset");}
                     Configure(i,profile,mat);
                     var light=scene.GetRootGameObjects().SelectMany(g=>g.GetComponentsInChildren<Light>(true)).First(l=>l.type==LightType.Directional);
                     var environment=scene.GetRootGameObjects().SelectMany(g=>g.GetComponentsInChildren<SeasonSkyEnvironment>(true)).FirstOrDefault();
@@ -43,8 +45,8 @@ namespace DogLife.EditorTools
                     var camera=goCamera.AddComponent<Camera>();camera.enabled=false;camera.clearFlags=CameraClearFlags.Skybox;camera.cullingMask=0;camera.farClipPlane=1000;camera.allowHDR=true;
                     try
                     {
-                        var cube=AssetDatabase.LoadAssetAtPath<Cubemap>(Folder+"/"+name+"_Reflection.asset");
-                        if(!cube){cube=new Cubemap(128,TextureFormat.RGBAHalf,true);cube.name=name+" reflection";AssetDatabase.CreateAsset(cube,Folder+"/"+name+"_Reflection.asset");}
+                        var cube=AssetDatabase.LoadAssetAtPath<Cubemap>(ModelFolder(i)+"/"+name+"_Reflection.asset");
+                        if(!cube){cube=new Cubemap(128,TextureFormat.RGBAHalf,true);cube.name=name+" reflection";AssetDatabase.CreateAsset(cube,ModelFolder(i)+"/"+name+"_Reflection.asset");}
                         if(!camera.RenderToCubemap(cube))throw new InvalidOperationException("Sky reflection render failed: "+name);
                         EditorUtility.SetDirty(cube);profile.reflection=cube;environment.Apply();
                         Capture(camera,profile.lightRotation.y,18,name+"_sky");

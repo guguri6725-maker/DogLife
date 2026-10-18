@@ -6,7 +6,7 @@ namespace DogLife
     [RequireComponent(typeof(MeshFilter),typeof(MeshRenderer))]
     public sealed partial class KrakenDeepVfx:MonoBehaviour
     {
-        public enum Form{Band,Beam,Orb,Vortex,Sand,Burst,Sector}
+        public enum Form{Band,Beam,Orb,Vortex,Sand,Burst,Sector,PressureBurst}
         public Form Shape;
         public Vector3 Size=Vector3.one;
         public float Progress,Intensity=1;
@@ -62,7 +62,8 @@ namespace DogLife
             v.Clear();ix.Clear();col.Clear();uv.Clear();mesh.Clear();float q=Mathf.Clamp01(Progress);
             var camera=Camera.main;if(camera){viewForward=transform.InverseTransformDirection(camera.transform.forward);viewRight=transform.InverseTransformDirection(camera.transform.right);viewUp=transform.InverseTransformDirection(camera.transform.up);}
             Color edge=Color.Lerp(new Color(.15f,.65f,.82f,.7f),Foam,q);
-            if(Shape==Form.Sector){DrawSector(q,time);}
+            if(Shape==Form.PressureBurst){DrawPressureBurst(q);}
+            else if(Shape==Form.Sector){DrawSector(q,time);}
             else if(Shape==Form.Band){
                 Vector3 h=Size*.5f;float front=Mathf.Lerp(-h.z,h.z,q);
                 for(int s=-1;s<=1;s+=2){float y=s*h.y;
@@ -118,6 +119,7 @@ namespace DogLife
                 }
                 DrawPressureDetail(q,time);
             }
+            DrawWaterAccents(q,time);
             mesh.SetVertices(v);mesh.SetTriangles(ix,0);mesh.SetColors(col);mesh.SetUVs(0,uv);mesh.RecalculateBounds();
         }
         void OnDestroy(){if(mesh)Destroy(mesh);}

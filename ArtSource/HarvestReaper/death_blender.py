@@ -136,4 +136,4 @@ for fc in action.fcurves:
 scene.frame_set(151)
 bpy.ops.wm.save_as_mainfile(filepath=ROOT+'/ArtSource/HarvestReaper/HarvestReaper_Death.blend')
 bpy.ops.object.select_all(action='DESELECT');rig.select_set(True);obj.select_set(True)
-bpy.ops.export_scene.fbx(filepath=ROOT+'/Assets/Art/HarvestReaper/Models/HarvestReaperDeath.fbx',use_selection=True,add_leaf_bones=False,bake_anim=True,bake_anim_use_all_actions=False,bake_anim_use_nla_strips=False,bake_anim_simplify_factor=0,axis_forward='-Z',axis_up='Y')
+bpy.ops.export_scene.fbx(filepath=ROOT+'/Assets/Models/Monster/Autumn/HarvestReaper/Death.fbx',use_selection=True,add_leaf_bones=False,bake_anim=True,bake_anim_use_all_actions=False,bake_anim_use_nla_strips=False,bake_anim_simplify_factor=0,axis_forward='-Z',axis_up='Y')

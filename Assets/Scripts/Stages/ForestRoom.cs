@@ -16,6 +16,14 @@ namespace DogLife
         public VineGate[] sideVines = new VineGate[0];
         public Transform[] recoveryStations;
         public Transform exit;
+        public void KeepBossDoorsClosed()
+        {
+            if(forwardGate)forwardGate.SetActive(true);
+            if(rearSeal)rearSeal.SetActive(true);
+            if(forwardVines)forwardVines.Close();
+            if(rearVines)rearVines.Close();
+            foreach(var gate in sideVines)if(gate)gate.Close();
+        }
         // 로딩/스폰 위치 검증 중에만 숨깁니다. 랜덤 스폰 방은 로딩 완료 즉시 활성화합니다.
         public bool prepareOnLoad;
         public Unity.AI.Navigation.NavMeshSurface navigation;
@@ -129,7 +137,16 @@ namespace DogLife
             if(spawner&&!spawner.Prepare())return;
             CombatStarted |= startCombat;
             encounter.SetActive(true);
-            Enemies = encounter.GetComponentsInChildren<CombatHealth>(true);
+            // A boss owns child hit targets (Kraken tentacles, capture/sweep helpers).
+            // Those health components can deliberately defer death and stay alive while hidden.
+            // Only independent enemy roots determine whether the room is cleared.
+            var combatants = encounter.GetComponentsInChildren<CombatHealth>(true);
+            var independent = new List<CombatHealth>();
+            foreach (var health in combatants)
+                if (!health.player && (!health.transform.parent ||
+                    !health.transform.parent.GetComponentInParent<CombatHealth>(true)))
+                    independent.Add(health);
+            Enemies = independent.ToArray();
             Component boss=encounter.GetComponentInChildren<SpringBoarBoss>(true);
             string music="Spring_Boss_BGM";
             if(!boss){boss=encounter.GetComponentInChildren<KrakenPhaseOne>(true);music="Summer_Boss_BGM";}

@@ -146,7 +146,7 @@ namespace DogLife.EditorTools
                                 go.AddComponent<MeshFilter>().sharedMesh=mesh;
                                 var r=go.AddComponent<MeshRenderer>();EditorUtility.CopySerialized(original,r);
                                 r.enabled=true;r.lightmapIndex=-1;
-                                lods[level]=new LOD(level==0?.65f:level==1?.3f:0f,new Renderer[]{r});
+                                lods[level]=new LOD(level==0?.4f:level==1?.16f:0f,new Renderer[]{r});
                             }
                             group.SetLODs(lods);group.RecalculateBounds();groups++;
                         }

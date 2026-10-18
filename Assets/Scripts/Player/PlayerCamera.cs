@@ -52,6 +52,7 @@ namespace DogLife
         bool BlocksCamera(Collider c)
         {
             if (!c || c.transform.IsChildOf(target) || c.transform.IsChildOf(transform)) return false;
+            if(c.GetComponentInParent<KrakenDeepArm>())return false;
             if (c.GetComponent<CameraStructure>()) return true;
             var health = c.GetComponentInParent<CombatHealth>();
             if (health && (health.player || IsMonster(health))) return false;
@@ -61,6 +62,10 @@ namespace DogLife
         }
         static bool IsMonster(CombatHealth health)
         {
+            // Kraken's room boundaries and remote arms share its root health.
+            // Touching any of them must not hide the entire stationary boss;
+            // its solid body barrier participates in camera collision instead.
+            if(health&&health.GetComponent<KrakenPhaseTwo>())return false;
             // 얼음 기둥처럼 체력만 있는 지형은 계속 카메라를 막습니다.
             return health && !health.player && !health.practiceTarget &&
                 (health.GetComponent<MonsterHurtbox>() || health.GetComponent<KrakenPhaseTentacle>());
@@ -96,6 +101,7 @@ namespace DogLife
             for (int i = 0; i < count; i++)
             {
                 var collider = found[i];
+                if(collider.GetComponentInParent<KrakenDeepArm>())continue;
                 if (!MonsterHurtbox.Accepts(collider)) continue;
                 var health = collider.GetComponentInParent<CombatHealth>();
                 if (!IsMonster(health)) continue;

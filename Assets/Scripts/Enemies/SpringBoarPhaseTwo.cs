@@ -130,6 +130,15 @@ namespace DogLife
         bool Visible(Vector3 a,Vector3 b)=>!Physics.Linecast(a+Vector3.up,b+Vector3.up,environmentMask,QueryTriggerInteraction.Ignore);
         void Approach()
         {
+            // Attack poses have no automatic exit; return to locomotion once recovery is over.
+            if(animator)
+            {
+                var current=animator.GetCurrentAnimatorStateInfo(0);
+                var next=animator.GetNextAnimatorStateInfo(0);
+                if(!current.IsName("Idle")&&!current.IsName("Walk")&&
+                    !(animator.IsInTransition(0)&&(next.IsName("Idle")||next.IsName("Walk"))))
+                    animator.CrossFadeInFixedTime("Idle",.15f,0);
+            }
             Face();if(Nav){agent.isStopped=false;agent.speed=moveSpeed;agent.stoppingDistance=.4f;
                 if(Time.time>=nextPath){nextPath=Time.time+.3f;Vector3 p=player.transform.position-Direction()*preferredDistance;
                     if(room)p.x=Mathf.Clamp(p.x,room.entryX+hornOffset+bodyRadius,room.exitX-hornOffset-bodyRadius);

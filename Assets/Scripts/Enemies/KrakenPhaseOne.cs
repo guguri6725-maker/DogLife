@@ -83,14 +83,9 @@ namespace DogLife
             for(int i=0;i<tentacleCount;i++)slots.Add(Make("Combat tentacle "+(i+1),true));
             captureTentacle=Make("Capture tentacle (no HP)",false);sweepTentacle=Make("Central sweep (no HP)",false);
             sequence=GetComponent<KrakenSequenceCamera>();if(!sequence)sequence=gameObject.AddComponent<KrakenSequenceCamera>();water=GetComponent<KrakenWaterVolume>();if(!water)water=gameObject.AddComponent<KrakenWaterVolume>();water.Setup(Player,Arena,warningMaterial);
-            BuildBoundary();State=EncounterState.Waiting;
+            State=EncounterState.Waiting;
         }
         KrakenPhaseTentacle Make(string title,bool counted){var t=Instantiate(tentaclePrefab,pool);t.name=title;t.Setup(this,counted);if(counted)t.SetReach(slam.length);else t.transform.localScale=Vector3.one*captureVisualScale;return t;}
-        void BuildBoundary()
-        {
-            // Vertical barriers extend above the final waterline, independently of gate decoration.
-            for(int i=0;i<4;i++){var go=new GameObject("Flood arena boundary "+i);go.layer=8;go.transform.SetParent(pool,false);var c=go.AddComponent<BoxCollider>();Vector3 p=Arena.center;bool x=i<2;float sign=i%2==0?-1:1;if(x)p.x+=sign*(Arena.extents.x+.6f);else p.z+=sign*(Arena.extents.z+.6f);go.transform.position=p;c.size=x?new Vector3(.5f,floodHeight+8,Arena.size.z+2):new Vector3(Arena.size.x+2,floodHeight+8,.5f);c.enabled=false;boundaries.Add(c);}
-        }
         readonly List<Collider> boundaries=new List<Collider>();
         void Update()
         {

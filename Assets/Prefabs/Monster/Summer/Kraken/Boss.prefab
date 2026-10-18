@@ -213,7 +213,7 @@ GameObject:
   - component: {fileID: 3989612077094089352}
   - component: {fileID: 919307407091503972}
   m_Layer: 0
-  m_Name: KrakenBoss
+  m_Name: Boss
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -253,7 +253,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7ec31b56d4fa0324ab9d3b38b177327c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DogLife.CombatHealth
-  maxHealth: 2500
+  maxHealth: 2730
   player: 0
   practiceTarget: 0
   playerHitInvulnerability: 0.7
@@ -514,7 +514,7 @@ MonoBehaviour:
   warningMaterial: {fileID: 2100000, guid: 6d1453c11ca63784f820f18972e5977b, type: 2}
   tentacleCount: 5
   killsToTransition: 5
-  tentacleHP: 100
+  tentacleHP: 84
   respawnDelay: 2
   emergeDuration: 2.2
   retractDuration: 1.4
@@ -661,19 +661,23 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::DogLife.KrakenPhaseTwo
   previewArms: []
   previewWater: {fileID: 0}
+  previewSeabedCover: {fileID: 0}
   bodyVisual: {fileID: 5016746915996984329}
   armModel: {fileID: 919132149155446097, guid: 44eea4f656e03ed40a58aa8931117599, type: 3}
-  slimArmMesh: {fileID: 4300000, guid: f6fe4750047b66644ac85c2690682469, type: 2}
+  slimArmMesh: {fileID: 4300000, guid: 167a37aeb5431fe41bdc74ac40b6d77a, type: 2}
   armMaterial: {fileID: 2100000, guid: cb035abd79df358449224592ce91e03e, type: 2}
   waterMaterial: {fileID: 2100000, guid: 6d1453c11ca63784f820f18972e5977b, type: 2}
-  bodyWidth: 12
-  bodyHeight: 6.2
+  bodyWidth: 16.8
+  bodyHeight: 8.68
   bodyFloatHeight: -0.65
-  armLength: 16
-  armRadius: 0.65
-  armSocketRadius: 3.2
-  armSocketHeight: -0.5
-  bodyBlockRadius: 2.7
+  armLength: 30
+  armRadius: 0.68
+  armSocketRadius: 1.75
+  armSocketHeight: 1
+  idleArmRadius: 10
+  idleArmHeight: 2.6
+  idleSideAngle: 70
+  bodyBlockRadius: 3.7
   sandLead: 2
   emergeTime: 5.5
   unfurlTime: 2.5
@@ -686,16 +690,16 @@ MonoBehaviour:
   pincer:
     warning: 1.6
     attack: 0.8
-    recovery: 1.7
+    recovery: 0.65
     cooldown: 8
     damage: 1
     knockback: 4
-  pincerReach: 13
+  pincerReach: 22
   pincerHalfWidth: 5
   pincerHeight: 2
   pincerDepth: 3
   pincerContactWidth: 1.5
-  exposure: 2.5
+  exposure: 0.65
   cannon:
     warning: 1.8
     attack: 1
@@ -705,10 +709,10 @@ MonoBehaviour:
     knockback: 6
   beamRadius: 1.1
   beamSpeed: 22
-  beamDistance: 28
+  beamDistance: 45
   beamLength: 5
-  mouthHeight: 3.7
-  mouthForward: 2.5
+  mouthHeight: 5.18
+  mouthForward: 3.5
   vortex:
     warning: 2
     attack: 3
@@ -716,10 +720,12 @@ MonoBehaviour:
     cooldown: 15
     damage: 1
     knockback: 8
-  suctionRadius: 14
+  suctionRadius: 22
   suctionSpeed: 1.6
-  burstRadius: 8
+  burstRadius: 13
   pauseBeforeBurst: 0.9
+  vortexArmRotationSpeed: 34
+  pressureBurstDuration: 0.85
   sweep:
     warning: 1.65
     attack: 1.4
@@ -727,18 +733,29 @@ MonoBehaviour:
     cooldown: 11
     damage: 1
     knockback: 5
-  sweepRadius: 15
+  sweepRadius: 22
   sweepAngle: 200
   sweepHeight: 1.8
   sweepWidth: 1.5
   secondSweepHealth: 0.7
-  heartTrigger: 0.5
-  heartWarning: 2.2
-  heartExplosion: 0.65
-  heartInterval: 0.8
+  heartTrigger: 0.7
+  heartSecondTrigger: 0.3
   heartDamage: 1
   heartKnockback: 5
   groggyTime: 5
+  heartSlamCount: 12
+  heartSecondSlamCount: 18
+  heartIntroDuration: 1.2
+  heartIntroLift: 1.2
+  heartOverheadClearance: 2
+  heartSlamInterval: 0.6
+  heartSlamWarning: 0.7
+  heartSlamDuration: 0.22
+  heartGroundHold: 1.1
+  heartArmReturn: 0.35
+  heartSlamReach: 24
+  heartSlamWidth: 2.8
+  heartRaiseHeight: 8
   deathTime: 4
   AutomaticAttacks: 1
 --- !u!1 &2382977056528944023
@@ -1065,6 +1082,10 @@ PrefabInstance:
       propertyPath: m_Mesh
       value: 
       objectReference: {fileID: 8202269870987923505, guid: 1feafcb974a31a9439a4d13bd2ce2604, type: 3}
+    - target: {fileID: -3413437501573254027, guid: 1feafcb974a31a9439a4d13bd2ce2604, type: 3}
+      propertyPath: m_UpdateWhenOffscreen
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: -3413437501573254027, guid: 1feafcb974a31a9439a4d13bd2ce2604, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 

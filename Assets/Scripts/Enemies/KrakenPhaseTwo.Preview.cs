@@ -69,22 +69,26 @@ namespace DogLife
                     fx.Size = new Vector3(beamRadius * 2, 0, t < w ? beamDistance : Mathf.Max(0, Mathf.Min(beamDistance, distance) - back)); break;
                 case "소용돌이":
                     w = vortex.warning;
-                    fx.Shape = t < w + vortex.attack ? KrakenDeepVfx.Form.Vortex : t < w + vortex.attack + pauseBeforeBurst ? KrakenDeepVfx.Form.Orb : KrakenDeepVfx.Form.Burst;
-                    fx.Size = new Vector3(fx.Shape == KrakenDeepVfx.Form.Vortex ? suctionRadius : burstRadius, 5, 0);
-                    active &= t < duration - vortex.recovery;
-                    if (fx.Shape == KrakenDeepVfx.Form.Burst) { fx.Progress = (t - w - vortex.attack - pauseBeforeBurst) / .7f; fx.Intensity = 1 - fx.Progress; }
-                    break;
+                    float burstStart=w+vortex.attack+pauseBeforeBurst;
+                    active &= t<w+vortex.attack || t>=burstStart&&t<burstStart+pressureBurstDuration;
+                    fx.Shape=t<burstStart?KrakenDeepVfx.Form.Vortex:KrakenDeepVfx.Form.PressureBurst;
+                    fx.Size=new Vector3(t<burstStart?suctionRadius:burstRadius,5,0);
+                    fx.Progress=t<burstStart?Mathf.Clamp01(t/w):Mathf.Clamp01((t-burstStart)/pressureBurstDuration);
+                    fx.Impact=t>=w;fx.Intensity=t<burstStart?1:1-fx.Progress*fx.Progress;
+                    fx.gameObject.SetActive(active);fx.GetComponent<Renderer>().enabled=active;
+                    if(active)fx.SamplePreview(t);
+                    return;
                 case "휩쓸기":
                     w = sweep.warning; active &= t <= w + sweep.attack;
                     fx.Shape = KrakenDeepVfx.Form.Sector; fx.transform.position = transform.position + Vector3.up * (PreviewWaterDepth * .28f);
                     fx.Size = new Vector3(sweepRadius, sweepHeight, sweepAngle); break;
                 case "심장 노출":
-                    float cycle = heartWarning + heartExplosion + heartInterval;
-                    active &= t < cycle * 3 && t % cycle < heartWarning + heartExplosion;
-                    int layer = new[] { 0, 2, 1 }[Mathf.Min(2, (int)(t / cycle))];
-                    fx.Shape = KrakenDeepVfx.Form.Band; fx.Size = new Vector3(30, PreviewWaterDepth / 3, 30);
-                    fx.transform.position = transform.position + Vector3.up * (PreviewWaterDepth / 3 * (layer + .5f));
-                    t %= cycle; w = heartWarning; break;
+                    int strike=Mathf.FloorToInt(t/heartSlamInterval);
+                    active &= strike<heartSlamCount;
+                    fx.Shape=KrakenDeepVfx.Form.Band;
+                    fx.Size=new Vector3(heartSlamWidth,PreviewWaterDepth,Mathf.Min(8,heartSlamReach));
+                    fx.transform.position=transform.position+Vector3.up*(PreviewWaterDepth*.5f)+Vector3.forward*(fx.Size.z*.5f);
+                    t-=strike*heartSlamInterval;w=heartSlamWarning;break;
                 case "사망":
                     fx.Shape = KrakenDeepVfx.Form.Sand; fx.Size = new Vector3(sandRadius, sandHeight * .5f, 0);
                     fx.transform.position = transform.position; fx.Intensity = 1 - t / deathTime; break;
@@ -102,9 +106,9 @@ namespace DogLife
             {
                 case "협공": return pincer.warning + pincer.attack + exposure + pincer.recovery;
                 case "포격": return cannon.warning + (beamDistance + beamLength) / beamSpeed + cannon.recovery;
-                case "소용돌이": return vortex.warning + vortex.attack + pauseBeforeBurst + .7f + vortex.recovery;
+                case "소용돌이": return vortex.warning + vortex.attack + pauseBeforeBurst + pressureBurstDuration + vortex.recovery;
                 case "휩쓸기": return sweep.warning + sweep.attack + sweep.recovery;
-                case "심장 노출": return 3 * (heartWarning + heartExplosion + heartInterval) + groggyTime;
+                case "심장 노출": return HeartPreviewCombatDuration()+groggyTime;
                 case "그로기": return groggyTime;
                 case "사망": return deathTime;
                 default: return 3;
@@ -123,7 +127,7 @@ namespace DogLife
             float warning = 0, active = 0, recover = 0;
             if (pattern == "협공") { warning = pincer.warning; active = pincer.attack + exposure; recover = pincer.recovery; }
             if (pattern == "포격") { warning = cannon.warning; active = (beamDistance + beamLength) / beamSpeed; recover = cannon.recovery; }
-            if (pattern == "소용돌이") { warning = vortex.warning; active = vortex.attack + pauseBeforeBurst + .7f; recover = vortex.recovery; }
+            if (pattern == "소용돌이") { warning = vortex.warning; active = vortex.attack + pauseBeforeBurst + pressureBurstDuration; recover = vortex.recovery; }
             if (pattern == "휩쓸기") { warning = sweep.warning; active = sweep.attack; recover = sweep.recovery; }
             float attackTime = Mathf.Max(0, time - warning);
             float recovery = recover > 0 ? Mathf.SmoothStep(0, 1, (time - warning - active) / recover) : 0;
@@ -133,12 +137,11 @@ namespace DogLife
                 progress = time < warning ? time / warning : Mathf.Clamp01(attackTime / Mathf.Max(.01f, active));
                 if (pattern == "소용돌이" && attackTime < vortex.attack + pauseBeforeBurst) { clip = "Command"; progress = 1; }
             }
-            float heartCycle = heartWarning + heartExplosion + heartInterval;
             if (pattern == "심장 노출")
             {
-                float q = time % heartCycle;
-                clip = time >= heartCycle * 3 ? "Groggy" : q < heartWarning ? "Roar" : "Wave";
-                progress = time >= heartCycle * 3 ? (time - heartCycle * 3) / groggyTime : q < heartWarning ? q / heartWarning : Mathf.Clamp01((q - heartWarning) / heartExplosion);
+                float q=time%heartSlamInterval,finished=HeartPreviewCombatDuration();
+                clip=time>=finished?"Groggy":time<heartSlamWarning?"Roar":"Wave";
+                progress=time>=finished?(time-finished)/groggyTime:Mathf.Clamp01(q/heartSlamDuration);
             }
             if (pattern == "그로기" || pattern == "사망") { clip = "Groggy"; progress = time / PreviewLength(pattern); }
             if (pattern == "대기" || pattern == "그로기") bodyVisual.position += Vector3.up * Mathf.Sin(time * .7f) * idleSway;
@@ -148,12 +151,12 @@ namespace DogLife
             for (int i = 0; i < 4; i++)
             {
                 var arm = previewArms[i]; arm.transform.localScale = previewArmScales[i];
-                float angle = i == 0 ? 70 : i == 1 ? -70 : i == 2 ? 140 : -140;
+                float angle = i == 0 ? idleSideAngle : i == 1 ? -idleSideAngle : i == 2 ? 140 : -140;
                 var dir = Quaternion.AngleAxis(angle, Vector3.up) * forward;
                 var start = origin + Vector3.up * armSocketHeight + dir * armSocketRadius + bodyVisual.position - previewBodyPosition;
-                var idle = origin + Vector3.up * (3.2f + Mathf.Sin(time * .7f + i) * .3f) + dir * 10;
+                var idle = origin + Vector3.up * (idleArmHeight + Mathf.Sin(time * .7f + i) * .3f) + dir * idleArmRadius;
                 var end = idle;
-                var curve = Vector3.up * .3f + Vector3.Cross(dir, Vector3.up) * 2;
+                var curve = Vector3.up*.3f+Vector3.Cross(dir,Vector3.up)*2;
                 bool flowing = true;
                 if (pattern == "협공" && i < 2)
                 {
@@ -171,22 +174,37 @@ namespace DogLife
                     end = Vector3.Lerp(idle, end, Mathf.SmoothStep(0, 1, time / warning));
                     curve = Vector3.Cross(Vector3.up, d); flowing = false;
                 }
-                if (pattern == "소용돌이" && time >= warning)
+                if (pattern == "소용돌이")
                 {
-                    float a = (warning + Mathf.Min(attackTime, vortex.attack)) * .6f + i * Mathf.PI * .5f;
-                    var d = new Vector3(Mathf.Cos(a), 0, Mathf.Sin(a));
-                    end = middle + d * 9 + Vector3.up * 2; curve = Vector3.up * 3; flowing = false;
+                    var rotation=Quaternion.AngleAxis(VortexArmAngle(time),Vector3.up);
+                    end=middle+rotation*(idle-middle);
+                    curve=rotation*curve;
                 }
-                if (pattern == "심장 노출" && time < heartCycle * 3)
+                if (pattern == "심장 노출")
                 {
-                    int layer = new[] { 0, 2, 1 }[Mathf.Min(2, (int)(time / heartCycle))];
-                    float a = i * Mathf.PI * .5f;
-                    end = origin + Vector3.up * (PreviewWaterDepth / 3 * (layer + .5f)) + new Vector3(Mathf.Cos(a), 0, Mathf.Sin(a)) * 10;
-                    curve = Vector3.up * 2 * Mathf.Sin(Mathf.Clamp01((time % heartCycle) / heartWarning) * Mathf.PI); flowing = false;
+                    float cycle=Mathf.Max(heartSlamInterval*4,heartSlamWarning+heartSlamDuration+heartGroundHold+heartArmReturn);
+                    int pass=Mathf.FloorToInt(Mathf.Max(0,time-i*heartSlamInterval)/cycle);
+                    float began=i*heartSlamInterval+pass*cycle,age=time-began;
+                    if(time>=began&&i+pass*4<heartSlamCount)
+                    {
+                        var hit=origin+forward*8+Vector3.up*.2f;
+                        var raised=start+forward*2+Vector3.up*heartRaiseHeight;
+                        if(age<heartSlamWarning)end=Vector3.Lerp(idle,raised,Mathf.SmoothStep(0,1,age/heartSlamWarning));
+                        else if(age<heartSlamWarning+heartSlamDuration){float q=(age-heartSlamWarning)/heartSlamDuration;end=Vector3.Lerp(raised,hit,q*q);}
+                        else end=Vector3.Lerp(hit,idle,Mathf.SmoothStep(0,1,(age-heartSlamWarning-heartSlamDuration-heartGroundHold)/heartArmReturn));
+                        curve=Vector3.up*.3f;
+                    }
                 }
                 if (pattern == "사망") end -= Vector3.up * burialDepth * Mathf.SmoothStep(0, 1, progress) * .5f;
                 arm.SamplePreview(start, Vector3.Lerp(end, idle, recovery), curve, flowing);
             }
+        }
+        float HeartPreviewCombatDuration()
+        {
+            float duration=heartSlamWarning+heartSlamDuration+heartGroundHold+heartArmReturn;
+            float cycle=Mathf.Max(heartSlamInterval*4,duration);
+            int last=Mathf.Max(0,heartSlamCount-1);
+            return last/4*cycle+last%4*heartSlamInterval+duration;
         }
     }
 }

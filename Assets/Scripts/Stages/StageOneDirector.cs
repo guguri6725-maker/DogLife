@@ -72,8 +72,11 @@ namespace DogLife
                 hud.objective = Cleared == encounters.Length - 1 ? $"{bossLabel}  /  Defeat the boss  /  HP {enemies[Cleared][0].Current:0}" : $"{stageLabel}  /  Encounter {Cleared + 1}/{encounters.Length - 1}  /  Enemies left: {remaining}";
                 if (remaining == 0)
                 {
-                    var vines = gates[Cleared].GetComponentInChildren<VineGate>();
-                    if (vines) vines.Open(); else gates[Cleared].SetActive(false);
+                    if(Cleared<encounters.Length-1)
+                    {
+                        var vines = gates[Cleared].GetComponentInChildren<VineGate>();
+                        if (vines) vines.Open(); else gates[Cleared].SetActive(false);
+                    }
                     Cleared++;
                     if (Cleared < encounters.Length) encounters[Cleared].SetActive(true);
                     else if(StoryBook.Instance)StoryBook.Instance.QueueClear(this);
@@ -81,11 +84,7 @@ namespace DogLife
             }
             else
             {
-                hud.objective = bossLabel + " DEFEATED  /  Reach the green exit";
-                if (!StoryBook.AwaitingClear && Vector3.Distance(hud.motor.transform.position, exit.position) < 2f)
-                {
-                    hud.completed = true; EndRun();
-                }
+                hud.objective = "보스 처치 / 빛나는 추억에 다가가 F키로 상호작용";
             }
             for (int i = 0; i < recoveryStations.Length; i++)
                 if (!usedStations[i] && Vector3.Distance(hud.motor.transform.position, recoveryStations[i].position) < 2f)

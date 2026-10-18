@@ -6,7 +6,7 @@ OUT=ROOT+'/Assets/Art/SummerRebuilt/Models'
 os.makedirs(OUT,exist_ok=True)
 collection=bpy.data.collections.new('SummerRebuilt_Original');bpy.context.scene.collection.children.link(collection)
 material=bpy.data.materials.new('CoastalOriginalSurface');material.use_nodes=True
-image=bpy.data.images.load(ROOT+'/Assets/Art/SummerRebuilt/Textures/CoastalOriginalAtlas.png',check_existing=True)
+image=bpy.data.images.load(ROOT+'/Assets/Textures/Environment/Summer/SummerRebuilt/CoastalOriginalAtlas.png',check_existing=True)
 tex=material.node_tree.nodes.new('ShaderNodeTexImage');tex.image=image
 material.node_tree.links.new(tex.outputs['Color'],material.node_tree.nodes.get('Principled BSDF').inputs['Base Color'])
 material.node_tree.nodes.get('Principled BSDF').inputs['Roughness'].default_value=.85

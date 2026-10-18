@@ -10,6 +10,7 @@ namespace DogLife
     public sealed class RoomMonsterSpawner : MonoBehaviour
     {
         public const int MonstersPerRoom = 5;
+        [SerializeField,Min(1),Tooltip("일반방 전체 체력 예산. 몬스터별 체력 비율은 유지합니다.")] float roomHealthBudget=450;
         public GameObject[] monsterPrefabs;
         [SerializeField,Tooltip("지정된 방은 일반 몬스터 대신 보스 한 마리만 소환합니다.")] private GameObject bossPrefab;
         [SerializeField] FrozenKnightCinematicStage bossCinematicStage;
@@ -18,6 +19,11 @@ namespace DogLife
         public bool Prepared { get; private set; }
         bool preparing;
         readonly Collider[] spawnOverlaps = new Collider[64];
+        static bool UsesFixedRoomHealth(GameObject monster)
+        {
+            var autumn=monster.GetComponent<FallMonsterEnemy>();
+            return autumn&&autumn.AttackPattern==FallMonsterEnemy.Pattern.CrowDash;
+        }
 
         public static int[] PickTypes(int count)
         {
@@ -92,6 +98,8 @@ namespace DogLife
                 if(monsterPrefabs!=null)foreach(var prefab in monsterPrefabs)if(prefab&&!pool.Contains(prefab))pool.Add(prefab);
                 if(pool.Count<2||!room.encounter){Debug.LogError("Room monster configuration is incomplete",this);yield break;}
                 var types=PickTypes(pool.Count);var positions=new List<Vector3>();
+                float healthTotal=0;int scaledCount=0;
+                foreach(var type in types){var health=pool[type].GetComponent<CombatHealth>();if(health&&!UsesFixedRoomHealth(pool[type])){healthTotal+=health.maxHealth;scaledCount++;}}
                 // 모든 위치를 먼저 검증하므로 실패한 방이 부분 생성/자동 클리어되지 않습니다.
                 for(int i=0;i<types.Length;i++)
                 {
@@ -129,6 +137,9 @@ namespace DogLife
                     var monster=Instantiate(prefab,origin,Quaternion.Euler(0,-90,0),room.encounter.transform);
                     monster.name=prefab.name+"_"+(i+1);
                     monster.SetActive(false);
+                    var health=monster.GetComponent<CombatHealth>();
+                    // 까마귀는 고정 체력. 비워진 슬롯 예산을 다른 몬스터에게 넘기지 않습니다.
+                    if(health&&healthTotal>0&&!UsesFixedRoomHealth(monster))health.maxHealth*=roomHealthBudget*(scaledCount/(float)MonstersPerRoom)/healthTotal;
                     spawned[i]=monster;
                     if(spreadAcrossFrames)yield return null;
                 }

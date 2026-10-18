@@ -84,9 +84,9 @@ namespace DogLife.EditorTools
             string dest="Builds/PassageValidation/Backup/"+Path.GetFileName(path);
             if(!File.Exists(dest))File.Copy(path,dest);
         }
-        static Material CopyMaterial(string source,string name,Color tint)
+        static Material CopyMaterial(string source,int season,string name,Color tint)
         {
-            string path=Folder+"/"+name+".mat";var mat=AssetDatabase.LoadAssetAtPath<Material>(path);
+            string path=MaterialsFolder(season)+"/"+name+".mat";var mat=AssetDatabase.LoadAssetAtPath<Material>(path);
             var src=AssetDatabase.LoadAssetAtPath<Material>(source);if(!src)throw new InvalidOperationException(source);
             if(!mat){mat=new Material(src);AssetDatabase.CreateAsset(mat,path);}else mat.CopyPropertiesFromMaterial(src);
             mat.color=tint;mat.mainTextureScale=Vector2.one;mat.enableInstancing=true;EditorUtility.SetDirty(mat);return mat;

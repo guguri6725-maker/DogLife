@@ -22,8 +22,8 @@ namespace DogLife.EditorTools
             try
             {
                 var stream=main.GetRootGameObjects().SelectMany(g=>g.GetComponentsInChildren<ForestRoomStreaming>(true)).Single();
-                var stone=AssetDatabase.LoadAssetAtPath<Material>(SeasonPassageBuilder.Folder+"/"+Names[season]+"_Stone.mat");
-                var fallbackFloor=AssetDatabase.LoadAssetAtPath<Material>(SeasonPassageBuilder.Folder+"/"+Names[season]+"_Floor.mat");
+                var stone=AssetDatabase.LoadAssetAtPath<Material>(SeasonPassageBuilder.MaterialsFolder(season)+"/"+Names[season]+"_Stone.mat");
+                var fallbackFloor=AssetDatabase.LoadAssetAtPath<Material>(SeasonPassageBuilder.MaterialsFolder(season)+"/"+Names[season]+"_Floor.mat");
                 for(int i=0;i<stream.roomScenePaths.Length;i++)
                 {
                     var path=stream.roomScenePaths[i];var scene=EditorSceneManager.OpenScene(path,OpenSceneMode.Additive);

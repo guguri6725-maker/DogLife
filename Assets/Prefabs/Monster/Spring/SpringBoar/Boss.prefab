@@ -189,7 +189,7 @@ GameObject:
   - component: {fileID: 1693446256998657458}
   - component: {fileID: 8077250815027657329}
   m_Layer: 0
-  m_Name: SpringBoarBoss
+  m_Name: Boss
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -229,7 +229,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7ec31b56d4fa0324ab9d3b38b177327c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DogLife.CombatHealth
-  maxHealth: 1800
+  maxHealth: 1260
   player: 0
   practiceTarget: 0
   playerHitInvulnerability: 0.7
@@ -429,7 +429,7 @@ MonoBehaviour:
   roarShake: 0.22
   landingShake: 0.4
   shakeDistance: 35
-  phaseTwoHealth: 1800
+  phaseTwoHealth: 1890
   fragmentCount: 70
   fragmentSize: 0.2
   fragmentTravel: 2.1

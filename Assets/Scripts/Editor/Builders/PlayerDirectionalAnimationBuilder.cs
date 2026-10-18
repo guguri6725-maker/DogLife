@@ -61,7 +61,10 @@ namespace DogLife.EditorTools
                 }
                 clip.EnsureQuaternionContinuity();
                 PlayerWalkLoopBuilder.Bake(clip);
-                AssetDatabase.CreateAsset(clip,Folder+"/"+clip.name+".anim");clips[i]=clip;
+                string clipPath=Folder+"/DogLight_Locomotion_"+clip.name+".anim";
+                var existing=AssetDatabase.LoadAssetAtPath<AnimationClip>(clipPath);
+                if(existing){EditorUtility.CopySerialized(clip,existing);UnityEngine.Object.DestroyImmediate(clip);clip=existing;}
+                else AssetDatabase.CreateAsset(clip,clipPath);clips[i]=clip;
             }
             foreach(string name in new[]{"MoveX","MoveY"})if(!controller.parameters.Any(p=>p.name==name))controller.AddParameter(name,AnimatorControllerParameterType.Float);
             var tree=new BlendTree{name="Locomotion_9Directions",blendType=BlendTreeType.SimpleDirectional2D,blendParameter="MoveX",blendParameterY="MoveY",useAutomaticThresholds=false};

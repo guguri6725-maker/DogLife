@@ -1,5 +1,5 @@
 import bpy
-atlas=bpy.data.images.load('C:/unity/DogLife/Assets/Art/SeasonCrafted/Textures/SeasonAtlas.png',check_existing=True)
+atlas=bpy.data.images.load('C:/unity/DogLife/Assets/Textures/Environment/Summer/SeasonCrafted/SeasonAtlas.png',check_existing=True)
 for name,offset in [('Season_Bark',(0,.5,0)),('Season_Stone',(0,0,0)),('Season_Leaf',(.5,0,0))]:
  m=bpy.data.materials.get(name)
  if not m:continue

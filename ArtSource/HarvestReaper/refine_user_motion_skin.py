@@ -20,5 +20,5 @@ for tr in rig.animation_data.nla_tracks:tr.mute=True
 for p in rig.pose.bones:p.matrix_basis.identity()
 bpy.context.view_layer.update()
 bpy.ops.object.select_all(action='DESELECT');rig.select_set(True);body.select_set(True);bpy.context.view_layer.objects.active=rig
-bpy.ops.export_scene.fbx(filepath=ROOT+'/Assets/Art/HarvestReaper/Models/HarvestReaper.fbx',use_selection=True,object_types={'ARMATURE','MESH'},add_leaf_bones=False,bake_anim=False,axis_forward='-Z',axis_up='Y')
+bpy.ops.export_scene.fbx(filepath=ROOT+'/Assets/Models/Monster/Autumn/HarvestReaper/HarvestReaper.fbx',use_selection=True,object_types={'ARMATURE','MESH'},add_leaf_bones=False,bake_anim=False,axis_forward='-Z',axis_up='Y')
 print('Adjusted hanging robe weights:',changed,'; vertex count unchanged:',len(body.data.vertices))

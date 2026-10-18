@@ -186,6 +186,8 @@ namespace DogLife
                 if(item.weaponCategory==InventoryWeapon.WeaponCategory.Dagger)
                     origin.y=weapons.ThrustHeight(origin,direction,reach*BoneWeaponVfx.SizeFor(item)*(step==2?1.35f:1));
                 float power=item.weaponCategory==InventoryWeapon.WeaponCategory.Axe?(step==2?1.8f:step==1?1.3f:1):1;
+                if(item.weaponCategory==InventoryWeapon.WeaponCategory.Spear&&step==2)
+                    power=move.spearFlurryDamageMultiplier;
                 var surface=item.strikeAccentPrefab&&item.strikeAccentPrefab.surfaceMaterial?item.strikeAccentPrefab.surfaceMaterial:move.effectMaterial;
                 var effect=BoneWeaponVfx.Strike(origin,direction,reach,item.weaponCategory,step,color,surface,BoneWeaponVfx.SizeFor(item),secondStruck);
                 if(item.strikeAccentPrefab)

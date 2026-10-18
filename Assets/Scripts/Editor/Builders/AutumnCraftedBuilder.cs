@@ -11,23 +11,25 @@ namespace DogLife.EditorTools
 {
     public static class AutumnCraftedBuilder
     {
-        const string Art="Assets/Art/AutumnCrafted";
+        const string Models="Assets/Models/Environment/Autumn/AutumnCrafted";
+        const string Textures="Assets/Textures/Environment/Autumn/AutumnCrafted";
+        const string MaterialsFolder="Assets/Materials/Environment/Autumn/AutumnCrafted";
         const string Rooms="Assets/Scenes/SeasonRooms/AutumnJourney9";
         static Material bark,stone,amber;
         static Material Material(string name,string texture,Color color,bool foliage=false)
         {
-            string path=Art+"/Materials/"+name+".mat";var m=AssetDatabase.LoadAssetAtPath<Material>(path);
+            string path=MaterialsFolder+"/"+name+".mat";var m=AssetDatabase.LoadAssetAtPath<Material>(path);
             if(!m){m=new Material(Shader.Find(foliage?"DogLife/Autumn Crafted Foliage":"Standard"));AssetDatabase.CreateAsset(m,path);}
-            m.color=color;if(texture!=null)m.mainTexture=AssetDatabase.LoadAssetAtPath<Texture2D>(Art+"/Textures/"+texture+".png");
+            m.color=color;if(texture!=null)m.mainTexture=AssetDatabase.LoadAssetAtPath<Texture2D>(Textures+"/"+texture+".png");
             if(foliage){m.SetFloat("_Cutoff",.38f);m.SetFloat("_TintStrength",.8f);}else m.SetFloat("_Glossiness",.14f);
             m.enableInstancing=true;EditorUtility.SetDirty(m);return m;
         }
         static readonly Color[] Colors={new Color(.64f,.70f,.28f),new Color(.93f,.72f,.22f),new Color(1,.61f,.13f),new Color(.96f,.43f,.105f),new Color(.89f,.32f,.09f),new Color(.84f,.235f,.085f),new Color(.76f,.155f,.08f),new Color(.66f,.12f,.07f),new Color(.55f,.22f,.11f)};
         public static void Init()
         {
-            Directory.CreateDirectory(Art+"/Materials");Directory.CreateDirectory(Art+"/Prefabs");AssetDatabase.Refresh();
+            Directory.CreateDirectory(MaterialsFolder);AssetDatabase.Refresh();
             foreach(string file in new[]{"Maple_Bark","Maple_Leaf","Autumn_Stone"})
-            {var t=(TextureImporter)AssetImporter.GetAtPath(Art+"/Textures/"+file+".png");if(t.maxTextureSize!=1024||t.alphaIsTransparency!=(file=="Maple_Leaf")){t.maxTextureSize=1024;t.alphaIsTransparency=file=="Maple_Leaf";t.mipmapEnabled=true;t.wrapMode=file=="Maple_Leaf"?TextureWrapMode.Clamp:TextureWrapMode.Repeat;t.SaveAndReimport();}}
+            {var t=(TextureImporter)AssetImporter.GetAtPath(Textures+"/"+file+".png");if(t.maxTextureSize!=1024||t.alphaIsTransparency!=(file=="Maple_Leaf")){t.maxTextureSize=1024;t.alphaIsTransparency=file=="Maple_Leaf";t.mipmapEnabled=true;t.wrapMode=file=="Maple_Leaf"?TextureWrapMode.Clamp:TextureWrapMode.Repeat;t.SaveAndReimport();}}
             bark=Material("Crafted_Bark","Maple_Bark",Color.white);stone=Material("Crafted_Stone","Autumn_Stone",new Color(.84f,.82f,.75f));amber=Material("Crafted_Amber",null,new Color(1,.48f,.08f));amber.EnableKeyword("_EMISSION");amber.SetColor("_EmissionColor",new Color(1,.26f,.02f)*1.1f);
         }
         static void Materials(GameObject go,Material leaves)
@@ -40,7 +42,7 @@ namespace DogLife.EditorTools
         }
         static GameObject Model(string name,Transform parent,Vector3 p,float scale,float yaw,Material leaves)
         {
-            var asset=AssetDatabase.LoadAssetAtPath<GameObject>(Art+"/Models/"+name+".fbx");if(!asset)throw new Exception(name);
+            var asset=AssetDatabase.LoadAssetAtPath<GameObject>(Models+"/"+name+".fbx");if(!asset)throw new Exception(name);
             var go=(GameObject)PrefabUtility.InstantiatePrefab(asset,parent);PrefabUtility.UnpackPrefabInstance(go,PrefabUnpackMode.Completely,InteractionMode.AutomatedAction);go.name=name;go.transform.localScale=Vector3.one*scale;go.transform.rotation=Quaternion.Euler(0,yaw,0);go.transform.position=p;Materials(go,leaves);return go;
         }
         static void Blocker(GameObject go,float radius,float height)
@@ -93,7 +95,7 @@ namespace DogLife.EditorTools
                 foreach(var corner in new[]{new Vector3(-1,0,-1),new Vector3(-1,0,1),new Vector3(1,0,1),new Vector3(1,0,-1)})v.Add(p+q*corner*size);
                 uv.AddRange(new[]{Vector2.zero,Vector2.up,Vector2.one,Vector2.right});tri.AddRange(new[]{n,n+1,n+2,n,n+2,n+3});
             }
-            string path=Art+"/Carpet_"+index+".asset";var mesh=AssetDatabase.LoadAssetAtPath<Mesh>(path);if(!mesh){mesh=new Mesh();AssetDatabase.CreateAsset(mesh,path);}else mesh.Clear();mesh.SetVertices(v);mesh.SetUVs(0,uv);mesh.SetTriangles(tri,0);mesh.RecalculateNormals();mesh.RecalculateBounds();EditorUtility.SetDirty(mesh);
+            string path=Models+"/Carpet_"+index+".asset";var mesh=AssetDatabase.LoadAssetAtPath<Mesh>(path);if(!mesh){mesh=new Mesh();AssetDatabase.CreateAsset(mesh,path);}else mesh.Clear();mesh.SetVertices(v);mesh.SetUVs(0,uv);mesh.SetTriangles(tri,0);mesh.RecalculateNormals();mesh.RecalculateBounds();EditorUtility.SetDirty(mesh);
             var go=new GameObject("Textured_Fallen_Maple_Leaves");go.transform.SetParent(parent,false);go.AddComponent<MeshFilter>().sharedMesh=mesh;go.AddComponent<MeshRenderer>().sharedMaterial=leaves;
         }
         public static string Apply(int index)

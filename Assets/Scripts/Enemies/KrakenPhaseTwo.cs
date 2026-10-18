@@ -19,12 +19,15 @@ namespace DogLife
         [SerializeField] Mesh slimArmMesh;
         [SerializeField] Material armMaterial;
         [SerializeField] Material waterMaterial;
-        [SerializeField] float bodyWidth=12,bodyHeight=6.2f,bodyFloatHeight=.65f,armLength=16,armRadius=.65f;
+        [SerializeField] float bodyWidth=16.8f,bodyHeight=8.68f,bodyFloatHeight=.65f,armLength=30,armRadius=.68f;
         [SerializeField,Min(.1f)] float armSocketRadius=1.75f;
         // 음수 높이는 촉수 뿌리를 해저 아래에 숨깁니다.
         [SerializeField] float armSocketHeight=1.6f;
+        [Header("Resting arms: clear view of the face")]
+        [SerializeField] float idleArmRadius=10,idleArmHeight=3.2f;
+        [SerializeField,Range(30,170)] float idleSideAngle=70;
         [Header("Player movement barrier (world units)")]
-        [SerializeField,Min(.1f)] float bodyBlockRadius=2.7f;
+        [SerializeField,Min(.1f)] float bodyBlockRadius=3.7f;
         CapsuleCollider bodyBarrier;
         Vector3 barrierLocalCenter;
         public Collider BodyBarrier=>bodyBarrier;
@@ -32,20 +35,30 @@ namespace DogLife
         [SerializeField] float sandLead=2,emergeTime=5.5f,unfurlTime=2.5f,combatGrace=2,burialDepth=8;
         [SerializeField] float sandRadius=7,sandHeight=5,turnSpeed=60,idleSway=.12f;
         [Header("Pincer: locked horizontal layer; swim up or down")]
-        [SerializeField] Pattern pincer=new Pattern();
-        [SerializeField] float pincerReach=13,pincerHalfWidth=5,pincerHeight=2,pincerDepth=3,pincerContactWidth=1.5f,exposure=2.5f;
+        [SerializeField] Pattern pincer=new Pattern{recovery=.65f};
+        [SerializeField] float pincerReach=22,pincerHalfWidth=5,pincerHeight=2,pincerDepth=3,pincerContactWidth=1.5f,exposure=.65f;
         [Header("Pressure cannon: a locked three-dimensional line")]
         [SerializeField] Pattern cannon=new Pattern{warning=1.8f,attack=1,recovery=2,cooldown=9,knockback=6};
-        [SerializeField] float beamRadius=1.1f,beamSpeed=22,beamDistance=28,beamLength=5,mouthHeight=3.7f,mouthForward=2.5f;
+        [SerializeField] float beamRadius=1.1f,beamSpeed=22,beamDistance=45,beamLength=5,mouthHeight=5.18f,mouthForward=3.5f;
         [Header("Whirlpool: escapable current, pause, radial burst")]
         [SerializeField] Pattern vortex=new Pattern{warning=2,attack=3,recovery=2.2f,cooldown=15,knockback=8};
-        [SerializeField] float suctionRadius=14,suctionSpeed=1.6f,burstRadius=8,pauseBeforeBurst=.9f;
+        [SerializeField] float suctionRadius=22,suctionSpeed=1.6f,burstRadius=13,pauseBeforeBurst=.9f;
+        [SerializeField,Min(0)] float vortexArmRotationSpeed=34;
+        [SerializeField,Min(.1f)] float pressureBurstDuration=.85f;
         [Header("Horizontal sweep: alternate height has its own warning")]
         [SerializeField] Pattern sweep=new Pattern{warning=1.65f,attack=1.4f,recovery=1.8f,cooldown=11,knockback=5};
-        [SerializeField] float sweepRadius=15,sweepAngle=200,sweepHeight=1.8f,sweepWidth=1.5f,secondSweepHealth=.7f;
-        [Header("Deep-sea heart: lower, upper, middle; once per encounter")]
-        [SerializeField,Range(.05f,.95f)] float heartTrigger=.5f;
-        [SerializeField] float heartWarning=2.2f,heartExplosion=.65f,heartInterval=.8f,heartDamage=1,heartKnockback=5,groggyTime=5;
+        [SerializeField] float sweepRadius=22,sweepAngle=200,sweepHeight=1.8f,sweepWidth=1.5f,secondSweepHealth=.7f;
+        [Header("HP special trigger and damage; once per encounter")]
+        [SerializeField,Range(.05f,.95f)] float heartTrigger=.7f,heartSecondTrigger=.3f;
+        [SerializeField] float heartDamage=1,heartKnockback=5,groggyTime=5;
+        [Header("HP special: alternating tentacle slams")]
+        [SerializeField,Min(1)] int heartSlamCount=12,heartSecondSlamCount=18;
+        [SerializeField,Min(.1f)] float heartIntroDuration=1.2f;
+        [SerializeField,Min(0)] float heartIntroLift=1.2f;
+        [SerializeField,Min(.5f)] float heartOverheadClearance=2;
+        [SerializeField,Min(.1f)] float heartSlamInterval=.6f,heartSlamWarning=.7f,heartSlamDuration=.22f,heartGroundHold=1.1f,heartArmReturn=.35f;
+        [SerializeField,Min(.1f)] float heartSlamReach=24,heartSlamWidth=2.8f,heartRaiseHeight=8;
+        public int HeartSlamsCompleted {get;private set;}
         [SerializeField] float deathTime=4;
         public enum Phase{Dormant,Reveal,Idle,Pincer,Cannon,Vortex,Sweep,Heart,Groggy,Dead}
         public Phase State{get;private set;}
@@ -61,19 +74,25 @@ namespace DogLife
         readonly float[] ready=new float[4];
         Transform pool;Animator animator;CombatHealth health,playerHealth;PlayerMotor player;PlayerWaterMovement swim;
         KrakenPhaseOne first;Bounds arena;Vector3 bodyHome,center,facing=Vector3.right;Quaternion bodyRest;
-        BoxCollider attackBox;bool running,heartUsed;int last=-1;
+        BoxCollider attackBox;bool running;int last=-1;
         public Bounds Arena=>arena;
         public Vector3 Center=>center;
         public IEnumerator Reveal(KrakenPhaseOne owner,KrakenSequenceCamera camera,float waterHeight)
         {
             first=owner;player=owner.Player;playerHealth=player.GetComponent<CombatHealth>();swim=player.GetComponent<PlayerWaterMovement>();
-            health=GetComponent<CombatHealth>();arena=owner.Arena;arena.SetMinMax(arena.min,new Vector3(arena.max.x,waterHeight-1,arena.max.z));
+            health=GetComponent<CombatHealth>();var flood=owner.GetComponent<KrakenWaterVolume>();arena=flood?flood.UnderwaterBounds:owner.Arena;arena.SetMinMax(arena.min,new Vector3(arena.max.x,waterHeight-1,arena.max.z));
             State=Phase.Reveal;health.invulnerable=true;
             if(!bodyVisual)bodyVisual=transform.Find("RiggedBody");
             var legacy=bodyVisual.GetComponent<KrakenRigMotion>();if(legacy)legacy.enabled=false;
             animator=bodyVisual.GetComponent<Animator>();animator.enabled=true;animator.Play("Idle",0,0);animator.Update(0);
             bodyRest=bodyVisual.localRotation;
-            foreach(var r in bodyVisual.GetComponentsInChildren<Renderer>(true)){r.enabled=true;r.forceRenderingOff=false;}
+            foreach(var r in bodyVisual.GetComponentsInChildren<Renderer>(true))
+            {
+                r.enabled=true;r.forceRenderingOff=false;
+                // The scaled body turns and deforms beyond its imported, fixed culling bounds.
+                // Recalculate skinned bounds even after the old bounds have left the camera.
+                if(r is SkinnedMeshRenderer bodySkin)bodySkin.updateWhenOffscreen=true;
+            }
             // Measure the rest mesh in world units, rather than the inflated animation culling bounds.
             var skin=bodyVisual.GetComponentInChildren<SkinnedMeshRenderer>();var b=skin.sharedMesh.bounds;Bounds bounds=new Bounds(skin.transform.TransformPoint(b.center),Vector3.zero);
             for(int x=-1;x<=1;x+=2)for(int y=-1;y<=1;y+=2)for(int z=-1;z<=1;z+=2)bounds.Encapsulate(skin.transform.TransformPoint(b.center+Vector3.Scale(b.extents,new Vector3(x,y,z))));
@@ -87,7 +106,7 @@ namespace DogLife
                 // Leave enough arc length to reach the announced outer sweep at either height.
                 float reach=Mathf.Max(armLength,Mathf.Sqrt(Mathf.Pow(sweepRadius+armSocketRadius,2)+Mathf.Pow(arena.size.y*.72f-armSocketHeight,2))+.5f);
                 a.Build(armModel,slimArmMesh,armMaterial,reach,armRadius);
-                float angle=i==0?70:i==1?-70:i==2?140:-140;
+                float angle=i==0?idleSideAngle:i==1?-idleSideAngle:i==2?140:-140;
                 Vector3 socket=new Vector3(center.x,arena.min.y+armSocketHeight,center.z)+Quaternion.AngleAxis(angle,Vector3.up)*facing*armSocketRadius;
                 a.Attach(bodyVisual,socket);arms.Add(a);
             }
@@ -139,7 +158,7 @@ namespace DogLife
             yield return new WaitForSeconds(combatGrace);
             while(running&&!health.Dead){
                 if(!AutomaticAttacks){yield return null;continue;}
-                if(!heartUsed&&health.Current<=health.maxHealth*heartTrigger){heartUsed=true;yield return Heart();continue;}
+                if(HeartExecutions<2&&health.Current<=health.maxHealth*(HeartExecutions==0?heartTrigger:heartSecondTrigger)){yield return Heart();continue;}
                 int choice=-1;var available=new List<int>();
                 for(int i=0;i<4;i++)if(i!=last&&Time.time>=ready[i])available.Add(i);
                 if(available.Count>0)choice=available[UnityEngine.Random.Range(0,available.Count)];
@@ -173,9 +192,9 @@ namespace DogLife
         }
         void IdleTargets(int i,out Vector3 start,out Vector3 end,out Vector3 curve)
         {
-            float angle=i==0?70:i==1?-70:i==2?140:-140;Vector3 dir=Quaternion.AngleAxis(angle,Vector3.up)*facing;
+            float angle=i==0?idleSideAngle:i==1?-idleSideAngle:i==2?140:-140;Vector3 dir=Quaternion.AngleAxis(angle,Vector3.up)*facing;
             start=arms[i].SocketPosition;
-            end=new Vector3(center.x,arena.min.y+3.2f+Mathf.Sin(Time.time*.7f+i)*.3f,center.z)+dir*10;
+            end=new Vector3(center.x,arena.min.y+idleArmHeight+Mathf.Sin(Time.time*.7f+i)*.3f,center.z)+dir*idleArmRadius;
             curve=Vector3.up*.3f+Vector3.Cross(dir,Vector3.up)*2;
         }
         void Play(string state,float duration){if(!animator)return;animator.SetFloat("PhaseSpeed",1/Mathf.Max(.1f,duration));animator.CrossFadeInFixedTime(state,.25f);}
@@ -247,20 +266,45 @@ namespace DogLife
         IEnumerator Vortex()
         {
             State=Phase.Vortex;Sound.Prepare("Kraken_Pressure_Charge");Play("Command",vortex.warning);var water=Effect(KrakenDeepVfx.Form.Vortex,center);water.Size=new Vector3(suctionRadius,5,0);
-            for(float t=0;t<vortex.warning;t+=Time.deltaTime){water.Progress=t/vortex.warning;water.Intensity=t/vortex.warning;yield return null;}
+            for(float t=0;t<vortex.warning;t+=Time.deltaTime){water.Progress=t/vortex.warning;water.Intensity=t/vortex.warning;SetVortexArms(VortexArmAngle(t));yield return null;}
             water.Impact=true;water.Progress=1;water.Intensity=1;Sound.StopPreparation();Sound.Sustain("Kraken_Flood_Loop",.4f);
             for(float t=0;t<vortex.attack;t+=Time.deltaTime){
                 Vector3 d=center-(player.transform.position+Vector3.up*.6f);
                 if(swim)swim.SetCurrent(d.magnitude<suctionRadius?d.normalized*suctionSpeed:Vector3.zero);
-                for(int i=0;i<arms.Count;i++){float a=Time.time*.6f+i*Mathf.PI*.5f;Vector3 dir=new Vector3(Mathf.Cos(a),0,Mathf.Sin(a));arms[i].SetShape(center+dir*2,center+dir*9+Vector3.up*2,Vector3.up*3);}
+                SetVortexArms(VortexArmAngle(vortex.warning+t));
                 yield return null;
             }
             if(swim)swim.SetCurrent(Vector3.zero);Remove(water);Sound.StopSustain();Sound.Prepare("Kraken_Pressure_Charge");
-            var burst=Effect(KrakenDeepVfx.Form.Orb,center);burst.Size=Vector3.one*burstRadius;
-            for(float t=0;t<pauseBeforeBurst;t+=Time.deltaTime){burst.Progress=t/pauseBeforeBurst;yield return null;}
-            Sound.StopPreparation();Sound.Cue("Kraken_Pressure_Burst");Play("Wave",vortex.attack);burst.Shape=KrakenDeepVfx.Form.Burst;burst.Progress=0;
-            if(Vector3.Distance(player.GetComponent<CapsuleCollider>().ClosestPoint(center),center)<=burstRadius)Hit(vortex.damage,player.transform.position-center,vortex.knockback);
-            for(float t=0;t<.7f;t+=Time.deltaTime){burst.Progress=t/.7f;burst.Intensity=1-t/.7f;yield return null;}Remove(burst);yield return Recover(vortex.recovery);
+            // The brief intake pause has no full-sized sphere: only one outward pulse is shown.
+            yield return new WaitForSeconds(pauseBeforeBurst);
+            Sound.StopPreparation();Sound.Cue("Kraken_Pressure_Burst");Play("Wave",pressureBurstDuration);
+            var burst=Effect(KrakenDeepVfx.Form.PressureBurst,center);burst.Size=Vector3.one*burstRadius;burst.Impact=true;
+            bool hit=false;
+            for(float t=0;t<pressureBurstDuration+Time.deltaTime;t+=Time.deltaTime)
+            {
+                float q=Mathf.Clamp01(t/pressureBurstDuration);burst.Progress=q;burst.Intensity=1-q*q;
+                float front=burstRadius*KrakenDeepVfx.PressureFront(q);
+                if(!hit&&Vector3.Distance(player.GetComponent<CapsuleCollider>().ClosestPoint(center),center)<=front)
+                    hit=Hit(vortex.damage,player.transform.position-center,vortex.knockback);
+                yield return null;
+            }
+            Remove(burst);yield return Recover(vortex.recovery);
+        }
+        float VortexArmAngle(float elapsed)
+        {
+            // Start from the idle pose with zero angular velocity, then gain momentum.
+            float ramp=Mathf.Min(.6f,vortex.attack*.3f);
+            float t=Mathf.Clamp(elapsed,0,vortex.warning+vortex.attack);
+            return vortexArmRotationSpeed*(t<ramp?t*t/(2*Mathf.Max(.001f,ramp)):t-ramp*.5f);
+        }
+        void SetVortexArms(float angle)
+        {
+            var rotation=Quaternion.AngleAxis(angle,Vector3.up);
+            for(int i=0;i<arms.Count;i++)
+            {
+                IdleTargets(i,out var start,out var end,out var curve);
+                arms[i].SetShape(start,center+rotation*(end-center),rotation*curve,true);
+            }
         }
         IEnumerator Sweep()
         {
@@ -286,22 +330,7 @@ namespace DogLife
             }
             yield return Recover(sweep.recovery);
         }
-        IEnumerator Heart()
-        {
-            State=Phase.Heart;HeartExecutions++;Sound.Cue("Kraken_Roar");Play("Roar",heartWarning);
-            foreach(int layer in new[]{0,2,1}){
-                Sound.Prepare("Kraken_Pressure_Charge");
-                float height=arena.size.y/3;Vector3 p=new Vector3(arena.center.x,arena.min.y+height*(layer+.5f),arena.center.z);
-                var band=Effect(KrakenDeepVfx.Form.Band,p);band.Size=new Vector3(arena.size.x,height,arena.size.z);
-                for(float t=0;t<heartWarning;t+=Time.deltaTime){band.Progress=t/heartWarning;
-                    for(int i=0;i<arms.Count;i++){float angle=i*Mathf.PI*.5f;Vector3 d=new Vector3(Mathf.Cos(angle),0,Mathf.Sin(angle));arms[i].SetShape(center+d*2,new Vector3(center.x,y:p.y,z:center.z)+d*10,Vector3.up*2*Mathf.Sin(t/heartWarning*Mathf.PI));}
-                    yield return null;}
-                band.Progress=1;band.Impact=true;Sound.StopPreparation();Sound.Cue("Kraken_Pressure_Burst");Play("Wave",heartExplosion);bool hit=false;
-                for(float t=0;t<heartExplosion;t+=Time.deltaTime){if(!hit)hit=BoxHit(p,band.Size,Quaternion.identity,heartDamage,heartKnockback);band.Intensity=1-t/heartExplosion;yield return null;}
-                attackBox.enabled=false;Remove(band);yield return new WaitForSeconds(heartInterval);
-            }
-            State=Phase.Groggy;Sound.Cue("Kraken_Groggy",.75f);Play("Groggy",groggyTime);yield return new WaitForSeconds(groggyTime);State=Phase.Idle;Play("Idle",1);
-        }
+        IEnumerator Heart(){yield return AlternatingSlams(HeartExecutions==0?heartSlamCount:heartSecondSlamCount);}
         IEnumerator Recover(float duration)
         {
             var starts=new Vector3[arms.Count];for(int i=0;i<arms.Count;i++)starts[i]=arms[i].Tip;
@@ -327,7 +356,7 @@ namespace DogLife
         {
             var audio=GetComponent<SummerAudioEmitter>();if(audio)audio.StopAll();
             if(bodyBarrier)bodyBarrier.enabled=false;
-            running=false;StopAllCoroutines();if(swim)swim.SetCurrent(Vector3.zero);ClearEffects();foreach(var a in arms)if(a)a.SetExposed(false);foreach(var h in hurtboxes)if(h)h.enabled=false;State=Phase.Dead;
+            running=false;SpecialIntro=false;StopAllCoroutines();if(swim)swim.SetCurrent(Vector3.zero);ClearEffects();foreach(var a in arms)if(a)a.SetExposed(false);foreach(var h in hurtboxes)if(h)h.enabled=false;State=Phase.Dead;
             if(pool)foreach(var warning in pool.GetComponentsInChildren<KrakenPhaseWarning>())Destroy(warning.gameObject);
         }
         void OnDisable(){Cancel();}

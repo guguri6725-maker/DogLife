@@ -11,7 +11,7 @@ positions=np.asarray(data['vertices'],dtype=float)
 normals=np.asarray(data['normals'],dtype=float)
 uv=np.asarray(data['uv'],dtype=float)
 faces=np.asarray(data['triangles'],dtype=int).reshape(-1,3)[:,[0,2,1]]
-image=bpy.data.images.load(str(ROOT/'Assets/Art/SpringBoar/Phase1/Textures/SpringBoarPhase1_BaseColor.png'),check_existing=True)
+image=bpy.data.images.load(str(ROOT/'Assets/Textures/Monster/Spring/SpringBoar/Phase1_SpringBoarPhase1_BaseColor.png'),check_existing=True)
 pixels=np.empty(len(image.pixels),dtype=np.float32);image.pixels.foreach_get(pixels)
 pixels=pixels.reshape(image.size[1],image.size[0],4)
 samples=pixels[(uv[:,1]*(image.size[1]-1)).astype(int).clip(0,image.size[1]-1),(uv[:,0]*(image.size[0]-1)).astype(int).clip(0,image.size[0]-1),:3]

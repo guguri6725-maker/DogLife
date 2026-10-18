@@ -44,7 +44,7 @@ bpy.context.scene.render.fps=30;bpy.context.scene.frame_start=1;bpy.context.scen
 bpy.ops.object.select_all(action='DESELECT')
 rig.select_set(True);mesh.select_set(True);bpy.context.view_layer.objects.active=rig
 for tr in rig.animation_data.nla_tracks:tr.mute=True
-bpy.ops.export_scene.fbx(filepath='C:/unity/DogLife/Assets/Art/SpringBoar/Phase1/Models/SpringBoarMetamorphosis.fbx',use_selection=True,add_leaf_bones=False,bake_anim=True,bake_anim_use_all_actions=False,bake_anim_use_nla_strips=False,axis_forward='-Z',axis_up='Y')
+bpy.ops.export_scene.fbx(filepath='C:/unity/DogLife/Assets/Models/Monster/Spring/SpringBoar/Phase1_SpringBoarMetamorphosis.fbx',use_selection=True,add_leaf_bones=False,bake_anim=True,bake_anim_use_all_actions=False,bake_anim_use_nla_strips=False,axis_forward='-Z',axis_up='Y')
 bpy.context.scene.frame_set(90)
 bpy.ops.wm.save_as_mainfile(filepath='C:/unity/DogLife/ArtSource/SpringBoar/Phase1/SpringBoarMetamorphosis.blend')
 print('5 second transition exported')

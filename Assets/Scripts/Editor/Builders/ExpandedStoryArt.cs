@@ -19,10 +19,16 @@ namespace DogLife.EditorTools
             {"farewell",new[]{"Expanded/Ending_Reunion","Expanded/Farewell_LastScent","Farewell"}},
             {"revenge",new[]{"Expanded/Ending_Reunion","Expanded/Revenge_Anger","Revenge"}}
         };
+        public static string ArtworkPath(string image)
+        {
+            string name=image.Substring(image.LastIndexOf('/')+1);
+            string group=new[]{"Prologue","Spring","Summer","Autumn","Winter"}.FirstOrDefault(prefix=>name.StartsWith(prefix+"_"))??"Shared";
+            return "Assets/Textures/Story/"+group+"/"+name+".png";
+        }
         public static string Apply(StoryLibrary library)
         {
             // Resolve everything first; never leave the story with a half-applied art set.
-            var textures=Shots.Values.SelectMany(v=>v).Distinct().ToDictionary(s=>s,s=>AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Art/Story/"+s+".png"));
+            var textures=Shots.Values.SelectMany(v=>v).Distinct().ToDictionary(s=>s,s=>AssetDatabase.LoadAssetAtPath<Texture2D>(ArtworkPath(s)));
             foreach(var p in textures)if(!p.Value)throw new InvalidOperationException("Missing story illustration: "+p.Key);
             foreach(var c in library.chapters)if(!Shots.ContainsKey(c.id)||Shots[c.id].Length!=c.pages.Length)throw new InvalidOperationException("Story layout changed: "+c.id);
             foreach(var c in library.chapters)for(int i=0;i<c.pages.Length;i++)
