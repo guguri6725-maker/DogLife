@@ -15,6 +15,7 @@ namespace DogLife
         [Header("최후의 일격 / 사망 연출")]
         [SerializeField] AnimationClip mountedDeath;
         [SerializeField] FrozenIceBurst deathIceEffect;
+        [SerializeField] FrozenKnightVfx cinematicEffects;
         [SerializeField,Min(0)] float deathPoseHold=1.2f;
         [SerializeField,Range(0,1)] float deathIceMoment=.65f;
         [Header("검에서 퍼지는 빙판 연출")]
@@ -22,6 +23,11 @@ namespace DogLife
         [SerializeField,Min(0)] float iceSpreadHold=.7f;
         bool deathCinematicStarted;
         public bool DeathCinematicPlaying=>deathCinematicStarted&&health&&!health.Dead;
+        void CinematicCue(FrozenKnightVfx.CinematicMoment moment,Transform anchor,float duration,float radius)
+        {
+            // Hierarchy에 연결한 연출 전용 VFX만 재생하며 공격 판정/경고 메시와 분리합니다.
+            if(cinematicEffects)cinematicEffects.PlayCinematic(moment,anchor,GroundPoint(anchor.position).y,duration,radius);
+        }
         IEnumerator DeathCinematic()
         {
             // Damage 호출이 사망 보류 상태를 기록한 다음 프레임부터 연출합니다.
@@ -30,6 +36,7 @@ namespace DogLife
             Play(horseAnimator,"Idle");horseAnimator.Update(0);horseAnimator.speed=0;
             StormSound(false);Play(knightAnimator,"MountedDeath");
             float duration=mountedDeath.length;bool emitted=false,deathSoundPlayed=false;
+            CinematicCue(FrozenKnightVfx.CinematicMoment.Death,riderRoot,duration+deathPoseHold,5);
             for(float t=0;t<duration;t+=Time.deltaTime)
             {
                 if(!deathSoundPlayed&&t>=duration*.25f){deathSoundPlayed=true;BossSound("Death_Fall",riderRoot);}
@@ -110,6 +117,7 @@ namespace DogLife
             try
             {
                 yield return new WaitForSeconds(cinematicStage.seatedHold);
+                CinematicCue(FrozenKnightVfx.CinematicMoment.Wake,transform,throneRise.length+1,4.5f);
                 yield return Stage(CombatState.Transition,throneRise.length,"ThroneRise");
                 // 왕좌 앞 접지 지점으로 나온 뒤 NavMesh 이동으로 돌려줍니다.
                 Play(knightAnimator,"UnarmedWalk");Vector3 start=transform.position;
@@ -136,6 +144,7 @@ namespace DogLife
                 StopMovement();Aim(true);Play(knightAnimator,"ThroneStand");yield return new WaitForSeconds(.4f);
                 // 중앙에 도착해 완전히 멈춘 다음 등 뒤 검을 뽑습니다.
                 cinematicStage.ShowDraw();
+                CinematicCue(FrozenKnightVfx.CinematicMoment.Draw,swordRoot,throneDraw1.length+throneDraw2.length,3);
                 yield return Stage(CombatState.Transition,throneDraw1.length,"ThroneDraw1");
                 yield return Stage(CombatState.Transition,throneDraw2.length,"ThroneDraw2");
                 introductionSwordDrawn=true;

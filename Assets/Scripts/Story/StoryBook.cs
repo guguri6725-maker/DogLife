@@ -213,6 +213,7 @@ namespace DogLife
         }
         static bool CinematicActive()
         {
+            if(BossCinematicUI.Hidden)return true;
             foreach(var c in FindObjectsByType<SpringBoarCinematic>(FindObjectsSortMode.None))if(c.Active)return true;
             return false;
         }

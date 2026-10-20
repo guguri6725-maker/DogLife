@@ -17,9 +17,9 @@ namespace DogLife
         GUIStyle title, body;
         void Update()
         {
-            if(GameSettingsWindow.BlocksGameplayInput)return;
-            // Hierarchy에 배치한 조준점은 전투 중에만 표시합니다.
-            if (crosshair) crosshair.SetActive(!completed && !health.Dead && Cursor.lockState == CursorLockMode.Locked);
+            // 메시로 만든 조준점도 보스 연출과 메뉴 중에는 숨깁니다.
+            if (crosshair) crosshair.SetActive(!BossCinematicUI.Hidden && !GameSettingsWindow.BlocksGameplayInput && !completed && !health.Dead && Cursor.lockState == CursorLockMode.Locked);
+            if(GameSettingsWindow.BlocksGameplayInput || BossCinematicUI.Hidden)return;
             if (Input.GetKeyDown(KeyCode.F5))
             {
                 string scene=gameObject.scene.path;
@@ -43,7 +43,7 @@ namespace DogLife
         void OnGUI()
         {
             // 스킬창 위로 기존 즉시 모드 HUD가 겹치지 않게 합니다.
-            if (PlayerDeathSequence.IsActive || SeasonLoadingScreen.IsLoading || SkillWindow.IsOpen || GameSettingsWindow.IsOpen || StoryBook.IsOpen || StoryBook.AwaitingClear) return;
+            if (BossCinematicUI.Hidden || PlayerDeathSequence.IsActive || SeasonLoadingScreen.IsLoading || SkillWindow.IsOpen || GameSettingsWindow.IsOpen || StoryBook.IsOpen || StoryBook.AwaitingClear) return;
             if (title == null) { title = new GUIStyle(GUI.skin.label) { fontSize = 24, fontStyle = FontStyle.Bold }; body = new GUIStyle(GUI.skin.label) { fontSize = 16 }; }
             if (health.Dead || completed)
             {

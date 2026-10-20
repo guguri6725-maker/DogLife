@@ -222,9 +222,9 @@ namespace DogLife
                             Surface(p+d*Mathf.Cos(a)*boss.TuskRange+Vector3.up*Mathf.Sin(a)*5,p+e*Mathf.Cos(a)*boss.TuskRange+Vector3.up*Mathf.Sin(a)*5,p+e*Mathf.Cos(b)*boss.TuskRange+Vector3.up*Mathf.Sin(b)*5,p+d*Mathf.Cos(b)*boss.TuskRange+Vector3.up*Mathf.Sin(b)*5,A(k<2?Ivory:Blush,alpha*(1-k/12f)*.30f),4,j*.17f);
                         }Petals(p+forward*3,4,5,alpha);
                     }else if(pattern==SpringBoarBoss.Pattern.Slam&&t>=.30f){
-                        float grow=Mathf.InverseLerp(.30f,.60f,t),alpha=1-Mathf.InverseLerp(.72f,1,t);
+                        float grow=boss.SlamWaveProgress,alpha=1-Mathf.InverseLerp(.72f,1,t);
                         Arc(p,forward,boss.SlamRadius*grow,360,.30f,A(Blush,alpha*.65f));Arc(p+Vector3.up*.06f,forward,boss.SlamRadius*grow,360,.12f,A(Ivory,alpha));
-                        SoftWave(p+Vector3.up*.035f,boss.SlamRadius*grow,1.15f,alpha*.72f);ImpactCrown(p,boss.SlamRadius,grow,alpha);Cracks(p,forward,boss.SlamRadius,360,grow,alpha);Shards(p,Mathf.InverseLerp(.30f,1,t),boss.SlamRadius);Petals(p,boss.SlamRadius,4,alpha);
+                        SoftWave(p+Vector3.up*.035f,boss.SlamRadius*grow,SpringBoarBoss.SlamWaveWidth,alpha*.72f);ImpactCrown(p,boss.SlamRadius,grow,alpha);Cracks(p,forward,boss.SlamRadius,360,grow,alpha);Shards(p,Mathf.InverseLerp(.30f,1,t),boss.SlamRadius);Petals(p,boss.SlamRadius,4,alpha);
                     }else if(pattern==SpringBoarBoss.Pattern.Spikes){
                         float grow=Mathf.SmoothStep(0,1,Mathf.Clamp01(t/.12f)),fade=1-Mathf.InverseLerp(.8f,1,t);
                         for(int i=0;i<boss.SpikeCount;i++){BoneSpike(boss.SpikePoint(i),grow,fade,i);Petals(boss.SpikePoint(i),1.4f,4,fade);}
@@ -295,8 +295,9 @@ namespace DogLife
                         case SpringBoarPhaseTwo.Effect.Sweep:
                             for(int k=0;k<12;k++)
                             {
-                                float angle=-h.angle*.5f+h.angle*a-k*2.5f;
-                                Vector3 u=Dir(h.forward,angle),v=Dir(h.forward,angle+4);
+                                // 경고 부채꼴 밖으로 잔상이 새지 않도록 판정과 같은 각도를 사용합니다.
+                                float angle=Mathf.Clamp(h.SweepAngle-k*(SpringBoarPhaseTwo.Hazard.SweepTrailAngle/11),-h.angle*.5f,h.angle*.5f);
+                                Vector3 u=Dir(h.forward,angle),v=Dir(h.forward,Mathf.Min(h.angle*.5f,angle+SpringBoarPhaseTwo.Hazard.SweepTipAngle));
                                 Quad(p+u*(h.range-1.3f)+Vector3.up*2,p+u*h.range+Vector3.up*2,p+v*h.range+Vector3.up*2,p+v*(h.range-1.3f)+Vector3.up*2,A(k<2?Ivory:Blush,(1-k/12f)*.65f));
                             }Petals(p+h.forward*4,3,3,fade);break;
                         case SpringBoarPhaseTwo.Effect.Lift:
@@ -309,7 +310,7 @@ namespace DogLife
                                 Quad(u-side*.5f,u+side*.5f,v+side*.5f,v-side*.5f,A(k<2?Ivory:Blush,(1-k/16f)*.65f));
                             }Petals(p+h.forward*4,3,6,fade);break;
                         case SpringBoarPhaseTwo.Effect.Slam:
-                            SoftWave(p,h.range*a,1.3f,fade);ImpactCrown(p,h.range,a,fade);Shards(p,a,h.range);Petals(p,h.range,4,fade);break;
+                            SoftWave(p,h.range*a,SpringBoarPhaseTwo.Hazard.SlamWaveWidth,fade);ImpactCrown(p,h.range,a,fade);Shards(p,a,h.range);Petals(p,h.range,4,fade);break;
                     }
                 }
             }

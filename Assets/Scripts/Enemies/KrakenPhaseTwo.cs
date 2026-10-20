@@ -347,13 +347,15 @@ namespace DogLife
         }
         IEnumerator Death()
         {
+            BossCinematicUI.Begin(this);
             Sound.StopAll();Sound.Cue("Kraken_Death");
             Play("Groggy",deathTime);Vector3 from=bodyVisual.position;var sand=Effect(KrakenDeepVfx.Form.Sand,new Vector3(center.x,arena.min.y,center.z));sand.Size=new Vector3(sandRadius,sandHeight*.5f,0);
             for(float t=0;t<deathTime;t+=Time.deltaTime){float q=Mathf.SmoothStep(0,1,t/deathTime);bodyVisual.position=from-Vector3.up*q*Mathf.Max(.65f,Mathf.Abs(bodyFloatHeight));SetIdleArms(1-q*.5f);sand.Intensity=1-q;yield return null;}
-            ClearEffects();if(animator)animator.speed=0;health.CompleteDeferredDeath(true);if(first)first.FinishUnderwaterEncounter();
+            ClearEffects();if(animator)animator.speed=0;BossCinematicUI.End(this);health.CompleteDeferredDeath(true);if(first)first.FinishUnderwaterEncounter();
         }
         public void Cancel()
         {
+            BossCinematicUI.End(this);
             var audio=GetComponent<SummerAudioEmitter>();if(audio)audio.StopAll();
             if(bodyBarrier)bodyBarrier.enabled=false;
             running=false;SpecialIntro=false;StopAllCoroutines();if(swim)swim.SetCurrent(Vector3.zero);ClearEffects();foreach(var a in arms)if(a)a.SetExposed(false);foreach(var h in hurtboxes)if(h)h.enabled=false;State=Phase.Dead;

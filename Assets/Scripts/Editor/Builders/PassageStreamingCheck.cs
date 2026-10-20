@@ -37,8 +37,33 @@ namespace DogLife.EditorTools
                     yield return new WaitForSeconds(1.5f);
                     var passage=Object.FindObjectsByType<SeasonPassage>(FindObjectsSortMode.None).Single(p=>p.previousRoomIndex==index);
                     Vector3 origin=passage.transform.position;
+                    float raisedY=passage.rearSeal.transform.localPosition.y;
+                    if(passage.rearSeal.activeSelf||passage.IsRearClosed){Result="FAIL rear starts closed";yield break;}
                     Place(motor,origin+new Vector3(7.1f,.65f,-3.1f));
                     end=Time.realtimeSinceStartup+15;
+                    while(!passage.rearSeal.activeSelf&&Time.realtimeSinceStartup<end)yield return null;
+                    if(!passage.rearSeal.activeSelf){Result="FAIL rear close trigger";yield break;}
+                    float lastY=raisedY,closeStarted=Time.time;
+                    int descentSamples=0;
+                    bool repeatedClose=false;
+                    // 실제 트리거로 하강 중 이전 방 유지와 반복 요청 시 끊김 없는 이동을 확인합니다.
+                    while(!passage.IsRearClosed&&Time.realtimeSinceStartup<end)
+                    {
+                        float y=passage.rearSeal.transform.localPosition.y;
+                        if(!stream.Current||RoomCount(stream)!=1||!stream.Busy){Result="FAIL room unloaded before rear closed";yield break;}
+                        if(y>lastY+.001f){Result="FAIL rear reversed";yield break;}
+                        if(y<raisedY-.01f)descentSamples++;
+                        if(!repeatedClose&&y<raisedY-2)
+                        {
+                            passage.CloseRear();repeatedClose=true;
+                            if(Mathf.Abs(passage.rearSeal.transform.localPosition.y-y)>.001f){Result="FAIL repeated close reset";yield break;}
+                        }
+                        lastY=y;
+                        yield return null;
+                    }
+                    if(!passage.IsRearClosed||descentSamples<2||Mathf.Abs(passage.rearSeal.transform.localPosition.y-(raisedY-10))>.001f)
+                    {Result="FAIL rear descent/end position";yield break;}
+                    checks.Add(index+": smooth descent "+descentSamples+" frames / "+(Time.time-closeStarted).ToString("F2")+"s");
                     while((stream.Current||stream.Busy)&&Time.realtimeSinceStartup<end)yield return null;
                     if(stream.Current||RoomCount(stream)!=0||!passage.rearSeal.activeSelf){Result="FAIL release "+index+" rooms="+RoomCount(stream);yield break;}
                     checks.Add(index+": 1→0; rear sealed");

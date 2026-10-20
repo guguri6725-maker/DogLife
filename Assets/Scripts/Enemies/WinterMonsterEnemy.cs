@@ -51,7 +51,9 @@ namespace DogLife
         public float Angle=>ClawPhase?clawAngle:fanAngle;
         public float LandingRadius=>landingRadius*SizeScale;
         public float IceRadius=>iceRadius;
-        public float WaveProgress=>Mathf.Clamp01((elapsed-attackTime*.28f)*shockwaveSpeed/Mathf.Max(.1f,attackRange));
+        // 끝에 도착한 뒤에도 파면 거리는 진행시켜 남은 얼음에 피해 판정이 붙지 않게 합니다.
+        float WaveDistance=>Mathf.Max(0,elapsed-attackTime*.28f)*shockwaveSpeed*SizeScale;
+        public float WaveProgress=>Mathf.Clamp01(WaveDistance/Mathf.Max(.1f,Range));
         public bool Attacking=>State==Phase.Attack||State==Phase.SecondAttack;
         bool Nav=>agent&&agent.enabled&&agent.isOnNavMesh;
         void Awake()
@@ -163,6 +165,13 @@ namespace DogLife
             if(species==Species.Wolf&&!ClawPhase)return d.magnitude<=LandingRadius+bodyRadius;
             float reach=Range*(species==Species.Golem?WaveProgress:1);
             if(d.magnitude>reach+bodyRadius)return false;
+            if(species==Species.Golem)
+            {
+                // 결정이 솟는 폭과 이번 물리 프레임에 지나간 구간만 검사합니다.
+                float previousCrest=WaveDistance-shockwaveSpeed*SizeScale*Time.fixedDeltaTime;
+                float trailingEdge=Mathf.Max(0,previousCrest-Range*.10f);
+                if(d.magnitude+bodyRadius<trailingEdge)return false;
+            }
             float allowance=Mathf.Asin(Mathf.Clamp01(bodyRadius/Mathf.Max(.01f,d.magnitude)))*Mathf.Rad2Deg;
             return Vector3.Angle(Forward,d)<=Angle*.5f+allowance;
         }

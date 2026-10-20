@@ -4,7 +4,13 @@ namespace DogLife
 {
     public sealed partial class FrozenKnightVfx
     {
-        public enum Theme { Auto, Slash, Crack, Burst, Fury, HorseCharge, Charge, Stomp, MultiCharge, MountedFury, BladeCharge, BladeFlight, PlantedBlade, IceTrail, SwordField, Summon, MultiReady, RoyalReady, BladeWave, ColdField, SwordConjure, SpearAim }
+        public enum Theme { Auto, Slash, Crack, Burst, Fury, HorseCharge, Charge, Stomp, MultiCharge, MountedFury, BladeCharge, BladeFlight, PlantedBlade, IceTrail, SwordField, Summon, MultiReady, RoyalReady, BladeWave, ColdField, SwordConjure, SpearAim, WallEnclosure }
+        Vector3[] wallPoints;Quaternion[] wallRotations;Vector3 wallSize;
+        public void ShowWallEnclosure(Vector3[] points,Quaternion[] rotations,Vector3 size)
+        {
+            wallPoints=points;wallRotations=rotations;wallSize=size;
+            Show(Shape.Ring,points[0],Vector3.forward,1,0,Theme.WallEnclosure);
+        }
         int chargeIndex,chargeCount=1;
         public void SetChargeSequence(int index,int count){chargeIndex=index;chargeCount=Mathf.Max(1,count);}
         [Header("기사의 얼음 / 은백색 공통 재질")]
@@ -105,7 +111,7 @@ namespace DogLife
                 for(int i=1;i<=5;i++){Vector3 p=c+direction*length*i/6;Stroke(p-direction*.6f+side*.45f,p,.1f,Ink(iceTint,.9f));Stroke(p-direction*.6f-side*.45f,p,.1f,Ink(iceTint,.9f));}
                 Submit(areaMesh);return;
             }
-            if(theme==Theme.SwordConjure)
+            if(theme==Theme.SwordConjure||theme==Theme.WallEnclosure)
             {
                 // 칼날 주변을 감싸 올라가는 냉기입니다. 수평 원판은 그리지 않습니다.
                 Vector3 tip=swordTip?swordTip.position:c,grip=swordBase?swordBase.position:c+Vector3.up*3;
@@ -119,6 +125,7 @@ namespace DogLife
                     Stroke(p,q,.075f,Ink(Color.Lerp(iceTint,Color.white,u),.7f));
                 }
                 for(int i=0;i<14;i++){float t=Mathf.Repeat(age*.5f+i*.071f,1);Vector3 p=Vector3.Lerp(tip,grip,t)+Radial(i*137+age*80,.45f);Shard(p,i*73,.14f,.06f,Ink(Color.white,.8f));}
+                if(theme==Theme.WallEnclosure)DrawWallFootprints(age);
                 Submit(areaMesh);return;
             }
             Boundary(c,accent);
@@ -166,6 +173,23 @@ namespace DogLife
             }
             Submit(areaMesh);
         }
+        void DrawWallFootprints(float age)
+        {
+            if(wallPoints==null)return;
+            float progress=Mathf.Max(0,warningProgress),fade=active?1-Mathf.Clamp01(age/.7f):1;
+            for(int i=0;i<wallPoints.Length;i++)
+            {
+                Vector3 c=wallPoints[i]+Vector3.up*floorOffset;
+                Vector3 x=wallRotations[i]*Vector3.right*wallSize.x*.5f,z=wallRotations[i]*Vector3.forward*wallSize.z*.5f;
+                // 생성될 벽의 실제 폭과 두께를 먼저 보여주어 발밑에서 갑자기 막히지 않습니다.
+                var color=Ink(new Color(.55f,.88f,1),fade*(.12f+.2f*progress));
+                Quad(c-x-z,c-x+z,c+x+z,c+x-z,color);
+                var edge=Ink(Color.white,fade*.9f);
+                Stroke(c-x-z,c-x+z,.14f,edge);Stroke(c-x+z,c+x+z,.14f,edge);
+                Stroke(c+x+z,c+x-z,.14f,edge);Stroke(c+x-z,c-x-z,.14f,edge);
+                Stroke(c-x,c-x+x*2*progress,.2f,Ink(iceTint,fade*.9f));
+            }
+        }
         void DrawBlizzard(Vector3 c,float age)
         {
             // 가을 보스의 입체 회오리와 같은 방식으로 냉기 띠와 눈 입자를 전장에 흘립니다.
@@ -211,6 +235,8 @@ namespace DogLife
             float p=warningProgress;if(p<=0)return;
             // 고정된 전체 경고 위에 밝은 얼음색을 덧씌웁니다. 안전한 안쪽 고리는 채우지 않습니다.
             Vector3 c=center+Vector3.up*.012f;Color fill=new Color(.55f,.88f,1,active?.18f:.55f);
+            // 눈/얼음 바닥에서도 근접 폭발의 예고와 실제 발동을 구분합니다.
+            if(theme==Theme.Burst&&!active)fill=new Color(1,.59f,.18f,.28f);
             if(shape==Shape.Line)
             {
                 Vector3 side=Vector3.Cross(Vector3.up,direction).normalized*width*.5f,end=c+direction*(length*p);
@@ -246,6 +272,19 @@ namespace DogLife
         }
         void DrawBurst(Vector3 c,Color accent,float age)
         {
+            if(!active)
+            {
+                float progress=Mathf.Clamp01(warningProgress);
+                // 처음부터 전체 위험 반경을 고정하고, 안쪽 채움과 모이는 냉기로 남은 시간을 알립니다.
+                Arc(c+Vector3.up*.025f,length,0,360,.18f,Ink(new Color(1,.61f,.18f),.85f+.12f*Mathf.Sin(age*8)));
+                Snowflake(c+Vector3.up*.035f,1.25f,Ink(Color.white,.75f));
+                for(int i=0;i<12;i++)
+                {
+                    float u=Mathf.Repeat(age*.7f+i/12f,1),r=Mathf.Lerp(length*.78f,1.1f,u);
+                    Vector3 p=c+Radial(i*30+age*12,r)+Vector3.up*(.12f+u*.65f);
+                    Stroke(p,p+Vector3.up*(.12f+.25f*progress),.045f,Ink(accent,Mathf.Sin(u*Mathf.PI)*.8f));
+                }
+            }
             // 꽂힌 검에서 빙판이 쪼개지고 넓은 갑옷형 얼음 판이 바깥으로 들립니다.
             for(int i=0;i<8;i++)
             {

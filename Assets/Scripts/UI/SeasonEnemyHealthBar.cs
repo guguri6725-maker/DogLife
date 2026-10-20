@@ -69,7 +69,7 @@ namespace DogLife
         }
         void OnGUI()
         {
-            if(!visible||!health||health.Dead)return;
+            if(BossCinematicUI.Hidden||!visible||!health||health.Dead)return;
             var previous=GUI.color;
             float s=Mathf.Clamp(Screen.height/1080f,.8f,1.4f),w=72*s,h=6*s,x=screen.x-w*.5f,y=Screen.height-screen.y;
             Color bone=new Color(.87f,.78f,.65f,.95f),pink=fillColor;

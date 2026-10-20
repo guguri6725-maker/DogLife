@@ -48,9 +48,9 @@ Shader "DogLife/UI/Karma Water"
                 float cloud=mist(p*3+float2(time,-time*.7));
                 cloud=cloud*.65+mist(p*7+cloud*2-float2(time*.4,time))*.35;
                 float veil=smoothstep(.27,.78,cloud);
-                // 양쪽 색/수위 대신, 전체 안개의 미세한 온도 변화만 남깁니다.
+                // 중립 색은 유지하고, 카르마가 쌓일수록 차가운 청록과 따뜻한 적갈색이 은은하게 드러납니다.
                 float mood=smoothstep(0,1,saturate(.5+(_DarkFill-_LightFill)*.5));
-                float3 tint=lerp(float3(.24,.31,.30),float3(.31,.25,.24),mood);
+                float3 tint=lerp(float3(.17,.34,.34),float3(.38,.22,.20),mood);
                 float bowl=sqrt(saturate(1-dot(p,p)/(radius*radius)));
                 float3 inside=float3(.035,.042,.046)+tint*veil*(.17+.33*bowl);
                 float wisp=pow(saturate(1-abs(cloud-.52)*9),3);

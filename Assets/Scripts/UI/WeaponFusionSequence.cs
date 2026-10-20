@@ -12,6 +12,7 @@ namespace DogLife
         public Renderer sigil;
         public ParticleSystem soulParticles;
         public Shader revealShader;
+        public WeaponFusionEnergy energy;
         [Min(1)] public float duration=4;
         [Min(.1f)] public float weaponSize=1.6f,orbitRadius=1.1f,cameraDistance=4.6f;
         [Min(.5f)] public float displayHeight=1.55f;
@@ -21,6 +22,7 @@ namespace DogLife
         readonly List<Canvas> hiddenHud=new List<Canvas>();
         readonly List<Material> materials=new List<Material>();
         readonly List<Material> firstMaterials=new List<Material>(),secondMaterials=new List<Material>(),resultMaterials=new List<Material>();
+        readonly Dictionary<Renderer,Material[]> resultSurfaces=new Dictionary<Renderer,Material[]>();
         Camera cameraTarget;PlayerCamera controller;bool controllerEnabled;
         Vector3 cameraPosition,cameraGoal;Quaternion cameraRotation;float cameraFov,elapsed;
         Color color;InventoryWeapon result;bool active,released;
@@ -29,7 +31,7 @@ namespace DogLife
         [SerializeField,Range(0,1)] float loopAudioAt=.23f,resultAudioAt=.8f;
         [SerializeField,Range(0,1)] float startVolume=.65f,loopVolume=.35f,resultVolume=.8f;
         GameAudio.Handle startSound,loopSound,resultSound;
-        bool loopPlayed,resultPlayed;
+        bool loopPlayed,resultPlayed,materialsRestored;
         public bool Completed {get;private set;}
         // 완료 안내, 무기 이름, 보관 위치를 크기와 색으로 구분합니다.
         public string Status=>Completed?"<size=20><color=#C6AE7D>합성 완료</color></size>\n<size=34>"+result.displayName+"</size>\n<size=19><color=#C4BBA8>"+(result.boneOrigin==InventoryWeapon.BoneOrigin.Dog?"동물형":"인간형")+" · "+Category(result.weaponCategory)+"   |   가방에 보관됨</color></size>":elapsed/duration<.25f?"두 영혼이 깨어납니다":elapsed/duration<.52f?"뼈와 영혼이 하나로 모입니다":"새로운 무기가 모습을 드러냅니다";
@@ -37,8 +39,10 @@ namespace DogLife
         public void Begin(InventoryWeapon a,InventoryWeapon b,InventoryWeapon output)
         {
             elapsed=0;Completed=released=loopPlayed=resultPlayed=false;
+            materialsRestored=false;
             startSound=GameAudio.Play("Synthesis_Start",Vector3.zero,startVolume,ui:true);
             result=output;color=output.boneOrigin==InventoryWeapon.BoneOrigin.Dog?animalColor:humanColor;
+            if(energy)energy.Begin(color);
             // 동적으로 로드되는 기존 HUD는 연출 동안만 숨기고 원래 켜져 있던 것만 복구합니다.
             foreach(var canvas in FindObjectsByType<Canvas>(FindObjectsSortMode.None))
                 if(canvas.enabled&&canvas.renderMode==RenderMode.ScreenSpaceOverlay&&!canvas.GetComponent<EconomyWindow>())
@@ -65,20 +69,38 @@ namespace DogLife
             foreach(var script in model.GetComponentsInChildren<MonoBehaviour>(true))script.enabled=false;
             foreach(var collider in model.GetComponentsInChildren<Collider>(true))collider.enabled=false;
             foreach(var body in model.GetComponentsInChildren<Rigidbody>(true)){body.isKinematic=true;body.detectCollisions=false;}
-            var renderers=model.GetComponentsInChildren<Renderer>();Bounds bounds=new Bounds();bool found=false;
-            foreach(var r in renderers){if(r is ParticleSystemRenderer||r is TrailRenderer||r is LineRenderer){r.enabled=false;continue;}if(!found){bounds=r.bounds;found=true;}else bounds.Encapsulate(r.bounds);}
-            if(found)
+            var renderers=model.GetComponentsInChildren<Renderer>();
+            foreach(var r in renderers)
             {
-                // 긴 축을 세워 손잡이부터 드러나는 실루엣과 무기별 화면 크기를 맞춥니다.
-                if(bounds.size.x>bounds.size.y&&bounds.size.x>bounds.size.z)model.transform.RotateAround(bounds.center,Vector3.forward,-90);
-                else if(bounds.size.z>bounds.size.y)model.transform.RotateAround(bounds.center,Vector3.right,-90);
+                if(!(r is ParticleSystemRenderer)&&!(r is TrailRenderer)&&!(r is LineRenderer))continue;
+                // 활시위처럼 장착 스크립트가 갱신하는 보조선은 전시 중 숨깁니다.
+                r.enabled=false;
+            }
+            Bounds bounds;
+            if(LocalBounds(renderers,socket,out bounds))
+            {
+                // 카메라의 월드 방향과 무관하게 넓은 면을 정면으로, 칼끝을 위로 정렬합니다.
+                if(bounds.size.y<Mathf.Min(bounds.size.x,bounds.size.z)*.45f)
+                    model.transform.localRotation=Quaternion.Euler(90,0,0)*model.transform.localRotation;
+                LocalBounds(renderers,socket,out bounds);
+                if(bounds.size.x>bounds.size.y&&bounds.size.x>bounds.size.z)
+                    model.transform.localRotation=Quaternion.Euler(0,0,90)*model.transform.localRotation;
+                else if(bounds.size.z>bounds.size.y)
+                    model.transform.localRotation=Quaternion.Euler(-90,0,0)*model.transform.localRotation;
+                LocalBounds(renderers,socket,out bounds);
                 float length=Mathf.Max(bounds.size.x,Mathf.Max(bounds.size.y,bounds.size.z));model.transform.localScale*=weaponSize/Mathf.Max(.01f,length);
-                bounds=new Bounds();found=false;foreach(var r in renderers)if(r.enabled){if(!found){bounds=r.bounds;found=true;}else bounds.Encapsulate(r.bounds);}model.transform.position+=socket.position-bounds.center;
+                LocalBounds(renderers,socket,out bounds);model.transform.localPosition-=bounds.center;
             }
             foreach(var r in renderers)
             {
-                if(!r.enabled)continue;var originals=r.sharedMaterials;var replacements=new Material[originals.Length];
-                for(int i=0;i<originals.Length;i++)
+                if(!r.enabled)continue;var originals=r.sharedMaterials;
+                if(socket==resultSocket)resultSurfaces[r]=originals;
+                // 영혼 외곽선의 추가 재질을 흰 불투명 표면으로 바꾸지 않습니다.
+                var filter=r.GetComponent<MeshFilter>();var skin=r as SkinnedMeshRenderer;
+                var mesh=filter?filter.sharedMesh:skin?skin.sharedMesh:null;
+                int count=mesh?Mathf.Min(mesh.subMeshCount,originals.Length):originals.Length;
+                var replacements=new Material[count];
+                for(int i=0;i<count;i++)
                 {
                     var source=originals[i];var m=new Material(revealShader);materials.Add(m);group.Add(m);
                     Texture texture=null;foreach(var key in new[]{"_BaseMap","_MainTex","_diffuseColorMap"})if(source&&source.HasProperty(key)&&source.GetTexture(key)){texture=source.GetTexture(key);break;}
@@ -86,6 +108,22 @@ namespace DogLife
                 }
                 r.sharedMaterials=replacements;
             }
+        }
+        static bool LocalBounds(Renderer[] renderers,Transform socket,out Bounds bounds)
+        {
+            bounds=new Bounds();bool found=false;
+            foreach(var r in renderers)
+            {
+                if(!r.enabled)continue;
+                var local=r.localBounds;
+                for(int i=0;i<8;i++)
+                {
+                    var p=local.center+Vector3.Scale(local.extents,new Vector3((i&1)==0?-1:1,(i&2)==0?-1:1,(i&4)==0?-1:1));
+                    p=socket.InverseTransformPoint(r.transform.TransformPoint(p));
+                    if(!found){bounds=new Bounds(p,Vector3.zero);found=true;}else bounds.Encapsulate(p);
+                }
+            }
+            return found;
         }
         void Update(){if(active){elapsed+=Time.unscaledDeltaTime;if(elapsed>=duration)Completed=true;Tick(Mathf.Clamp01(elapsed/duration));}}
         static float Ease(float a,float b,float t)=>Mathf.SmoothStep(0,1,Mathf.InverseLerp(a,b,t));
@@ -98,20 +136,28 @@ namespace DogLife
             firstSocket.localPosition=new Vector3(-orbitRadius*(1-.6f*dissolve),displayHeight-.15f+.2f*Mathf.Sin(t*Mathf.PI),0);
             secondSocket.localPosition=new Vector3(orbitRadius*(1-.6f*dissolve),displayHeight-.15f+.2f*Mathf.Sin(t*Mathf.PI),0);
             firstSocket.localRotation=Quaternion.Euler(10,elapsed*rotationSpeed,20);secondSocket.localRotation=Quaternion.Euler(-10,-elapsed*rotationSpeed,-20);
-            resultSocket.localPosition=new Vector3(0,displayHeight+.04f*Mathf.Sin(elapsed*1.8f),0);resultSocket.localRotation=Quaternion.Euler(0,elapsed*rotationSpeed,0);
+            resultSocket.localPosition=new Vector3(0,displayHeight+.04f*Mathf.Sin(elapsed*1.8f),0);
+            resultSocket.localRotation=Quaternion.Euler(-6,Mathf.Lerp(-28,14,Ease(.52f,.92f,t))+Mathf.Sin(elapsed*.65f)*8,-16);
             Reveal(firstMaterials,1-dissolve,firstSocket);Reveal(secondMaterials,1-dissolve,secondSocket);Reveal(resultMaterials,assemble,resultSocket);
+            if(!materialsRestored&&t>=.86f)
+            {
+                materialsRestored=true;
+                foreach(var entry in resultSurfaces)if(entry.Key)entry.Key.sharedMaterials=entry.Value;
+            }
+            if(energy)energy.Sample(t,elapsed,displayHeight,orbitRadius,weaponSize,firstSocket.localPosition,secondSocket.localPosition);
             for(int i=0;i<fragments.childCount;i++)
             {
                 var shard=fragments.GetChild(i);float phase=i*2.399963f;float spin=elapsed*fragmentSpeed*Mathf.Deg2Rad*(result.boneOrigin==InventoryWeapon.BoneOrigin.Dog?1:1.3f);
                 float radius=Mathf.Lerp(orbitRadius,.09f,assemble);Vector3 orbit=new Vector3(Mathf.Cos(phase+spin)*radius,displayHeight-.45f+Mathf.Repeat(i*.173f+t*1.8f,1)*1.05f,Mathf.Sin(phase+spin)*radius);
                 var start=new Vector3(i%2==0?-orbitRadius:orbitRadius,displayHeight-.15f,(i%3-1)*.12f);
                 shard.localPosition=Vector3.Lerp(start,orbit,Ease(.2f,.36f,t));shard.localRotation=Quaternion.Euler(i*31+elapsed*120,i*67+elapsed*70,i*17);
-                float size=(.055f+(i%4)*.015f)*Ease(.2f,.29f,t)*(1-Ease(.70f,.84f,t));shard.localScale=new Vector3(size,size*(2+i%3*.5f),size);
+                // 작은 각진 뼛조각이 모이도록 크기와 두께를 서로 다르게 줍니다.
+                float size=(.028f+(i%4)*.008f)*Ease(.2f,.29f,t)*(1-Ease(.70f,.84f,t));shard.localScale=new Vector3(size,size*(2+i%3*.5f),size*.45f);
             }
             Ring(outerRing,1.35f,0,elapsed*18,Mathf.Sin(Mathf.PI*Mathf.Min(t,.95f))*.75f+.1f,64);
             Ring(innerRing,1.05f,.02f,-elapsed*27,.5f*(1-finish)+.16f,48);
             float burst=Mathf.InverseLerp(.80f,.96f,t);Ring(shockRing,Mathf.Lerp(.3f,2.7f,burst),.12f,0,t>=.8f?(1-burst)*.85f:0,64);
-            if(soulLight){soulLight.color=color;soulLight.intensity=lightIntensity*(.25f+.6f*dissolve+Mathf.Sin(burst*Mathf.PI)*.5f);}
+            if(soulLight){soulLight.color=Color.Lerp(color,Color.white,Mathf.Sin(burst*Mathf.PI)*.5f);soulLight.intensity=lightIntensity*(.25f+.6f*dissolve+Mathf.Sin(burst*Mathf.PI)*1.2f);}
             if(sigilMaterial){sigilMaterial.SetFloat("_Clock",elapsed);sigilMaterial.SetFloat("_Strength",.15f+.6f*dissolve+.3f*finish);}
         }
         void Ring(LineRenderer line,float radius,float height,float turn,float alpha,int count)
@@ -122,7 +168,8 @@ namespace DogLife
         }
         void LateUpdate()
         {
-            if(!active||!cameraTarget)return;float t=Mathf.Clamp01(elapsed/duration),blend=Ease(0,.2f,t);Vector3 focus=transform.position+Vector3.up*displayHeight;
+            // 완성 무기의 손잡이까지 하단 안내창 위에 들어오게 시선을 조금 낮춥니다.
+            if(!active||!cameraTarget)return;float t=Mathf.Clamp01(elapsed/duration),blend=Ease(0,.2f,t);Vector3 focus=transform.position+Vector3.up*(displayHeight-.18f);
             Vector3 position=Vector3.Lerp(cameraPosition,Vector3.Lerp(cameraGoal,focus+(cameraGoal-focus)*.90f,Ease(.8f,1,t)),blend);
             float impulse=t>.8f&&t<.94f?Mathf.Sin(Mathf.InverseLerp(.8f,.94f,t)*Mathf.PI)*shake:0;position+=cameraTarget.transform.right*Mathf.Sin(elapsed*80)*impulse;
             cameraTarget.transform.SetPositionAndRotation(position,Quaternion.Slerp(cameraRotation,Quaternion.LookRotation(focus-position),blend));cameraTarget.fieldOfView=Mathf.Lerp(cameraFov,42,blend);
@@ -131,6 +178,8 @@ namespace DogLife
         public void Release()
         {
             if(released)return;released=true;active=false;
+            if(energy)energy.Stop();
+            if(soulParticles)soulParticles.Stop(true,ParticleSystemStopBehavior.StopEmittingAndClear);
             startSound.Stop();loopSound.Stop();if(!Completed)resultSound.Stop();
             foreach(var canvas in hiddenHud)if(canvas)canvas.enabled=true;hiddenHud.Clear();
             if(controller&&controllerEnabled){controller.BlendFromCinematic(.45f,cameraFov);controller.enabled=true;}

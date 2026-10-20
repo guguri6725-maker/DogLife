@@ -31,6 +31,7 @@ namespace DogLife
         public void Begin(Vector3 center,bool flood)
         {
             if(active)End();view=Camera.main;if(!view)return;active=true;focus=center;flooding=flood;revealing=false;clock=0;
+            BossCinematicUI.Begin(this);
             from=view.transform.position;fromRotation=view.transform.rotation;oldFov=view.fieldOfView;smoothedTarget=from;targetVelocity=Vector3.zero;floodProgress=0;
             follow=view.GetComponent<PlayerCamera>();followWasEnabled=follow&&follow.enabled;if(follow)follow.enabled=false;
             brain=view.GetComponent<CinemachineBrain>();createdBrain=!brain;if(!brain)brain=view.gameObject.AddComponent<CinemachineBrain>();
@@ -64,7 +65,8 @@ namespace DogLife
             if(shot){shot.gameObject.SetActive(false);Destroy(shot.gameObject);}
             if(brain){brain.enabled=false;if(createdBrain)Destroy(brain);else{brain.UpdateMethod=updateMethod;brain.DefaultBlend=blend;brain.IgnoreTimeScale=ignoreTime;brain.enabled=brainWasEnabled;}}
             if(follow&&followWasEnabled){follow.BlendFromCinematic(returnBlend,oldFov);follow.enabled=true;}else if(view){view.transform.SetPositionAndRotation(from,fromRotation);view.fieldOfView=oldFov;}
+            BossCinematicUI.End(this,follow&&followWasEnabled?returnBlend:0);
         }
-        void OnDisable(){End();}
+        void OnDisable(){End();BossCinematicUI.End(this);}
     }
 }

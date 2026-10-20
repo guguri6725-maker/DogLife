@@ -1,4 +1,8 @@
-"""Run with Blender in background after SpringLodBuilder.Export()."""
+"""Legacy collapse generator; no longer consumed by SpringLodBuilder.ImportAndApply.
+
+Foliage LODs are rebuilt directly from LOD0 by SpringFoliageLodRepair in Unity,
+preserving complete leaves instead of collapsing their thin surfaces.
+"""
 import bpy, bmesh, json, pathlib
 
 work = pathlib.Path('Library/SpringLODWorking')

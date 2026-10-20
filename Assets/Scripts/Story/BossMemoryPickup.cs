@@ -69,7 +69,7 @@ namespace DogLife
             }
             var light=gameObject.AddComponent<Light>();light.type=LightType.Point;light.color=tint;light.range=4;light.intensity=2;light.shadows=LightShadows.None;
         }
-        bool CanInteract=>director&&!director.hud.health.Dead&&!Collected&&age>.7f&&!SkillWindow.BlocksGameplayInput&&Vector3.Distance(director.hud.motor?director.hud.motor.transform.position:director.hud.health.transform.position,transform.position)<=interactionDistance;
+        bool CanInteract=>director&&!director.hud.health.Dead&&!Collected&&age>.7f&&!BossCinematicUI.Hidden&&!SkillWindow.BlocksGameplayInput&&Vector3.Distance(director.hud.motor?director.hud.motor.transform.position:director.hud.health.transform.position,transform.position)<=interactionDistance;
         public bool TryInteract()
         {
             if(!CanInteract)return false;
@@ -85,7 +85,7 @@ namespace DogLife
         }
         void OnGUI()
         {
-            if(!CanInteract)return;
+            if(BossCinematicUI.Hidden||!CanInteract)return;
             if(prompt==null)prompt=new GUIStyle(GUI.skin.box){font=font,fontSize=22,alignment=TextAnchor.MiddleCenter};
             GUI.Box(new Rect(Screen.width*.5f-160,Screen.height*.72f,320,48),"[F] 추억 살펴보기",prompt);
         }

@@ -18,6 +18,9 @@ namespace DogLife
         [SerializeField,Min(1)] int pillarCount=3,pillarHits=3;
         [SerializeField,Range(1,3)] int maxMinions=3;
         [SerializeField,Min(.1f)] float arenaRadius=18,pillarWarning=2,pillarLifetime=35,pillarCooldown=16;
+        [Header("삼각형 얼음벽 — 세 면의 중심 반경 / 고정 방향")]
+        [SerializeField,Min(1)] float pillarTriangleRadius=7.2f;
+        [SerializeField] float pillarTriangleYaw;
         [Header("확장 원형 검기 — 점프 또는 앉기")]
         [SerializeField,Min(.1f)] float waveWarning=1.5f,waveSpeed=8,waveWidth=.6f,waveHeight=1.5f,waveDamage=1,waveCooldown=12;
         [SerializeField,Min(0)] float jumpClearance=.65f;
@@ -89,46 +92,34 @@ namespace DogLife
         IEnumerator IcePillars()
         {
             BossSound("Frost_Charge");
-            // 양 페이즈에서 같은 파괴 가능한 기둥 프리팹을 사용합니다.
-            effects.Show(FrozenKnightVfx.Shape.Ring,GroundPoint(swordRoot.position),Forward,3,0,FrozenKnightVfx.Theme.SwordConjure);
+            // 세 벽을 같은 기준으로 계산하여 개별 위치 보정으로 삼각형이 벌어지지 않습니다.
+            var points=new Vector3[3];var rotations=new Quaternion[3];
+            for(int i=0;i<3;i++)TriangleWallPose(i,out points[i],out rotations[i]);
+            var box=pillarPrefab.GetComponent<BoxCollider>();
+            effects.ShowWallEnclosure(points,rotations,Vector3.Scale(box.size,pillarPrefab.transform.localScale));
             float clipTime=StartNativeCast(PhaseNumber==1?"IceWallFull":"IceWallMounted");
             yield return Stage(CombatState.Warning,clipTime*wallCastMoment,null,effects);
             effects.Activate();
-            var placed=new List<Vector3>();
-            foreach(var old in encounterObjects)if(old&&old.activeInHierarchy&&old.TryGetComponent<FrozenKnightConstruct>(out var existing)&&existing.IsPillar)placed.Add(old.transform.position);
-            for(int i=placed.Count;i<pillarCount;i++)
+            for(int i=0;i<3;i++)
             {
-                if(!FindPillarPoint(i,placed,out var point,out var rotation))continue;
-                placed.Add(point);
-                var c=Instantiate(pillarPrefab,point,rotation);Keep(c.gameObject);
+                // 남아 있는 면은 유지하고, 부서진 면만 같은 위치에 다시 세웁니다.
+                bool occupied=false;
+                foreach(var old in encounterObjects)
+                    if(old&&old.activeInHierarchy&&old.TryGetComponent<FrozenKnightConstruct>(out var existing)&&existing.IsPillar&&
+                        (old.transform.position-points[i]).sqrMagnitude<.25f){occupied=true;break;}
+                if(occupied)continue;
+                var c=Instantiate(pillarPrefab,points[i],rotations[i]);Keep(c.gameObject);
                 c.Initialize(this,FrozenKnightConstruct.Kind.Pillar,player,pillarHits,pillarLifetime);
-                Physics.SyncTransforms(); // 다음 벽 배치가 방금 생성한 벽과 겹치지 않도록 갱신합니다.
             }
+            Physics.SyncTransforms();
             yield return Stage(CombatState.Active,Mathf.Max(.7f,clipTime*(1-wallCastMoment)));yield return Recover(encounterRecovery);
         }
-        bool FindPillarPoint(int index,List<Vector3> occupied,out Vector3 point,out Quaternion rotation)
+        void TriangleWallPose(int index,out Vector3 point,out Quaternion rotation)
         {
-            // 전장 외곽 장식 대신 중앙 이동 경로를 가로지르는 벽 세 개를 배치합니다.
-            var box=pillarPrefab.GetComponent<BoxCollider>();
-            Vector3 half=Vector3.Scale(box.size,pillarPrefab.transform.localScale)*.5f;
-            float heading=Quaternion.LookRotation(Flat(player.transform.position-Arena)).eulerAngles.y;
-            for(int attempt=0;attempt<36;attempt++)
-            {
-                float angle=heading+index*360f/Mathf.Max(1,pillarCount)+(attempt/4)*12;
-                rotation=Quaternion.Euler(0,angle,0);
-                Vector3 desired=Arena+rotation*Vector3.forward*arenaRadius*(.4f+(attempt%4)*.08f);
-                if(!NavMesh.SamplePosition(desired,out var hit,navSampleRadius,agent.areaMask))continue;
-                point=hit.position;Vector3 center=point+rotation*Vector3.Scale(box.center,pillarPrefab.transform.localScale);
-                bool blocked=false;
-                foreach(var col in Physics.OverlapBox(center,half+Vector3.one*.15f,rotation,~0,QueryTriggerInteraction.Ignore))
-                {
-                    // 바닥은 제외하되 벽·기존 얼음벽·캐릭터와는 겹치지 않습니다.
-                    if(col.bounds.max.y<=point.y+.25f)continue;
-                    if(col.GetComponentInParent<CombatHealth>()||((1<<col.gameObject.layer)&obstacleMask.value)!=0){blocked=true;break;}
-                }
-                if(!blocked)return true;
-            }
-            point=default;rotation=Quaternion.identity;return false;
+            rotation=Quaternion.Euler(0,pillarTriangleYaw+index*120,0);
+            point=Arena+rotation*Vector3.forward*pillarTriangleRadius;
+            // NavMesh의 가로 보정은 쓰지 않아, 기존 벽이 길을 막아도 다음 시전 위치가 바뀌지 않습니다.
+            point.y=Arena.y;
         }
         IEnumerator ExpandingBlade()
         {
@@ -187,6 +178,7 @@ namespace DogLife
             {
                 var prefab=choices[Random.Range(0,choices.Length)];if(!prefab)continue;
                 var obj=Instantiate(prefab,Perimeter(i,Mathf.Max(3,missing),arenaRadius*.6f),Quaternion.identity);Keep(obj);
+                CinematicCue(FrozenKnightVfx.CinematicMoment.Summon,obj.transform,2.2f,3.2f);
                 var hp=obj.GetComponent<CombatHealth>();if(hp)summonedMinions.Add(hp);
             }
             yield return Stage(CombatState.Active,Mathf.Max(.4f,clipTime*(1-wallCastMoment)));yield return Recover(encounterRecovery);

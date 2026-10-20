@@ -92,6 +92,8 @@ namespace DogLife
         public void Close() { SetOpen(false); }
         public void SetOpen(bool value)
         {
+            // 숨겨진 인벤토리가 연출 도중 입력을 가져가지 않게 합니다.
+            if(value&&BossCinematicUI.Hidden)return;
             if(value&&StoryBook.BlocksInput)return;
             if(value&&EconomyWindow.BlocksInput)return;
             if (Instance != this || opened == value) return;

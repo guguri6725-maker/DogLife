@@ -21,7 +21,7 @@ namespace DogLife
         NavMeshAgent agent;
         Renderer[] visualRenderers;
         bool attacking, hitApplied;
-        float attackStarted, nextAttack, nextPathUpdate;
+        float attackStarted, nextAttack, nextPathUpdate,previousStrikeTime;
         Vector3 lockedAim;
         BlossomSkeletonAttackVfx attackVfx;
         float Size=>Mathf.Max(.01f,transform.lossyScale.x);
@@ -83,17 +83,37 @@ namespace DogLife
             if(attacking)
             {
                 StopNavigation();float elapsed=Time.time-attackStarted;
-                if(!hitApplied&&elapsed>=hitTime)
+                if(!hitApplied)
                 {
-                    hitApplied=true;
-                    if(attackVfx?attackVfx.HitsTarget(targetHealth)&&ClearSight(target.position-transform.position):CanHit(target.position))
+                    // 화면에 재생된 베기 시간과 판정을 맞추고, 한 번의 휘두르기는 한 번만 적중합니다.
+                    bool traced=attackVfx&&attackVfx.HasStrikePath;
+                    float strikeTime=traced?attackVfx.StrikeTime:elapsed;
+                    // 준비 중에는 조준을 보정하되, 베기 0.18초 전부터 고정해 회피할 여지를 남깁니다.
+                    float aimTime=strikeTime>=0?strikeTime:elapsed;
+                    if(aimTime<Mathf.Max(0,(traced?attackVfx.swingStart:hitTime)-.18f))
                     {
+                        var aim=Vector3.ProjectOnPlane(target.position-transform.position,Vector3.up);
+                        if(aim.sqrMagnitude>.001f)
+                        {
+                            var facing=visualRoot?visualRoot:transform;
+                            facing.rotation=Quaternion.RotateTowards(facing.rotation,Quaternion.LookRotation(aim),240*Time.fixedDeltaTime);
+                            lockedAim=facing.forward;
+                        }
+                    }
+                    bool contact=traced
+                        ?attackVfx.HitsTarget(targetHealth,previousStrikeTime,strikeTime)&&ClearSight(target.position-transform.position)
+                        :elapsed>=hitTime&&CanHit(target.position);
+                    if(contact)
+                    {
+                        hitApplied=true;
                         float before=targetHealth.Current;
                         var collider=target.GetComponent<Collider>();
                         CombatFeedback.DealDamage(targetHealth,damage,collider?collider.ClosestPoint(transform.position):target.position,lockedAim,1.4f,transform,new Color(1,.55f,.72f,1));
                         var motor=target.GetComponent<PlayerMotor>();
                         if(motor&&!targetHealth.Dead&&targetHealth.Current<before)motor.ApplyKnockback(target.position-transform.position,knockbackSpeed,.6f,.22f);
                     }
+                    previousStrikeTime=Mathf.Max(previousStrikeTime,strikeTime);
+                    if(traced?strikeTime>=attackVfx.impactTime:elapsed>=hitTime)hitApplied=true;
                 }
                 bool animationFinished=!modelAnimator||!modelAnimator.isActiveAndEnabled||
                     (modelAnimator.GetCurrentAnimatorStateInfo(0).IsName("Attack")&&modelAnimator.GetCurrentAnimatorStateInfo(0).normalizedTime>=1);
@@ -125,7 +145,7 @@ namespace DogLife
                 lockedAim=Vector3.ProjectOnPlane(delta,Vector3.up).normalized;
                 if(lockedAim.sqrMagnitude<.001f)lockedAim=visualRoot?visualRoot.forward:transform.forward;
                 if(visualRoot)visualRoot.rotation=Quaternion.LookRotation(lockedAim);
-                attacking=true;hitApplied=false;attackStarted=Time.time;StopNavigation();
+                attacking=true;hitApplied=false;previousStrikeTime=0;attackStarted=Time.time;StopNavigation();
                 if(modelAnimator){modelAnimator.SetBool(Moving,false);modelAnimator.SetBool(Attacking,true);}
             }
         }

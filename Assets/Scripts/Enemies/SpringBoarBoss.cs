@@ -28,7 +28,7 @@ namespace DogLife
         [SerializeField] private Animator animator;
         [SerializeField] private Transform visualRoot;
         [SerializeField] private LayerMask environmentMask=1<<8;
-        ForestRoom encounterRoom;bool engaged;float nextCharge,chargeTravelled;
+        ForestRoom encounterRoom;bool engaged,chargeWarningWall;float nextCharge,chargeTravelled;
         public void BindRoom(ForestRoom room){encounterRoom=room;}
         public bool Engaged=>engaged;
         CombatHealth health,targetHealth;PlayerMotor player;Collider targetCollider;NavMeshAgent agent;
@@ -46,6 +46,9 @@ namespace DogLife
         public float TuskRange=>tuskRange;
         public float TuskAngle=>tuskAngle;
         public float SlamRadius=>slamRadius;
+        // 이펙트와 판정이 같은 파면을 사용하고, 지나간 안쪽에는 피해를 남기지 않습니다.
+        public const float SlamWaveWidth=1.15f;
+        public float SlamWaveProgress=>Mathf.InverseLerp(.30f,.60f,Progress);
         public float ChargeWidth=>chargeHitRadius;
         public float ChargeLength=>chargeWarningLength;
         public float HornOffset=>hornOffset;
@@ -103,13 +106,32 @@ namespace DogLife
             AttackPattern=pattern;previous=pattern;flankClock=0;Stop();Face(player.transform.position-transform.position,true);
             Origin=transform.position;SpikeCount=0;
             if(pattern==Pattern.Charge){
-                chargeTravelled=0;
+                chargeTravelled=0;chargeWarningWall=false;
                 chargeWarningLength=Mathf.Min(chargeMaxDistance,chargeSpeed*chargeDuration);
-                int n=Physics.SphereCastNonAlloc(Origin+Forward*3+Vector3.up*(bodyRadius+.3f),bodyRadius,Forward,wallHits,chargeWarningLength,~0,QueryTriggerInteraction.Ignore);
-                for(int i=0;i<n;i++)if(!wallHits[i].collider.GetComponentInParent<CombatHealth>()&&Mathf.Abs(wallHits[i].normal.y)<.7f)chargeWarningLength=Mathf.Min(chargeWarningLength,Mathf.Max(.5f,wallHits[i].distance));
+                int n=Physics.SphereCastNonAlloc(Origin+Forward*hornOffset+Vector3.up*(bodyRadius+.3f),bodyRadius,Forward,wallHits,chargeWarningLength,~0,QueryTriggerInteraction.Ignore);
+                for(int i=0;i<n;i++)if(!wallHits[i].collider.GetComponentInParent<CombatHealth>()&&Mathf.Abs(wallHits[i].normal.y)<.7f)
+                {chargeWarningLength=Mathf.Min(chargeWarningLength,Mathf.Max(0,wallHits[i].distance-.15f));chargeWarningWall=true;}
+                chargeWarningLength=ClipChargePath(agent,encounterRoom,Origin,Forward,chargeWarningLength,hornOffset+bodyRadius,out bool navBlocked);
+                chargeWarningWall|=navBlocked;
             }
             if(pattern==Pattern.Spikes)PlaceSpikes();
             Enter(Phase.Warning);
+        }
+        // 두 페이즈 모두 실제 이동 경계까지 예고해, 돌진이 먼저 멈추는 긴 경고선을 방지합니다.
+        internal static float ClipChargePath(NavMeshAgent nav,ForestRoom room,Vector3 origin,Vector3 forward,float distance,float inset,out bool navBlocked)
+        {
+            navBlocked=false;
+            if(room&&Mathf.Abs(forward.x)>.0001f)
+            {
+                float edge=forward.x>0?room.exitX-inset:room.entryX+inset;
+                distance=Mathf.Min(distance,Mathf.Max(0,(edge-origin.x)/forward.x));
+            }
+            if(distance>0&&nav&&nav.isActiveAndEnabled&&nav.isOnNavMesh&&nav.Raycast(origin+forward*distance,out var hit))
+            {
+                navBlocked=true;
+                distance=Mathf.Min(distance,Mathf.Max(0,Vector3.Dot(hit.position-origin,forward)-.15f));
+            }
+            return distance;
         }
         void PlaceSpikes()
         {
@@ -186,9 +208,9 @@ namespace DogLife
         void Charge()
         {
             Vector3 old=transform.position;float step=chargeSpeed*Time.fixedDeltaTime,allowed=step;bool wall=false;
-            int count=Physics.SphereCastNonAlloc(old+Forward*3+Vector3.up*(bodyRadius+.3f),bodyRadius,Forward,wallHits,step+.15f,~0,QueryTriggerInteraction.Ignore);
+            int count=Physics.SphereCastNonAlloc(old+Forward*hornOffset+Vector3.up*(bodyRadius+.3f),bodyRadius,Forward,wallHits,step+.15f,~0,QueryTriggerInteraction.Ignore);
             for(int i=0;i<count;i++){var h=wallHits[i];if(h.collider.GetComponentInParent<CombatHealth>()||Mathf.Abs(h.normal.y)>.7f)continue;allowed=Mathf.Min(allowed,Mathf.Max(0,h.distance-.15f));wall=true;}
-            allowed=Mathf.Min(allowed,Mathf.Max(0,chargeMaxDistance-chargeTravelled));
+            allowed=Mathf.Min(allowed,Mathf.Max(0,chargeWarningLength-chargeTravelled));
             Vector3 next=old+Forward*allowed;
             bool roomEdge=false;
             if(encounterRoom){float x=Mathf.Clamp(next.x,encounterRoom.entryX+hornOffset+bodyRadius,encounterRoom.exitX-hornOffset-bodyRadius);roomEdge=Mathf.Abs(x-next.x)>.001f;next.x=x;}
@@ -196,14 +218,20 @@ namespace DogLife
             chargeTravelled+=Vector3.Distance(old,transform.position);
             if(!hit&&targetCollider){Vector3 a=old+Forward*hornOffset,b=transform.position+Forward*hornOffset,p=targetCollider.bounds.center;a.y=p.y;b.y=p.y;Vector3 ab=b-a;float u=ab.sqrMagnitude>.0001f?Mathf.Clamp01(Vector3.Dot(p-a,ab)/ab.sqrMagnitude):0;
                 if(Vector3.Distance(p,a+ab*u)<=chargeHitRadius+targetCollider.bounds.extents.x&&Visible(old,player.transform.position))Hit(1,12,3);}
-            if(wall){Enter(Phase.Stunned);return;}
-            if(roomEdge||chargeTravelled>=chargeMaxDistance-.01f||elapsed>=chargeDuration)Enter(Phase.Recovery);
+            bool reachedEnd=chargeTravelled>=chargeWarningLength-.01f;
+            if(wall||(reachedEnd&&chargeWarningWall)){Enter(Phase.Stunned);return;}
+            if(roomEdge||reachedEnd||elapsed>=chargeDuration)Enter(Phase.Recovery);
         }
         public bool Contains(Vector3 p,float radius=0)
         {
             if(AttackPattern==Pattern.Spikes){for(int i=0;i<SpikeCount;i++)if(Mathf.Abs(p.y-spikes[i].y)<4&&Vector3.ProjectOnPlane(p-spikes[i],Vector3.up).magnitude<=spikeRadius+radius)return true;return false;}
             Vector3 d=Vector3.ProjectOnPlane(p-transform.position,Vector3.up);if(Mathf.Abs(p.y-transform.position.y)>9)return false;
-            if(AttackPattern==Pattern.Slam)return d.magnitude<=slamRadius*Mathf.InverseLerp(.30f,.60f,Progress)+radius;
+            if(AttackPattern==Pattern.Slam)
+            {
+                float previousProgress=Mathf.Clamp01((elapsed-Time.fixedDeltaTime)/Duration());
+                float inner=slamRadius*Mathf.InverseLerp(.30f,.60f,previousProgress)-SlamWaveWidth;
+                return d.magnitude<=slamRadius*SlamWaveProgress+radius&&d.magnitude+radius>=Mathf.Max(0,inner);
+            }
             float allowance=Mathf.Asin(Mathf.Clamp01(radius/Mathf.Max(.01f,d.magnitude)))*Mathf.Rad2Deg;
             return d.magnitude<=tuskRange+radius&&Vector3.Angle(Forward,d)<=tuskAngle*.5f+allowance;
         }

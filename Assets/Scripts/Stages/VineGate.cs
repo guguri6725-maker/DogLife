@@ -14,9 +14,12 @@ namespace DogLife
         public NavMeshObstacle[] navigationBlockers;
         public bool startOpen, hideWhenInitiallyOpen;
         [Min(.1f)] public float duration = 2.4f;
+        [Range(.05f,1f), Tooltip("중앙 통로가 충분히 열린 시점에 충돌벽을 해제합니다. 1은 애니메이션 끝까지 대기합니다.")]
+        public float collisionReleaseProgress = 1f;
         public float Progress { get; private set; }
         public bool IsOpen => Progress >= 1f;
         public bool IsClosed => Progress <= 0f;
+        public bool IsPassable => target > 0 && Progress >= collisionReleaseProgress;
         float target;
         bool initialized;
         GameAudio.Handle gateSound;
@@ -86,8 +89,8 @@ namespace DogLife
         void OnDestroy(){if(poseGraph.IsValid())poseGraph.Destroy();}
         void ApplyBlockers()
         {
-            // 완전히 열린 뒤에 통과시키고, 닫기 시작하면 즉시 역주행을 막습니다.
-            bool blocked = target < 1 || !IsOpen;
+            // 시각적으로 통로가 확보되면 통과시킵니다. 닫을 때는 기존처럼 역주행을 차단합니다.
+            bool blocked = !IsPassable;
             foreach (var item in blockers) if (item) item.enabled = blocked;
             foreach (var item in navigationBlockers) if (item) item.enabled = blocked;
         }

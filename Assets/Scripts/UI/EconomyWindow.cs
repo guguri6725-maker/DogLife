@@ -46,7 +46,7 @@ namespace DogLife
                 else if(Input.GetKeyDown(KeyCode.Escape)||Input.GetKeyDown(KeyCode.F))Close();
                 return;
             }
-            if(SkillWindow.IsOpen||GameSettingsWindow.IsOpen||StoryBook.BlocksInput){prompt.text="";return;}
+            if(BossCinematicUI.Hidden||SkillWindow.IsOpen||GameSettingsWindow.IsOpen||StoryBook.BlocksInput){prompt.text="";return;}
             if(Time.unscaledTime>=scanAt)
             {
                 scanAt=Time.unscaledTime+.2f;nearest=null;float best=float.MaxValue;
@@ -58,7 +58,7 @@ namespace DogLife
         }
         public void Open(EconomyStation target)
         {
-            if(IsOpen||SkillWindow.IsOpen||GameSettingsWindow.IsOpen||StoryBook.BlocksInput||!target||!target.InReach(wallet.inventory))return;
+            if(BossCinematicUI.Hidden||IsOpen||SkillWindow.IsOpen||GameSettingsWindow.IsOpen||StoryBook.BlocksInput||!target||!target.InReach(wallet.inventory))return;
             station=target;previousScale=Time.timeScale;previousCursor=Cursor.lockState;previousVisible=Cursor.visible;
             opened=true;
             GameAudio.EnterEconomyMenu();

@@ -397,18 +397,27 @@ namespace DogLife
         IEnumerator Burst(Attack a,bool mounted)
         {
             BossSound("Frost_Charge");
-            effects.Show(FrozenKnightVfx.Shape.Ring,transform.position,Forward,a.range,0);
+            Disarm();
+            effects.Show(FrozenKnightVfx.Shape.Ring,GroundPoint(transform.position),Forward,a.range,0);
             if(mounted)Play(horseAnimator,"Rear",a.warning);
             float clipTime=0;
             if(mounted)yield return Stage(CombatState.Warning,a.warning,"MountedStompReady",effects,0,.9f);
-            else {clipTime=StartNativeCast("PushUpper");yield return Stage(CombatState.Warning,clipTime*pushCastMoment,null,effects,0,.9f);}
+            else
+            {
+                clipTime=StartNativeCast("PushUpper");
+                // 예고 시간을 실제로 보장하며, 밀쳐올리는 순간과 얼음 폭발을 함께 맞춥니다.
+                float warning=Mathf.Max(a.warning,clipTime*pushCastMoment);
+                knightAnimator.speed=clipTime*pushCastMoment/(warning+attackLeadTime);
+                yield return Stage(CombatState.Warning,warning,null,effects,0,.9f);
+            }
             yield return Stage(CombatState.Attack,attackLeadTime,null,effects,.9f,1);
+            if(!mounted)knightAnimator.speed=1;
             if(mounted)Play(horseAnimator,"Stomp",a.duration);
             radialArea.transform.SetPositionAndRotation(transform.position,Quaternion.LookRotation(Forward));
             radialArea.ArmSector(this,a.damage,a.knockback,a.lift,a.range,360,hitHeight);effects.Activate();BossSound("Frost_Burst");
             // 비탑승 폭발은 밀어내기 상체 동작을 유지하고 하체는 서 있는 자세를 보존합니다.
             yield return Stage(CombatState.Active,a.duration,mounted?"MountedStompImpact":null);radialArea.Disarm();
-            if(!mounted&&clipTime*(1-pushCastMoment)>attackLeadTime+a.duration)yield return Stage(CombatState.Recovery,clipTime*(1-pushCastMoment)-attackLeadTime-a.duration);
+            if(!mounted&&clipTime*(1-pushCastMoment)>a.duration)yield return Stage(CombatState.Recovery,clipTime*(1-pushCastMoment)-a.duration);
             yield return Recover(a.recovery);
         }
         IEnumerator SwordFury(){yield return CavalryFury();}
@@ -425,7 +434,7 @@ namespace DogLife
                 if(CombatFeedback.Paused(this)){yield return null;continue;}
                 if(leaveTrail&&trailStarted&&!trail){trailStart=transform.position;trailTravel=0;trailStarted=false;}
                 float step=Mathf.Min(settings.speed*Time.deltaTime,settings.attack.range-travelled);
-                BreakWallsInCharge(Forward,step,width);
+                // 플레이어 전용 얼음벽은 돌진 경로에도 영향을 주지 않습니다.
                 float moved=MoveStraight(Forward,step);
                 travelled+=moved;trailTravel+=moved;
                 if(leaveTrail&&trailTravel>=mountedFury.trailSpacing)
@@ -506,12 +515,14 @@ namespace DogLife
             if(cinematicStage)cinematicStage.ShowIceField(swordRoot,transform);
             BeginSwordField();
             if(swordIcePatch)swordIcePatch.SetGrowthDuration(iceSpreadDuration);
+            CinematicCue(FrozenKnightVfx.CinematicMoment.IceSpread,swordRoot,iceSpreadDuration+iceSpreadHold,12);
             yield return new WaitForSeconds(iceSpreadDuration+iceSpreadHold);
             if(cinematicStage)cinematicStage.ShowMount(transform);BossSound("Summon",horseRoot,.65f);
             effects.Show(FrozenKnightVfx.Shape.Ring,transform.position,Forward,frostBurst.range,0,FrozenKnightVfx.Theme.Summon);effects.Activate();
             // 검을 꽂은 뒤 쓰러지지 않고 서서 군마를 기다립니다.
             Play(knightAnimator,"Idle");effects.Hide();
             if(!horseRoot.gameObject.activeSelf){horseRoot.position=HorseArrivalRoute(transform.position)[0];horseRoot.gameObject.SetActive(true);}
+            CinematicCue(FrozenKnightVfx.CinematicMoment.Summon,horseRoot,2.8f,4);
             Vector3 destination;Vector3[] route;
             while(!TryBoardingRoute(out destination,out route))yield return new WaitForSeconds(.5f);
             Vector3 standing=riderRoot.position,boarding=destination-transform.right*boardingStandDistance;
@@ -545,6 +556,7 @@ namespace DogLife
             horseRoot.rotation=transform.rotation;
             // 왼발을 걸고 몸을 올린 뒤 오른다리를 넘기는 동작과 이동 곡선을 맞춥니다.
             float boardingDuration=cinematicMount?cinematicMount.length:mountDuration;
+            CinematicCue(FrozenKnightVfx.CinematicMoment.Mount,horseRoot,boardingDuration,5);
             Play(knightAnimator,cinematicMount?"CinematicMount":"Mount",boardingDuration);Vector3 start=riderRoot.position;
             for(float t=0;t<boardingDuration;t+=Time.deltaTime)
             {
@@ -559,6 +571,7 @@ namespace DogLife
                 riderRoot.position=position;yield return null;
             }
             riderRoot.position=mountSeat.position;
+            CinematicCue(FrozenKnightVfx.CinematicMoment.IceSpread,horseRoot,1.7f,6);
             // 탑승 완료 지점을 새 이동 기준으로 삼되 군마/기사/꽂힌 검은 월드 위치를 보존합니다.
             Vector3 riderPosition=riderRoot.position,horsePosition=horseRoot.position;Quaternion horseRotation=horseRoot.rotation;
             if(Nav)agent.Warp(destination);else transform.position=destination;
@@ -629,21 +642,6 @@ namespace DogLife
             if(!CanDealDamage)return false;Vector3 direction=Flat(hp.transform.position-origin);
             if(!CombatFeedback.DealDamage(hp,damage,hp.transform.position,direction,1,transform,new Color(.4f,.85f,1),useFullPlayerDamage))return false;
             var motor=hp.GetComponent<PlayerMotor>();if(motor&&(push>0||lift>0))motor.ApplyKnockback(direction,push,lift,knockbackDuration);return true;
-        }
-        void BreakWallsInCharge(Vector3 direction,float distance,float width)
-        {
-            if(PhaseNumber!=2)return;
-            Vector3 origin=transform.position+Vector3.up*chargeObstacleHeight;
-            float reach=distance+chargeSkin;
-            // 건물 벽 뒤의 얼음벽까지 깨지지 않도록 먼저 고정 장애물에서 잘라냅니다.
-            foreach(var hit in Physics.SphereCastAll(origin,chargeObstacleRadius,direction,reach,obstacleMask,QueryTriggerInteraction.Ignore))
-                if(!hit.collider.GetComponentInParent<FrozenKnightConstruct>()&&!hit.collider.transform.IsChildOf(transform))reach=Mathf.Min(reach,hit.distance);
-            Vector3 half=new Vector3(width*.5f,hitHeight*.5f,chargeObstacleRadius);
-            foreach(var collider in Physics.OverlapBox(origin+direction*reach*.5f,half+Vector3.forward*(reach*.5f),Quaternion.LookRotation(direction),~0,QueryTriggerInteraction.Ignore))
-            {
-                var wall=collider.GetComponentInParent<FrozenKnightConstruct>();
-                if(wall)wall.ShatterFromCharge(this);
-            }
         }
         float MoveStraight(Vector3 direction,float distance)
         {

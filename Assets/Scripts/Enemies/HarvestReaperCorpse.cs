@@ -9,6 +9,8 @@ namespace DogLife
         {
             if(!GetComponent<HarvestReaperDeathAudio>())gameObject.AddComponent<HarvestReaperDeathAudio>();
             clip=value;blend=seconds;bones=GetComponentsInChildren<Transform>();
+            // 원래 보스가 제거되어도 사망 동작이 끝날 때까지 UI 숨김을 유지합니다.
+            if(clip)BossCinematicUI.Begin(this);
             positions=new Vector3[bones.Length];rotations=new Quaternion[bones.Length];
             for(int i=0;i<bones.Length;i++){positions[i]=bones[i].localPosition;rotations[i]=bones[i].localRotation;}
         }
@@ -21,5 +23,6 @@ namespace DogLife
             {bones[i].localPosition=Vector3.Lerp(positions[i],bones[i].localPosition,t);bones[i].localRotation=Quaternion.Slerp(rotations[i],bones[i].localRotation,t);}
             if(age>=clip.length)enabled=false;
         }
+        void OnDisable(){BossCinematicUI.End(this);}
     }
 }

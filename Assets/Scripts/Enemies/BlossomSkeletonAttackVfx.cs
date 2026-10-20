@@ -19,6 +19,18 @@ namespace DogLife
         readonly List<int> triangles=new List<int>(4096);
         static readonly int Attacking=Animator.StringToHash("Attacking");
         readonly Collider[] hitBuffer=new Collider[32];
+        public bool HasStrikePath=>animator&&grips!=null&&tips!=null&&tips.Length>=2&&grips.Length==tips.Length;
+        // 검의 폭과 몬스터 배율을 반영해 밀착하거나 살짝 옆에 선 대상도 놓치지 않습니다.
+        float StrikeRadius=>.18f*Mathf.Max(.01f,Mathf.Abs(health?health.transform.lossyScale.x:transform.lossyScale.x));
+        public float StrikeTime
+        {
+            get
+            {
+                if(!animator||!animator.isActiveAndEnabled)return -1;
+                var state=animator.GetCurrentAnimatorStateInfo(0);
+                return state.IsName("Attack")?state.normalizedTime*duration:-1;
+            }
+        }
         // AI와 판정도 화면에 그리는 것과 같은 월드 좌표 궤적을 사용합니다.
         public bool TryGetStrikeSegment(float progress,out Vector3 grip,out Vector3 tip)
         {
@@ -29,14 +41,18 @@ namespace DogLife
             tip=transform.TransformPoint(Sample(tips,time));
             return true;
         }
-        public bool HitsTarget(CombatHealth target)
+        public bool HitsTarget(CombatHealth target,float fromTime,float toTime)
         {
-            if(!animator||grips==null||tips==null||tips.Length<2||grips.Length!=tips.Length)return false;
-            for(int i=0;i<=32;i++)
+            if(!HasStrikePath||toTime<swingStart||fromTime>impactTime||toTime<fromTime)return false;
+            // 지난 칼자국 전체를 다시 검사하지 않고, 이번 프레임에 지나간 날만 연결합니다.
+            float from=Mathf.Max(swingStart,fromTime),to=Mathf.Min(impactTime,toTime);
+            int steps=Mathf.Clamp(Mathf.CeilToInt((to-from)/Mathf.Max(.001f,impactTime-swingStart)*32),1,32);
+            for(int i=0;i<=steps;i++)
             {
-                if(!TryGetStrikeSegment(i/32f,out var a,out var b))continue;
-                int count=Physics.OverlapCapsuleNonAlloc(a,b,.06f,hitBuffer,~0,QueryTriggerInteraction.Ignore);
-                var hits=count==hitBuffer.Length?Physics.OverlapCapsule(a,b,.06f,~0,QueryTriggerInteraction.Ignore):hitBuffer;
+                float progress=Mathf.InverseLerp(swingStart,impactTime,Mathf.Lerp(from,to,i/(float)steps));
+                if(!TryGetStrikeSegment(progress,out var a,out var b))continue;
+                int count=Physics.OverlapCapsuleNonAlloc(a,b,StrikeRadius,hitBuffer,~0,QueryTriggerInteraction.Ignore);
+                var hits=count==hitBuffer.Length?Physics.OverlapCapsule(a,b,StrikeRadius,~0,QueryTriggerInteraction.Ignore):hitBuffer;
                 if(hits!=hitBuffer)count=hits.Length;
                 for(int j=0;j<count;j++)if(hits[j].GetComponentInParent<CombatHealth>()==target)return true;
             }

@@ -1263,7 +1263,7 @@ GameObject:
   - component: {fileID: 6610545758423212493}
   - component: {fileID: 3809714266145273905}
   - component: {fileID: 8194314167850658292}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Player
   m_TagString: Player
   m_Icon: {fileID: 0}
@@ -1491,6 +1491,8 @@ MonoBehaviour:
   heavyStop: 0.15
   recoilAngle: 13
   recoilDuration: 0.22
+  recoilBone: {fileID: 0}
+  contactEffectScale: 1
 --- !u!114 &3809714266145273905
 MonoBehaviour:
   m_ObjectHideFlags: 0

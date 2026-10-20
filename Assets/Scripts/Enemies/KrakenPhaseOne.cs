@@ -295,7 +295,7 @@ namespace DogLife
         GUIStyle progressStyle;
         void OnGUI()
         {
-            if(State!=EncounterState.Combat||Time.timeScale<=0)return;
+            if(BossCinematicUI.Hidden||State!=EncounterState.Combat||Time.timeScale<=0)return;
             if(progressStyle==null)progressStyle=new GUIStyle(GUI.skin.label){alignment=TextAnchor.MiddleCenter,fontStyle=FontStyle.Bold};
             float scale=Mathf.Clamp(Screen.height/1080f,.75f,1.5f);progressStyle.fontSize=Mathf.RoundToInt(19*scale);
             var old=GUI.color;var rect=new Rect(Screen.width*.5f-135*scale,30*scale,270*scale,38*scale);

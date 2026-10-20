@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 namespace DogLife
 {
@@ -20,6 +21,7 @@ namespace DogLife
         Camera view;PlayerCamera follow;PlayerMotor motor;PlayerWeapons weapons;CombatHealth hp;
         bool motorEnabled,weaponsEnabled,followEnabled,oldInvulnerable,oldRecoveryBlocked,locked;
         float oldFov,blend;Vector3 fromPosition;Quaternion fromRotation;Transform subject;bool mountedShot;
+        readonly Dictionary<Renderer,bool> hiddenIceWalls=new Dictionary<Renderer,bool>();
         public bool Active=>locked;
         public bool Valid=>seatedOrigin&&standingOrigin;
         public void Begin(PlayerMotor player,Transform actor,bool mounting)
@@ -35,6 +37,12 @@ namespace DogLife
             if(view){oldFov=view.fieldOfView;fromPosition=view.transform.position;fromRotation=view.transform.rotation;}
             if(follow)follow.enabled=false;
             subject=actor;mountedShot=mounting;blend=0;locked=true;
+            // 닫힌 얼음벽이 발도/탑승 카메라를 가리지 않게 외형만 숨깁니다. 충돌은 유지합니다.
+            foreach(var wall in FindObjectsByType<FrozenKnightConstruct>(FindObjectsSortMode.None))
+                if(wall.IsPillar&&!wall.Broken)
+                    foreach(var renderer in wall.GetComponentsInChildren<Renderer>())
+                    {hiddenIceWalls[renderer]=renderer.forceRenderingOff;renderer.forceRenderingOff=true;}
+            BossCinematicUI.Begin(this);
             deathShot=false;iceShot=false;drawShot=false;
         }
         public void BeginDeath(PlayerMotor player,Transform actor){Begin(player,actor,true);deathShot=true;}
@@ -62,11 +70,14 @@ namespace DogLife
         public void End()
         {
             if(!locked)return;locked=false;
+            foreach(var pair in hiddenIceWalls)if(pair.Key)pair.Key.forceRenderingOff=pair.Value;
+            hiddenIceWalls.Clear();
             if(motor)motor.enabled=motorEnabled;if(weapons)weapons.enabled=weaponsEnabled;
             if(hp){hp.invulnerable=oldInvulnerable;hp.RecoveryBlocked=oldRecoveryBlocked;}
             if(follow&&followEnabled){follow.BlendFromCinematic(returnBlend,oldFov);follow.enabled=true;follow.CaptureCursor(true);}
             else if(view)view.fieldOfView=oldFov;
+            BossCinematicUI.End(this,follow&&followEnabled?returnBlend:0);
         }
-        void OnDisable(){End();}
+        void OnDisable(){End();BossCinematicUI.End(this);}
     }
 }

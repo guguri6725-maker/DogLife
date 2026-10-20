@@ -23,15 +23,28 @@ namespace DogLife
             public Shape shape;public Effect effect;public Vector3 origin,forward;
             public float range,angle,width,warning,active,age,damage,push,lift,propagation=.65f;
             public bool hit,ambient,visualOnly,soundPlayed;public int group;
+            public const float SlamWaveWidth=1.3f,SweepTrailAngle=27.5f,SweepTipAngle=4;
             public float Progress=>Mathf.Clamp01(age/Mathf.Max(.01f,warning));
             public float AttackProgress=>Mathf.Clamp01((age-warning)/Mathf.Max(.01f,active));
-            public bool Contains(Vector3 point,float padding)
+            public float SweepAngle=>-angle*.5f+angle*AttackProgress;
+            public bool Contains(Vector3 point,float padding,float previousAge=-1)
             {
                 Vector3 d=point-origin;if(Mathf.Abs(d.y)>8)return false;d.y=0;
                 if(shape==Shape.Lane){float z=Vector3.Dot(d,forward),x=Vector3.Dot(d,Vector3.Cross(Vector3.up,forward));return z>=-padding&&z<=range+padding&&Mathf.Abs(x)<=width+padding;}
-                float reach=effect==Effect.Roots?range*Mathf.Clamp01(AttackProgress/propagation):range;
+                float reach=effect==Effect.Roots?range*Mathf.Clamp01(AttackProgress/Mathf.Max(.01f,propagation)):effect==Effect.Slam?range*AttackProgress:range;
                 if(d.magnitude>reach+padding)return false;
-                return shape==Shape.Circle||Vector3.Angle(forward,d)<=angle*.5f+Mathf.Asin(Mathf.Clamp01(padding/Mathf.Max(.01f,d.magnitude)))*Mathf.Rad2Deg;
+                // 직전 프레임부터 현재까지 지나간 부분만 검사해 빠른 공격도 누락하지 않습니다.
+                float previousProgress=previousAge<0?AttackProgress:Mathf.Clamp01((previousAge-warning)/Mathf.Max(.01f,active));
+                if(effect==Effect.Slam&&d.magnitude+padding<Mathf.Max(0,range*previousProgress-SlamWaveWidth))return false;
+                float allowance=Mathf.Asin(Mathf.Clamp01(padding/Mathf.Max(.01f,d.magnitude)))*Mathf.Rad2Deg;
+                if(shape!=Shape.Circle&&Vector3.Angle(forward,d)>angle*.5f+allowance)return false;
+                if(effect==Effect.Sweep&&d.magnitude>padding)
+                {
+                    float direction=Vector3.SignedAngle(forward,d,Vector3.up);
+                    float start=-angle*.5f+angle*previousProgress-SweepTrailAngle;
+                    return direction>=start-allowance&&direction<=SweepAngle+SweepTipAngle+allowance;
+                }
+                return true;
             }
         }
         [Header("이동 / 패턴 선택")]
@@ -215,7 +228,8 @@ namespace DogLife
         float FreeDistance(Vector3 from,Vector3 direction,float distance)
         {
             int n=Physics.SphereCastNonAlloc(from+Vector3.up*(bodyRadius+.3f),bodyRadius,direction,hits,distance,~0,QueryTriggerInteraction.Ignore);
-            for(int i=0;i<n;i++)if(!hits[i].collider.GetComponentInParent<CombatHealth>()&&Mathf.Abs(hits[i].normal.y)<.7f)distance=Mathf.Min(distance,Mathf.Max(0,hits[i].distance-.15f));return distance;
+            for(int i=0;i<n;i++)if(!hits[i].collider.GetComponentInParent<CombatHealth>()&&Mathf.Abs(hits[i].normal.y)<.7f)distance=Mathf.Min(distance,Mathf.Max(0,hits[i].distance-.15f));
+            return SpringBoarBoss.ClipChargePath(agent,room,from-direction*hornOffset,direction,distance,hornOffset+bodyRadius,out _);
         }
         IEnumerator Storm()
         {
@@ -238,7 +252,7 @@ namespace DogLife
             Pulse=Mathf.MoveTowards(Pulse,0,Time.deltaTime*1.5f);
             for(int i=Hazards.Count-1;i>=0;i--)
             {
-                var h=Hazards[i];h.age+=Time.deltaTime;
+                var h=Hazards[i];float previousAge=h.age;h.age+=Time.deltaTime;
                 // Audio belongs to the attack event, not to a successful damage result.
                 if(!h.soundPlayed&&h.age>=h.warning)
                 {
@@ -249,7 +263,8 @@ namespace DogLife
                         GameAudio.Play(key,h.origin,h.ambient?.6f:.9f,h.effect==Effect.Sweep?.9f:1);
                     }
                 }
-                if(!h.visualOnly&&!h.hit&&h.age>=h.warning&&h.age<=h.warning+h.active&&target&&h.Contains(target.bounds.center,target.bounds.extents.x))
+                // 한 프레임이 공격 종료를 넘어도 그 프레임 안에서 지나간 유효 구간은 검사합니다.
+                if(!h.visualOnly&&!h.hit&&h.age>=h.warning&&previousAge<h.warning+h.active&&target&&h.Contains(target.bounds.center,target.bounds.extents.x,previousAge))
                 {h.hit=true;if(hitGroups.Add(h.group))Deal(h);}
                 if(h.age>h.warning+h.active+(h.effect==Effect.Spike?spikeLinger:0))Hazards.RemoveAt(i);
             }

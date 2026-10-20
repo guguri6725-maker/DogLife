@@ -67,6 +67,7 @@ namespace DogLife
             if(finaleBlizzard){DrawFinaleBlizzard();return;}
             DrawSword();
             if(visible)DrawArea();
+            DrawCinematic();
         }
         void Quad(Vector3 a,Vector3 b,Vector3 c,Vector3 d,Color color)
         {
@@ -221,7 +222,7 @@ namespace DogLife
             if(boss.Empowered&&crystalMesh)
                 for(int i=0;i<7;i++){Vector3 p=Vector3.Lerp(swordBase.position,swordTip.position,(i+.5f)/7f);properties.SetColor("_Tint",new Color(.3f,.8f,1,.6f));Graphics.DrawMesh(crystalMesh,Matrix4x4.TRS(p,swordTip.rotation*Quaternion.Euler(0,Time.time*90+i*50,70),Vector3.one*(.12f+.05f*Mathf.Sin(Time.time*6+i))),frostMaterial,gameObject.layer,null,0,properties,ShadowCastingMode.Off,false,null,LightProbeUsage.Off);}
         }
-        void OnDisable(){Hide();ribbonBases.Clear();ribbonTips.Clear();ribbonTimes.Clear();}
-        void OnDestroy(){if(areaMesh)Destroy(areaMesh);if(ribbonMesh)Destroy(ribbonMesh);}
+        void OnDisable(){Hide();ClearCinematic();ribbonBases.Clear();ribbonTips.Clear();ribbonTimes.Clear();}
+        void OnDestroy(){if(areaMesh)Destroy(areaMesh);if(ribbonMesh)Destroy(ribbonMesh);if(cinematicMesh)Destroy(cinematicMesh);}
     }
 }

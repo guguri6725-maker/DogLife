@@ -285,7 +285,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DogLife.SeasonPassage
   previousRoomIndex: 0
-  nextRoomEntryX: 0
   rearSeal: {fileID: 576766475323827670}
   forwardSeal: {fileID: 6080285125157526881}
   sightBlockers:
@@ -294,6 +293,7 @@ MonoBehaviour:
   - {fileID: 6137993529937436565}
   rearCameraLimitX: 0
   doorOpenSeconds: 0.7
+  doorCloseSeconds: 1.1
 --- !u!1 &1913447901712030492
 GameObject:
   m_ObjectHideFlags: 0

@@ -147,7 +147,7 @@ namespace DogLife
         void OnGUI()
         {
             // 메뉴가 열려 있을 때 월드 체력바를 숨깁니다.
-            if (SkillWindow.IsOpen) return;
+            if (BossCinematicUI.Hidden || SkillWindow.IsOpen) return;
             if (!health || health.Dead || !Camera.main) return;
             // 고정 높이 대신 활성 모델의 위쪽 경계를 따라가므로 크기와 피벗이 달라도 맞습니다.
             var bounds = new Bounds(transform.position, Vector3.zero);

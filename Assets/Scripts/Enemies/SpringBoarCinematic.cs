@@ -16,6 +16,8 @@ namespace DogLife
         [SerializeField,Min(.1f)] float enterBlend=1.05f,returnBlend=1.1f;
         [SerializeField,Range(0,.1f)] float letterbox=.065f;
         [SerializeField] LayerMask sceneryMask=1<<8;
+        [SerializeField] Shader foliageFadeShader;
+        SpringCinematicFoliage foliage;
         [Header("사망 연출")]
         [SerializeField] Vector3 deathOpening=new Vector3(13,7,18),deathFinal=new Vector3(11,4.8f,16);
         [SerializeField] Vector3 deathLookStart=new Vector3(0,3.4f,1),deathLookEnd=new Vector3(0,1.8f,1);
@@ -58,6 +60,10 @@ namespace DogLife
             shot.transform.SetPositionAndRotation(fromPosition,fromRotation);
             side=Vector3.Dot(fromPosition-transform.position,transform.right)<0?-1:1;
             BuildBars();
+            BossCinematicUI.KeepVisible(overlay);
+            BossCinematicUI.Begin(this);
+            foliage?.Dispose();
+            foliage=new SpringCinematicFoliage(transform,foliageFadeShader);
         }
         void BuildBars()
         {
@@ -72,7 +78,8 @@ namespace DogLife
         public void SetProgress(float value){progress=value;}
         void LateUpdate()
         {
-            if(!Active)return;
+            // 복귀 중인 실제 카메라에서도 식물 가림을 유지한 뒤 원래 재질로 돌립니다.
+            if(!Active){UpdateFoliage();return;}
             if(!view||!shot||!brain){End();return;}
             if(Time.timeScale==0)return;
             elapsed+=Time.unscaledDeltaTime;
@@ -100,6 +107,7 @@ namespace DogLife
             shot.Lens.FieldOfView=Mathf.Lerp(oldFov,Mathf.Lerp(Mathf.Lerp(openingFov,revealFov,a),finalFov,b),entrance);
             if(deathShot)shot.Lens.FieldOfView=Mathf.Lerp(oldFov,deathFov,entrance);
             brain.ManualUpdate();
+            UpdateFoliage();
             float height=letterbox*entrance*(1-Mathf.SmoothStep(0,1,Mathf.InverseLerp(.88f,1,progress)));
             top.anchorMin=new Vector2(0,1-height);top.anchorMax=Vector2.one;top.offsetMin=top.offsetMax=Vector2.zero;
             bottom.anchorMin=Vector2.zero;bottom.anchorMax=new Vector2(1,height);bottom.offsetMin=bottom.offsetMax=Vector2.zero;
@@ -108,8 +116,13 @@ namespace DogLife
         {
             Vector3 delta=to-from;float distance=delta.magnitude;
             int count=Physics.SphereCastNonAlloc(from,.35f,delta.normalized,hits,distance,sceneryMask,QueryTriggerInteraction.Ignore);
-            for(int i=0;i<count;i++)if(!hits[i].collider.transform.IsChildOf(transform)&&!hits[i].collider.GetComponentInParent<CombatHealth>())distance=Mathf.Min(distance,Mathf.Max(1,hits[i].distance-.4f));
+            for(int i=0;i<count;i++)if(!hits[i].collider.transform.IsChildOf(transform)&&!hits[i].collider.GetComponentInParent<CombatHealth>()&&!(foliage?.Covers(hits[i])??false))distance=Mathf.Min(distance,Mathf.Max(1,hits[i].distance-.4f));
             return from+delta.normalized*distance;
+        }
+        void UpdateFoliage()
+        {
+            if(foliage==null)return;
+            if(!foliage.Tick(view)){foliage.Dispose();foliage=null;}
         }
         public void End()
         {
@@ -121,7 +134,9 @@ namespace DogLife
             else if(view){view.transform.SetPositionAndRotation(fromPosition,fromRotation);view.fieldOfView=oldFov;}
             Cursor.lockState=cursor;Cursor.visible=cursorVisible;
             if(overlay)Destroy(overlay.gameObject);
+            BossCinematicUI.End(this,follow&&followEnabled?returnBlend:0);
+            foliage?.Release(follow&&followEnabled?returnBlend:0);
         }
-        void OnDisable(){End();}
+        void OnDisable(){End();BossCinematicUI.End(this);foliage?.Dispose();foliage=null;}
     }
 }

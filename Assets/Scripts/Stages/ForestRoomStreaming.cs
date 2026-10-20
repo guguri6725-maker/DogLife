@@ -249,11 +249,14 @@ namespace DogLife
             passage.CloseRear();
             // 통로에서 재시작할 수 있게 방 해제 전에 안전한 발판으로 갱신합니다.
             Hud.motor.SetRespawnPoint(Hud.motor.transform.position+Vector3.up*.2f);
-            StartCoroutine(ReleaseAtPassage());return true;
+            StartCoroutine(ReleaseAtPassage(passage));return true;
         }
-        IEnumerator ReleaseAtPassage()
+        IEnumerator ReleaseAtPassage(SeasonPassage passage)
         {
             Busy=true;
+            // 하강 중에는 이전 방을 유지해 열린 틈으로 빈 공간이 보이지 않게 합니다.
+            while(passage&&!passage.IsRearClosed)yield return null;
+            if(!passage){Busy=false;yield break;}
             foreach(var projectile in FindObjectsByType<CombatProjectile>(FindObjectsSortMode.None))Destroy(projectile.gameObject);
             yield return SceneManager.UnloadSceneAsync(roomScenePaths[CurrentRoom]);
             rooms[CurrentRoom]=null;Busy=false;

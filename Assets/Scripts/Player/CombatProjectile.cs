@@ -24,6 +24,8 @@ namespace DogLife
             foreach (var hit in hits)
             {
                 if (!MonsterHurtbox.Accepts(hit.collider) || (owner && hit.transform.IsChildOf(owner))) continue;
+                // 플레이어 전용 얼음벽은 적의 발사체도 통과하며, 플레이어 공격으로는 계속 부술 수 있습니다.
+                if(hostile&&hit.collider.TryGetComponent<FrozenKnightConstruct>(out var iceWall)&&iceWall.IsPillar)continue;
                 var health = hit.collider.GetComponentInParent<CombatHealth>();
                 if(ignoreFriendlyMonsters&&hostile&&health&&!health.player)continue;
                 if (health && health.player == hostile)

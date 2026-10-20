@@ -104,23 +104,8 @@ namespace DogLife.EditorTools
         }
         public static string ImportAndApply()
         {
-            foreach(string source in Directory.GetFiles(Work,"*.json").Where(p=>!p.Contains("_lod")))
-                for(int level=1;level<=2;level++)
-                    if(!File.Exists(Path.ChangeExtension(source,null)+"_lod"+level+".json"))
-                        throw new InvalidOperationException("LOD generation is not complete: "+source);
-            foreach(string file in Directory.GetFiles(Work,"*_lod*.json"))
-            {
-                string name=Path.GetFileNameWithoutExtension(file).Replace("_lod","_");
-                if(!File.Exists(Output+"/"+name.Substring(0,name.Length-1)+"0.asset"))continue;
-                var data=Compact(JsonUtility.FromJson<Data>(File.ReadAllText(file)));
-                // Blender의 오른손 좌표계에서 계산한 법선은 Unity 삼각형 감김 기준과 반대입니다.
-                for(int n=0;n<data.normals.Length;n++)data.normals[n]=-data.normals[n];
-                var mesh=MakeMesh(data,name);
-                string assetPath=Output+"/"+name+".asset";
-                var existing=AssetDatabase.LoadAssetAtPath<Mesh>(assetPath);
-                if(existing){EditorUtility.CopySerialized(mesh,existing);UnityEngine.Object.DestroyImmediate(mesh);EditorUtility.SetDirty(existing);}
-                else AssetDatabase.CreateAsset(mesh,assetPath);
-            }
+            // 기존 원본 청크로부터 잎 단위 LOD를 만듭니다. 면을 붕괴시키는 Blender 출력은 사용하지 않습니다.
+            SpringFoliageLodRepair.RebuildAll();
             int groups=0;
             foreach(string path in Scenes())
             {
@@ -146,7 +131,8 @@ namespace DogLife.EditorTools
                                 go.AddComponent<MeshFilter>().sharedMesh=mesh;
                                 var r=go.AddComponent<MeshRenderer>();EditorUtility.CopySerialized(original,r);
                                 r.enabled=true;r.lightmapIndex=-1;
-                                lods[level]=new LOD(level==0?.4f:level==1?.16f:0f,new Renderer[]{r});
+                                // 잎의 윤곽이 보이는 중거리까지 원본을 유지합니다.
+                                lods[level]=new LOD(level==0?.22f:level==1?.08f:0f,new Renderer[]{r});
                             }
                             group.SetLODs(lods);group.RecalculateBounds();groups++;
                         }

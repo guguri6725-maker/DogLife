@@ -139,8 +139,9 @@ namespace DogLife
             else if(State==Phase.Burrow)
             {
                 Chase(player.transform.position,submergedSpeed);
-                if(distance<1.7f&&VisibleTarget())Enter(Phase.Warning);
-                else if(elapsed>=maxSubmergedTime)Enter(Phase.Recovery);
+                // 추적 제한에 걸려도 현재 위치에 경고 후 출현합니다. 공격 없이 지상으로 튀어나오지 않습니다.
+                if(distance<1.7f&&VisibleTarget()||elapsed>=maxSubmergedTime)
+                {Face(delta);Enter(Phase.Warning);}
             }
             else if(State==Phase.Warning&&elapsed>=warningTime)Enter(Phase.Attack);
             else if(State==Phase.Attack)

@@ -734,6 +734,7 @@ MonoBehaviour:
   startOpen: 0
   hideWhenInitiallyOpen: 0
   duration: 3.2
+  collisionReleaseProgress: 0.56
 --- !u!1 &353197240
 GameObject:
   m_ObjectHideFlags: 0
@@ -1102,6 +1103,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 927b2fa7a560da2479e063d1a9b5d442, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DogLife.RoomMonsterSpawner
+  roomHealthBudget: 450
   monsterPrefabs:
   - {fileID: 5969629334037219549, guid: 8c9a5c622fc39db4490f6dde8beb0953, type: 3}
   - {fileID: 5511638507228795931, guid: e2bbd6e304dea814790ca3d6e3ee2b49, type: 3}
