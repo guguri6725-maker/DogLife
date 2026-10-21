@@ -28,6 +28,9 @@ namespace DogLife
   readonly List<Vector4> uv=new List<Vector4>(30000);
   Camera viewCamera;
   readonly Vector3[] trailPoints=new Vector3[32],trailInner=new Vector3[32];readonly float[] trailTimes=new float[32];int trailCount;
+  HarvestPumpkinVisual pumpkinPrefab;
+  readonly List<HarvestPumpkinVisual> pumpkinPool=new List<HarvestPumpkinVisual>();
+  int usedPumpkins;
   Mesh mesh;MeshRenderer surface;
   readonly List<Vector3> vertices=new List<Vector3>(30000);readonly List<Color> colors=new List<Color>(30000);readonly List<int> indices=new List<int>(45000);
   void Awake(){mesh=new Mesh{name="Harvest leaves, pumpkins and attack warnings",indexFormat=UnityEngine.Rendering.IndexFormat.UInt32};mesh.MarkDynamic();GetComponent<MeshFilter>().sharedMesh=mesh;surface=GetComponent<MeshRenderer>();surface.sharedMaterial=material;surface.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;surface.receiveShadows=false;}
@@ -170,24 +173,20 @@ namespace DogLife
    for(int i=0;i<Maple.Length;i++){Vector2 a=Maple[i],b=Maple[(i+1)%Maple.Length];Tri(mid,p+x*a.x+z*a.y,p+x*b.x+z*b.y,i%3==0?A(Color.Lerp(color,umber,.25f),color.a):color);}
    Line(p-z,p+z,size*.05f,A(gold,color.a*.85f));Line(p,p+(x+z)*.65f,size*.025f,A(gold,color.a*.5f));Line(p,p+(-x+z)*.65f,size*.025f,A(gold,color.a*.5f));
   }
-  void Pumpkin(Vector3 p,float size,float alpha)
+  void Pumpkin(Vector3 p,float size,float progress)
   {
-   int longitude=24,latitude=10;
-   for(int j=0;j<latitude;j++)for(int i=0;i<longitude;i++)
-   {
-    Vector3 a=Bulb(i,j,longitude,latitude),b=Bulb(i+1,j,longitude,latitude),c=Bulb(i+1,j+1,longitude,latitude),d=Bulb(i,j+1,longitude,latitude);
-    Quad(p+a*size,p+b*size,p+c*size,p+d*size,A(Color.Lerp(umber,amber,.55f+.35f*Mathf.Sin(i*Mathf.PI*2/3)),alpha));
-   }
-   Line(p+Vector3.up*size*.8f,p+Vector3.up*size*1.15f+Vector3.right*size*.14f,size*.22f,A(umber,alpha));
-   Vector3 f=boss?boss.Forward:Vector3.forward,r=Vector3.Cross(Vector3.up,f);Vector3 face=p+f*size*.85f+Vector3.up*size*.12f;
-   for(int side=-1;side<=1;side+=2){Vector3 eye=face+r*side*size*.32f;Tri(eye-r*size*.17f,eye+r*size*.17f,eye+Vector3.up*size*.24f,A(gold,alpha));}
-   Line(face-Vector3.up*size*.27f-r*size*.38f,face-Vector3.up*size*.27f+r*size*.38f,size*.09f,A(gold,alpha));
+   if(!pumpkinPrefab)pumpkinPrefab=Resources.Load<HarvestPumpkinVisual>("VFX/HarvestPumpkin");
+   if(!pumpkinPrefab)return;
+   if(usedPumpkins>=pumpkinPool.Count)pumpkinPool.Add(Instantiate(pumpkinPrefab,transform));
+   var item=pumpkinPool[usedPumpkins++];
+   var direction=boss?boss.Forward:Vector3.forward;
+   item.Show(p,Quaternion.LookRotation(direction),Mathf.Min(size,.6f),progress);
   }
-  Vector3 Bulb(int i,int j,int n,int m){float a=i*Mathf.PI*2/n,b=j*Mathf.PI/m;float radius=Mathf.Sin(b)*(.88f+.12f*Mathf.Cos(a*8));return new Vector3(Mathf.Cos(a)*radius,Mathf.Cos(b)*.8f,Mathf.Sin(a)*radius);}
   void Burst(Vector3 p,float radius,float t)
   {Ring(p,radius,A(gold,1-t));Ring(p,Mathf.Max(0,radius*(.5f+.5f*t)),A(amber,(1-t)*.65f));for(int i=0;i<48;i++){float a=i*137.5f;Vector3 v=p+D(a)*radius*t+Vector3.up*Mathf.Sin(t*Mathf.PI)*burstHeight*(.4f+(i%4)*.2f);Leaf(v,.28f,a+Time.time*80,A(i%2==0?gold:amber,1-t));}}
   void LateUpdate()
   {
+   usedPumpkins=0;
    vertices.Clear();colors.Clear();indices.Clear();uv.Clear();
    if(!viewCamera)viewCamera=Camera.main;
    if(boss&&(boss.isActiveAndEnabled||MonsterAnimationPreview.IsPreviewing(boss))&&boss.Engaged)
@@ -315,13 +314,14 @@ namespace DogLife
     foreach(var patch in boss.Patches)
     {
      Vector3 at=patch.point+Vector3.up*.07f;float age=Time.time-patch.born;
-     if(age<pc.explosionWarning){Sigil(at,0,pc.explosionRadius,0,360,age/Mathf.Max(.01f,pc.explosionWarning),false);Sector(at,0,pc.explosionRadius,0,360,A(amber,alpha));Ring(at,pc.explosionRadius,A(gold,1));TimingSector(at,0,pc.explosionRadius,0,360,age/Mathf.Max(.01f,pc.explosionWarning));Pumpkin(at+Vector3.up*(pumpkinSize+Mathf.Max(0,pc.spawnHeight-age*pc.fallSpeed)),pumpkinSize*(1+.05f*Mathf.Sin(age*10)),1);}
+     if(age<pc.explosionWarning){Sigil(at,0,pc.explosionRadius,0,360,age/Mathf.Max(.01f,pc.explosionWarning),false);Sector(at,0,pc.explosionRadius,0,360,A(amber,alpha));Ring(at,pc.explosionRadius,A(gold,1));TimingSector(at,0,pc.explosionRadius,0,360,age/Mathf.Max(.01f,pc.explosionWarning));Pumpkin(at+Vector3.up*Mathf.Max(0,Mathf.Min(.65f,pc.spawnHeight)-age*pc.fallSpeed),pumpkinSize,Mathf.Clamp01(age/Mathf.Max(.01f,pc.explosionWarning)));}
      else{float life=age-pc.explosionWarning,fade=Mathf.Clamp01((pc.poolDuration-life));Sector(at,0,pc.poolRadius,0,360,A(umber,.34f*fade));Ring(at,pc.poolRadius,A(amber,.8f*fade));GroundMist(at,0,pc.poolRadius,0,360,smokeOpacity*fade);Embers(at,0,pc.poolRadius,0,360,Time.time,.5f*fade);for(int i=0;i<10;i++)Leaf(at+D(i*137.5f+Time.time*15)*pc.poolRadius*.7f,.3f,i*39,A(amber,.65f*fade));if(life<pc.explosionDuration){float burst=life/Mathf.Max(.01f,pc.explosionDuration);Burst(at,pc.explosionRadius,burst);Flames(at,0,pc.explosionRadius,0,360,burst);}}
     }
    }
+   for(int i=usedPumpkins;i<pumpkinPool.Count;i++)if(pumpkinPool[i])pumpkinPool[i].gameObject.SetActive(false);
    mesh.Clear();mesh.SetVertices(vertices);mesh.SetColors(colors);mesh.SetUVs(0,uv);mesh.SetTriangles(indices,0);mesh.RecalculateBounds();
   }
-  void OnDisable(){trailCount=0;if(mesh)mesh.Clear();}
+  void OnDisable(){trailCount=0;if(mesh)mesh.Clear();foreach(var p in pumpkinPool)if(p)p.gameObject.SetActive(false);}
   void OnDestroy(){if(mesh)Destroy(mesh);}
  }
 }

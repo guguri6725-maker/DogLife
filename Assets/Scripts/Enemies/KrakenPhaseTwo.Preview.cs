@@ -154,13 +154,13 @@ namespace DogLife
                 float angle = i == 0 ? idleSideAngle : i == 1 ? -idleSideAngle : i == 2 ? 140 : -140;
                 var dir = Quaternion.AngleAxis(angle, Vector3.up) * forward;
                 var start = origin + Vector3.up * armSocketHeight + dir * armSocketRadius + bodyVisual.position - previewBodyPosition;
-                var idle = origin + Vector3.up * (idleArmHeight + Mathf.Sin(time * .7f + i) * .3f) + dir * idleArmRadius;
+                var idle = origin + Vector3.up * (idleArmHeight + (i<2?-.35f:.55f)*restingArmSeparation + Mathf.Sin(time * .7f + i) * .2f) + dir * (idleArmRadius+restingArmSeparation);
                 var end = idle;
-                var curve = Vector3.up*.3f+Vector3.Cross(dir,Vector3.up)*2;
+                var curve = RestingArmCurve(dir,forward,i);
                 bool flowing = true;
                 if (pattern == "협공" && i < 2)
                 {
-                    float sign = i == 0 ? -1 : 1;
+                    float sign = i == 0 ? 1 : -1;
                     var target = middle + forward * Mathf.Min(10, pincerReach);
                     float close = Mathf.SmoothStep(0, 1, attackTime / pincer.attack);
                     end = target + side * sign * Mathf.Lerp(pincerHalfWidth, .3f, close);

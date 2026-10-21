@@ -170,7 +170,8 @@ namespace DogLife
             TickMusic();
             foreach(var v in voices)
             {
-                if(!v.active)continue;
+                if(v==null||!v.active)continue;
+                if(!v.source){v.active=false;continue;}
                 if(v.tracking&&(!v.follow||!v.follow.gameObject.activeInHierarchy)){v.source.Stop();v.active=false;continue;}
                 if(v.follow)v.source.transform.position=v.follow.position;
                 bool pause=!v.ui&&Time.timeScale==0;

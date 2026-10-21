@@ -24,6 +24,7 @@ namespace DogLife
         void Awake()
         {
             health=GetComponent<CombatHealth>();body=GetComponent<Collider>();
+            BossEncounterHUD.CreateFor(health);
             // 토끼처럼 피격 범위가 몸통 뼈 아래에 있는 모델도 실제 몸 높이에 체력바를 표시합니다.
             if(!body)body=GetComponentInChildren<Collider>();
             boarPhase=GetComponent<SpringBoarPhaseTransition>();
@@ -71,7 +72,7 @@ namespace DogLife
         }
         void OnGUI()
         {
-            if(BossCinematicUI.Hidden||!visible||!health||health.Dead)return;
+            if(BossCinematicUI.Hidden||!visible||!health||health.Dead||BossEncounterHUD.HasTarget(health))return;
             var previous=GUI.color;
             float s=Mathf.Clamp(Screen.height/1080f,.8f,1.4f),w=72*s,h=6*s,x=screen.x-w*.5f,y=Screen.height-screen.y;
             Color bone=new Color(.87f,.78f,.65f,.95f),pink=fillColor;

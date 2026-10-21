@@ -19,6 +19,21 @@ namespace DogLife
         Transform socketBody;
         Vector3 socketLocal,previousCurve;
         bool curveReady;
+        SkinnedMeshRenderer surface;
+        MaterialPropertyBlock readability;
+        Color baseTint=Color.white;
+        float illumination;
+        public void SetReadability(float emphasis)
+        {
+            if(!surface)return;
+            illumination=Mathf.MoveTowards(illumination,emphasis,Time.deltaTime*3);
+            if(readability==null)readability=new MaterialPropertyBlock();
+            surface.GetPropertyBlock(readability);
+            // Keep the existing texture and suckers. Only lift the active arm's lighting tint.
+            Color tint=baseTint*Mathf.Lerp(.88f,1.22f,illumination);tint.a=baseTint.a;
+            readability.SetColor("_Color",tint);readability.SetColor("_BaseColor",tint);
+            surface.SetPropertyBlock(readability);
+        }
         public Vector3 RootPosition=>bones.Count>0?bones[0].position:transform.position;
         public Vector3 SocketPosition=>socketBody?socketBody.TransformPoint(socketLocal):anchor;
         public void Attach(Transform body,Vector3 point){socketBody=body;socketLocal=body.InverseTransformPoint(point);}
@@ -31,6 +46,7 @@ namespace DogLife
             var skin=visual.GetComponentInChildren<SkinnedMeshRenderer>();
             if(slimMesh)skin.sharedMesh=slimMesh;
             if(material)skin.sharedMaterial=material;
+            surface=skin;if(skin.sharedMaterial&&skin.sharedMaterial.HasProperty("_Color"))baseTint=skin.sharedMaterial.color;
             skin.updateWhenOffscreen=true;
             var all=visual.GetComponentsInChildren<Transform>();
             for(int i=0;i<18;i++) foreach(var t in all) if(t.name=="Tendril"+i){bones.Add(t);break;}

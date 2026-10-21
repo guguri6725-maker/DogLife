@@ -26,6 +26,7 @@ namespace DogLife
         [Header("Resting arms: clear view of the face")]
         [SerializeField] float idleArmRadius=10,idleArmHeight=3.2f;
         [SerializeField,Range(30,170)] float idleSideAngle=70;
+        [SerializeField,Range(0,2)] float restingArmSeparation=.65f;
         [Header("Player movement barrier (world units)")]
         [SerializeField,Min(.1f)] float bodyBlockRadius=3.7f;
         CapsuleCollider bodyBarrier;
@@ -177,6 +178,7 @@ namespace DogLife
         Vector3 FlatAim(){var d=Vector3.ProjectOnPlane(player.transform.position-center,Vector3.up);return d.sqrMagnitude>.01f?d.normalized:facing;}
         void Update()
         {
+            for(int i=0;i<arms.Count;i++)arms[i].SetReadability(State==Phase.Pincer&&i<2||State==Phase.Sweep&&i==2||State==Phase.Heart ? 1f : .15f);
             if(State==Phase.Idle||State==Phase.Groggy){
                 if(State==Phase.Idle)facing=Vector3.RotateTowards(facing,FlatAim(),turnSpeed*Mathf.Deg2Rad*Time.deltaTime,0);
                 bodyVisual.position=bodyHome+Vector3.up*Mathf.Sin(Time.time*.7f)*idleSway;SetIdleArms(1);
@@ -196,8 +198,14 @@ namespace DogLife
         {
             float angle=i==0?idleSideAngle:i==1?-idleSideAngle:i==2?140:-140;Vector3 dir=Quaternion.AngleAxis(angle,Vector3.up)*facing;
             start=arms[i].SocketPosition;
-            end=new Vector3(center.x,arena.min.y+idleArmHeight+Mathf.Sin(Time.time*.7f+i)*.3f,center.z)+dir*idleArmRadius;
-            curve=Vector3.up*.3f+Vector3.Cross(dir,Vector3.up)*2;
+            end=new Vector3(center.x,arena.min.y+idleArmHeight+(i<2?-.35f:.55f)*restingArmSeparation+Mathf.Sin(Time.time*.7f+i)*.2f,center.z)+dir*(idleArmRadius+restingArmSeparation);
+            curve=RestingArmCurve(dir,facing,i);
+        }
+        Vector3 RestingArmCurve(Vector3 dir,Vector3 forward,int index)
+        {
+            // Route the slack toward the sides and rear, leaving the face clear.
+            float side=index%2==0?1:-1;
+            return Vector3.Cross(Vector3.up,forward)*side*2-forward*1.3f+Vector3.up*.25f;
         }
         void Play(string state,float duration){if(!animator)return;animator.SetFloat("PhaseSpeed",1/Mathf.Max(.1f,duration));animator.CrossFadeInFixedTime(state,.25f);}
         KrakenDeepVfx Effect(KrakenDeepVfx.Form shape,Vector3 p){var f=KrakenDeepVfx.Create(pool,waterMaterial?waterMaterial:first.WarningMaterial,shape);f.transform.position=p;effects.Add(f);return f;}
@@ -232,15 +240,15 @@ namespace DogLife
             Vector3[] fromRoots={arms[0].SamplePoints()[0],arms[1].SamplePoints()[0]},fromTips={arms[0].Tip,arms[1].Tip};
             for(float t=0;t<pincer.warning;t+=Time.deltaTime){
                 float q=t/pincer.warning;warning.Progress=q;
-                for(int i=0;i<2;i++){float s=i==0?-1:1;Vector3 start=center+side*s*3.5f;
+                for(int i=0;i<2;i++){float s=i==0?1:-1;Vector3 start=center+side*s*3.5f;
                     float blend=Mathf.SmoothStep(0,1,q);arms[i].SetShape(Vector3.Lerp(fromRoots[i],start,blend),Vector3.Lerp(fromTips[i],target+side*s*pincerHalfWidth,blend),Vector3.up*Mathf.Sin(q*Mathf.PI)*.4f+side*s*2);}
                 yield return null;
             }
             warning.Progress=1;warning.Impact=true;Sound.StopPreparation();Sound.Cue("Kraken_Underwater_Strike");Play("Wave",pincer.attack);bool hit=false;
             for(float t=0;t<pincer.attack;t+=Time.deltaTime){float q=Mathf.SmoothStep(0,1,t/pincer.attack);
-                for(int i=0;i<2;i++){float s=i==0?-1:1;arms[i].SetShape(center+side*s*3.5f,target+side*s*Mathf.Lerp(pincerHalfWidth,.3f,q),side*s*2);}
+                for(int i=0;i<2;i++){float s=i==0?1:-1;arms[i].SetShape(center+side*s*3.5f,target+side*s*Mathf.Lerp(pincerHalfWidth,.3f,q),side*s*2);}
                 // The moving damage boxes follow the tips, not the entire warning all at once.
-                if(!hit)for(int i=0;i<2;i++){float s=i==0?-1:1;hit|=BoxHit(target+side*s*Mathf.Lerp(pincerHalfWidth,.3f,q),new Vector3(pincerContactWidth,pincerHeight,pincerDepth),warning.transform.rotation,pincer.damage,pincer.knockback);}
+                if(!hit)for(int i=0;i<2;i++){float s=i==0?1:-1;hit|=BoxHit(target+side*s*Mathf.Lerp(pincerHalfWidth,.3f,q),new Vector3(pincerContactWidth,pincerHeight,pincerDepth),warning.transform.rotation,pincer.damage,pincer.knockback);}
                 yield return null;
             }
             attackBox.enabled=false;Remove(warning);yield return new WaitForSeconds(exposure);yield return Recover(pincer.recovery);
