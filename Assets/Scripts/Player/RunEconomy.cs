@@ -11,7 +11,8 @@ namespace DogLife
         public int Gold=>gold;
         public static RunEconomy Instance {get;private set;}
         static List<InventoryWeapon> carried;
-        static int carriedGold, equippedIndex;
+        static int carriedGold, equippedIndex,carriedActiveSlot;
+        static int[] carriedSlots;
         static float carriedKarma;
         static float carriedHealth,carriedMaxHealth,carriedDash;
         public static void ClearCarry(){carried=null;destination=null;}
@@ -30,7 +31,7 @@ namespace DogLife
             if(SeasonRunSave.Apply(this)){ClearCarry();SeasonRunSave.RecordEntry(this);return;}
             if(carried!=null&&gameObject.scene.path==destination)
             {
-                gold=carriedGold;inventory.RestoreRunInventory(carried,equippedIndex);
+                gold=carriedGold;inventory.RestoreRunInventory(carried,equippedIndex,carriedSlots,carriedActiveSlot);
                 var karma=inventory.GetComponent<PlayerKarma>();if(karma)karma.SetValue(carriedKarma);
                 var hp=inventory.GetComponent<CombatHealth>();if(hp&&carriedMaxHealth>0)hp.RestoreCheckpoint(carriedHealth,carriedMaxHealth);
                 var motor=inventory.GetComponent<PlayerMotor>();if(motor)motor.dashCooldown=carriedDash;
@@ -44,6 +45,7 @@ namespace DogLife
         public void CarryTo(string scene)
         {
             if(!inventory)return;
+            carriedSlots=inventory.SlotIndices();carriedActiveSlot=inventory.ActiveSlot;
             carried=new List<InventoryWeapon>(inventory.OwnedWeapons);carriedGold=gold;destination=scene;equippedIndex=-1;
             var karma=inventory.GetComponent<PlayerKarma>();carriedKarma=karma?karma.Value:0;
             var hp=inventory.GetComponent<CombatHealth>();carriedHealth=hp?hp.Current:5;carriedMaxHealth=hp?hp.maxHealth:5;

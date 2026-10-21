@@ -1353,6 +1353,7 @@ MonoBehaviour:
   dashSpeed: 12
   dashDuration: 0.22
   dashCooldown: 5
+  dashInvulnerabilityDuration: 0.22
   jumpReleaseMultiplier: 0.45
   groundMask:
     serializedVersion: 2
@@ -1451,6 +1452,11 @@ MonoBehaviour:
   - c13fbed04abe47e6a4724bc7761fbbc6
   - 319f8c019345410fa5af7b60e1173bf9
   equippedInstanceId: ffadc425326242b5a3d1758f04a881c2
+  quickSlotIds:
+  - 
+  - 
+  activeSlot: 0
+  slotsInitialized: 0
 --- !u!114 &1499668022933752621
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1471,6 +1477,8 @@ MonoBehaviour:
   - {fileID: 11400000, guid: b4ae4196c01b34a45b6ff40535a59e25, type: 2}
   - {fileID: 11400000, guid: b1565fa39a0d8e04ebecb2b75e1918e3, type: 2}
   animator: {fileID: 5867457151114486680}
+  synthesizedComboVfx: {fileID: 5431388267656719117, guid: 457a4c2fa41efca44b219d64d9deb53e, type: 3}
+  synthesizedSurroundVfx: {fileID: 5431388267656719117, guid: 836bad7fcdf5e3e41a9e9a431f780bd7, type: 3}
   continuationGrace: 0.15
   strikeFacingLock: 0.045
   bowChargeSeconds: 1.2

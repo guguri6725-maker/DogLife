@@ -174,23 +174,25 @@ namespace DogLife
         }
         Vector3 ClearPosition(Vector3 anchor, Vector3 wanted, float radius)
         {
-            wanted.x = Mathf.Max(wanted.x, minimumWorldX);
+            wanted.x = Mathf.Clamp(wanted.x, minimumWorldX, maximumWorldX);
             var clipped = ClipSegment(anchor, wanted, radius);
-            if (clipped.x >= minimumWorldX && IsClear(clipped, radius)) return clipped;
+            if (clipped.x >= minimumWorldX && clipped.x <= maximumWorldX && IsClear(clipped, radius)) return clipped;
             // 플레이어가 지형과 겹칠 때도 카메라가 벽 안에 남지 않도록 빈 위치를 찾습니다.
             for (int i = 1; i <= 24; i++)
             {
                 var candidate = Vector3.Lerp(clipped, anchor, i / 24f);
-                if (candidate.x >= minimumWorldX && IsClear(candidate, radius)) return candidate;
+                if (candidate.x >= minimumWorldX && candidate.x <= maximumWorldX && IsClear(candidate, radius)) return candidate;
             }
             // 빈 방향을 매 프레임 다시 고르면 좌우/위로 순간이동합니다. 막힌 동안 마지막 안전 시점을 유지합니다.
-            if (hasClearPosition && lastClearPosition.x >= minimumWorldX && IsClear(lastClearPosition, radius)) return lastClearPosition;
+            if (hasClearPosition && lastClearPosition.x >= minimumWorldX && lastClearPosition.x <= maximumWorldX && IsClear(lastClearPosition, radius)) return lastClearPosition;
             return clipped;
         }
         // 연출 마지막 화면에서 평소 추적 카메라로 부드럽게 복귀합니다.
         public void BlendFromCinematic(float duration,float originalFov)
         {cinematicFrom=transform.position;cinematicRotation=transform.rotation;cinematicReturnStart=Time.unscaledTime;cinematicReturnDuration=duration;ownCamera=GetComponent<Camera>();cinematicFov=ownCamera?ownCamera.fieldOfView:originalFov;gameplayFov=originalFov;}
         // 지나온 방을 해제한 뒤 카메라가 닫힌 문 뒤로 넘어가지 않게 합니다.
+        // 역방향 방 교체 중에도 카메라가 해제된 공간으로 넘어가지 않게 합니다.
+        [System.NonSerialized] public float maximumWorldX = float.PositiveInfinity;
         [System.NonSerialized] public float minimumWorldX = float.NegativeInfinity;
         void Start()
         {

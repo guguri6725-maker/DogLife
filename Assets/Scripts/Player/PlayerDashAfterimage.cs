@@ -62,8 +62,9 @@ namespace DogLife
                     var source = sources[j];
                     visible[next, j] = source && source.enabled && source.gameObject.activeInHierarchy;
                     if (!visible[next, j]) continue;
+                    // 앉은 대시의 낮아진 몸과 목도리까지 현재 스킨 자세에 함께 굽습니다.
                     source.BakeMesh(meshes[next, j], false);
-                    // 베이크된 스킨 메시의 크기를 유지하고 모델의 큰 임포트 배율을 다시 곱하지 않습니다.
+                    // 앉기 축소와 임포트 배율이 메시 안에 반영되므로 여기서 크기를 다시 곱하지 않습니다.
                     matrices[next, j] = Matrix4x4.TRS(source.transform.position, source.transform.rotation, Vector3.one);
                 }
                 born[next] = Time.time;

@@ -1,89 +1,118 @@
+using System;
 using System.Collections;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 namespace DogLife.EditorTools
 {
-    // 플레이 모드 전용 검증: 실제 트리거를 통과하며 방/통로 개수와 입장 처리를 확인합니다.
+    // 실제 방 로딩/해제를 반복하여 방 1개 제한과 양방향 재방문 상태를 검증합니다.
     public static class PassageStreamingCheck
     {
         public static string Result="Not run";
-        static int RoomCount(ForestRoomStreaming s)=>s.roomScenePaths.Count(p=>SceneManager.GetSceneByPath(p).isLoaded);
-        static void Place(PlayerMotor motor,Vector3 p)
+        static ForestRoomStreaming stream;
+        static PlayerMotor motor;
+        static int swaps,emptyFrames;
+        static void Check(bool value,string message){if(!value)throw new Exception("STREAM CHECK: "+message);}
+        static void Count()
         {
-            motor.transform.position=p;
-            var body=motor.GetComponent<Rigidbody>();body.position=p;body.linearVelocity=Vector3.zero;
-            if(Camera.main)Camera.main.transform.position=p+new Vector3(-.15f,2,0);
-            Physics.SyncTransforms();
+            int count=stream.roomScenePaths.Count(p=>SceneManager.GetSceneByPath(p).isLoaded);
+            Check(count<=1,"overlapping room scenes: "+count);
+            if(count==0)emptyFrames++;
         }
-        public static IEnumerator Run(ForestRoomStreaming stream)
+        static IEnumerator Wait(Func<bool> condition,string label,float seconds=60)
         {
-            Result="Running";
-            float end=Time.realtimeSinceStartup+30;
-            while(!stream.Ready&&Time.realtimeSinceStartup<end)yield return null;
-            if(!stream.Ready){Result="FAIL initial loading: "+stream.LoadError;yield break;}
-            var hud=stream.director.hud;var motor=hud.motor;var camera=Camera.main.GetComponent<PlayerCamera>();
-            bool motorEnabled=motor.enabled,cameraEnabled=camera.enabled;
+            float end=Time.realtimeSinceStartup+seconds;
+            while(!condition())
+            {Count();Check(string.IsNullOrEmpty(stream.LoadError),stream.LoadError);Check(Time.realtimeSinceStartup<end,"timeout "+label);yield return null;}
+            Count();
+        }
+        static void Place(Vector3 p)
+        {
+            motor.transform.position=p;var body=motor.GetComponent<Rigidbody>();body.position=p;body.linearVelocity=Vector3.zero;
+            Camera.main.transform.position=p+new Vector3(-.15f,2,0);Physics.SyncTransforms();
+        }
+        static IEnumerator Clear()
+        {
+            if(stream.Current.Cleared)yield break;
+            foreach(var gate in stream.Current.sideVines)if(gate)Check(gate.IsClosed&&!gate.IsPassable,"side room open before clear");
+            foreach(var enemy in stream.Current.Enemies)if(enemy&&!enemy.Dead)enemy.FatalDamage();
+            yield return Wait(()=>stream.Current.Cleared,"room clear");
+            yield return new WaitForSeconds(4);
+            foreach(var gate in stream.Current.sideVines)if(gate)Check(gate.IsOpen&&gate.IsPassable,"side room did not open after clear");
+        }
+        static IEnumerator Travel(int target)
+        {
+            int source=stream.CurrentRoom;bool forward=target>source;
+            var passage=UnityEngine.Object.FindObjectsByType<SeasonPassage>(FindObjectsSortMode.None).Single(p=>p.previousRoomIndex==Math.Min(source,target));
+            var origin=passage.transform.position;
+            Place(origin+new Vector3(forward?7.1f:10.5f,.65f,-3.1f));
+            yield return Wait(()=>stream.LoadedRoomCount==0&&!stream.Busy,"release "+source);
+            Check(passage.IsRearClosed&&passage.IsForwardClosed,"both seals before unload");
+            yield return null;Count();
+            Place(origin+new Vector3(forward?10.5f:7.1f,.65f,-3.1f));
+            yield return Wait(()=>stream.IsRoomPrepared(target),"load "+target);
+            // 문이 열리는 시점부터 반대편 연결 통로와 차단문이 존재해야 합니다.
+            var connections=UnityEngine.Object.FindObjectsByType<SeasonPassage>(FindObjectsSortMode.None);
+            foreach(int link in new[]{target-1,target})
+            {
+                if(link<0||link>=stream.roomScenePaths.Length-1)continue;
+                var connection=connections.SingleOrDefault(p=>p.previousRoomIndex==link);
+                Check(connection&&connection.gameObject.activeInHierarchy,"missing adjacent passage before entry: "+link);
+                Check(connection.rearSeal&&connection.forwardSeal,"missing passage doors: "+link);
+                Check(connection.GetComponentsInChildren<Collider>().Any(c=>c.enabled),"missing passage collision: "+link);
+                Check(connection.GetComponentsInChildren<Renderer>().Any(r=>r.enabled),"missing passage visuals: "+link);
+                if(connection!=passage)
+                    Check(link==target?connection.IsForwardClosed:connection.IsRearClosed,"unloaded neighbor is exposed: "+link);
+            }
+            bool revisiting=stream.WasCleared(target);
+            Check(revisiting||!stream.Current.CombatStarted,"unvisited room starts early");
+            var room=stream.Current;
+            foreach(var gate in room.sideVines)if(gate)Check(revisiting?gate.IsOpen:gate.IsClosed,"side room restored incorrectly");
+            if(revisiting&&target>0&&room.rearVines)Check(room.rearVines.IsOpen&&room.rearVines.IsPassable,"revisit rear door is animating");
+            Place(new Vector3(forward?room.entryX+5:room.exitX-5,2,0));
+            yield return Wait(()=>!stream.InPassage,"enter "+target);
+            if(revisiting)Check(room.Cleared&&room.Enemies.Length==0,"cleared enemy respawn");
+            else
+            {
+                Check(room.CombatStarted,"new combat did not start");
+                if(room.rearVines){yield return Wait(()=>room.rearVines.IsClosed,"combat rear door closing",8);Check(!room.rearVines.IsPassable,"combat rear door passable");}
+            }
+            swaps++;Count();
+        }
+        public static IEnumerator Run(ForestRoomStreaming instance)
+        {
+            stream=instance;Result="Running";swaps=emptyFrames=0;
+            yield return Wait(()=>stream.Ready,"initial load");
+            var hud=stream.director.hud;motor=hud.motor;var camera=Camera.main.GetComponent<PlayerCamera>();
+            bool oldMotor=motor.enabled,oldCamera=camera.enabled,oldInvulnerable=hud.health.invulnerable;
             motor.enabled=false;camera.enabled=false;hud.health.Restore();hud.health.invulnerable=true;Time.timeScale=1;
-            var checks=new System.Collections.Generic.List<string>();
+            // 중첩 코루틴의 실패도 기록하고 플레이어 설정을 복구합니다.
+            var routine=Route();var stack=new System.Collections.Generic.Stack<IEnumerator>();stack.Push(routine);
             try
             {
-                for(int run=0;run<2;run++)
+                while(stack.Count>0)
                 {
-                    int index=stream.CurrentRoom;
-                    if(RoomCount(stream)!=1){Result="FAIL initial room count "+RoomCount(stream);yield break;}
-                    // 방어/회피 패턴 검증이 아니므로 사망 이벤트로 클리어 조건만 준비합니다.
-                    foreach(var enemy in stream.Current.Enemies)if(enemy&&!enemy.Dead)enemy.FatalDamage();
-                    yield return new WaitForSeconds(1.5f);
-                    var passage=Object.FindObjectsByType<SeasonPassage>(FindObjectsSortMode.None).Single(p=>p.previousRoomIndex==index);
-                    Vector3 origin=passage.transform.position;
-                    float raisedY=passage.rearSeal.transform.localPosition.y;
-                    if(passage.rearSeal.activeSelf||passage.IsRearClosed){Result="FAIL rear starts closed";yield break;}
-                    Place(motor,origin+new Vector3(7.1f,.65f,-3.1f));
-                    end=Time.realtimeSinceStartup+15;
-                    while(!passage.rearSeal.activeSelf&&Time.realtimeSinceStartup<end)yield return null;
-                    if(!passage.rearSeal.activeSelf){Result="FAIL rear close trigger";yield break;}
-                    float lastY=raisedY,closeStarted=Time.time;
-                    int descentSamples=0;
-                    bool repeatedClose=false;
-                    // 실제 트리거로 하강 중 이전 방 유지와 반복 요청 시 끊김 없는 이동을 확인합니다.
-                    while(!passage.IsRearClosed&&Time.realtimeSinceStartup<end)
-                    {
-                        float y=passage.rearSeal.transform.localPosition.y;
-                        if(!stream.Current||RoomCount(stream)!=1||!stream.Busy){Result="FAIL room unloaded before rear closed";yield break;}
-                        if(y>lastY+.001f){Result="FAIL rear reversed";yield break;}
-                        if(y<raisedY-.01f)descentSamples++;
-                        if(!repeatedClose&&y<raisedY-2)
-                        {
-                            passage.CloseRear();repeatedClose=true;
-                            if(Mathf.Abs(passage.rearSeal.transform.localPosition.y-y)>.001f){Result="FAIL repeated close reset";yield break;}
-                        }
-                        lastY=y;
-                        yield return null;
-                    }
-                    if(!passage.IsRearClosed||descentSamples<2||Mathf.Abs(passage.rearSeal.transform.localPosition.y-(raisedY-10))>.001f)
-                    {Result="FAIL rear descent/end position";yield break;}
-                    checks.Add(index+": smooth descent "+descentSamples+" frames / "+(Time.time-closeStarted).ToString("F2")+"s");
-                    while((stream.Current||stream.Busy)&&Time.realtimeSinceStartup<end)yield return null;
-                    if(stream.Current||RoomCount(stream)!=0||!passage.rearSeal.activeSelf){Result="FAIL release "+index+" rooms="+RoomCount(stream);yield break;}
-                    checks.Add(index+": 1→0; rear sealed");
-                    Place(motor,origin+new Vector3(10.5f,.65f,-3.1f));
-                    end=Time.realtimeSinceStartup+25;
-                    while(!stream.IsRoomPrepared(index+1)&&Time.realtimeSinceStartup<end)yield return null;
-                    if(!stream.IsRoomPrepared(index+1)||RoomCount(stream)!=1){Result="FAIL load "+index+" "+stream.LoadError;yield break;}
-                    yield return new WaitForSeconds(1);
-                    if(passage.forwardSeal.activeSelf){Result="FAIL front door";yield break;}
-                    Place(motor,origin+new Vector3(23,1,0));
-                    end=Time.realtimeSinceStartup+10;
-                    while((stream.CurrentRoom==index||stream.Busy)&&Time.realtimeSinceStartup<end)yield return null;
-                    int passages=Object.FindObjectsByType<SeasonPassage>(FindObjectsSortMode.None).Length;
-                    if(stream.CurrentRoom!=index+1||!stream.Current||!stream.Current.CombatStarted||passages>2){Result="FAIL advance "+index;yield break;}
-                    checks.Add(index+": 0→1; encounter started; passages="+passages);
+                    object yielded=null;bool moved=false;
+                    try{moved=stack.Peek().MoveNext();if(moved)yielded=stack.Peek().Current;}
+                    catch(Exception e){Result="FAIL "+e.Message;Debug.LogError(Result);break;}
+                    if(!moved){stack.Pop();continue;}
+                    if(yielded is IEnumerator){stack.Push((IEnumerator)yielded);continue;}
+                    yield return yielded;
                 }
-                Result="PASS "+string.Join(" / ",checks);
+                if(!Result.StartsWith("FAIL"))Result="PASS swaps="+swaps+", passage-only frames="+emptyFrames+", max rooms=1, clears="+stream.director.Cleared;
             }
-            finally{motor.enabled=motorEnabled;camera.enabled=cameraEnabled;hud.health.invulnerable=false;}
+            finally{motor.enabled=oldMotor;camera.enabled=oldCamera;hud.health.invulnerable=oldInvulnerable;}
             Debug.Log(Result);
+        }
+        static IEnumerator Route()
+        {
+            yield return Clear();
+            foreach(int target in new[]{1,0,1,2,3,2,1,0})
+            {
+                yield return Travel(target);yield return Clear();
+                Check(stream.director.Cleared>=target+1,"clear progress regressed");
+            }
+            Check(stream.director.Cleared==4,"revisit duplicated progression");
         }
     }
 }

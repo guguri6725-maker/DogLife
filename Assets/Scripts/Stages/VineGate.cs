@@ -28,10 +28,18 @@ namespace DogLife
 
         void Start()
         {
+            if(initialized)return;
             Progress = target = startOpen ? 1 : 0;
             ApplyPose();
             if (visualRoot && startOpen && hideWhenInitiallyOpen) visualRoot.SetActive(false);
             initialized=true;
+        }
+        // 스트리밍 복원은 개방 동작/효과음을 재생하지 않고 저장된 최종 자세로 시작합니다.
+        public void SetOpenImmediate(bool open)
+        {
+            gateSound.Stop();Progress=target=open?1:0;initialized=true;
+            if(visualRoot)visualRoot.SetActive(!(open&&hideWhenInitiallyOpen));
+            ApplyPose();
         }
         public void Open() { SetTarget(1); }
         public void Close() { SetTarget(0); }

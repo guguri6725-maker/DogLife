@@ -7,12 +7,15 @@ namespace DogLife
         Color tint;
         float birth,lifetime=.28f,width;
         bool crescent;
+        // 합성형은 판정용 선만 만들고 기존 장식은 그리지 않습니다.
+        public static bool HideLegacyVisuals { get; set; }
         public LineRenderer HitShape=>line;
         public LineRenderer ImpactShape { get; private set; }
         public static BoneWeaponVfx Line(Vector3[] points,Color color,Material material,float size=.09f,float life=.28f)
         {
             var go=new GameObject("Bone weapon effect");var fx=go.AddComponent<BoneWeaponVfx>();
             fx.line=go.AddComponent<LineRenderer>();fx.line.sharedMaterial=material;fx.line.positionCount=points.Length;fx.line.SetPositions(points);fx.line.numCapVertices=5;fx.line.numCornerVertices=4;fx.line.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;fx.line.receiveShadows=false;
+            fx.line.enabled=!HideLegacyVisuals;
             fx.tint=color;fx.birth=Time.time;fx.width=size;fx.lifetime=life;fx.line.startWidth=size;fx.line.endWidth=size*.15f;fx.line.startColor=fx.line.endColor=color;return fx;
         }
         // 동물형/인간형은 같은 사거리를 사용하고 합성형만 일반형의 1.5배로 확대합니다.

@@ -6,6 +6,14 @@ namespace DogLife
     {
         public BasicWeaponMoveset[] movesets;
         public Animator animator;
+        [Tooltip("Hierarchy에서 제작한 일반형·합성형 공용 근접 콤보 효과 프리팹")]
+        public SynthesizedComboVfx synthesizedComboVfx;
+        [Tooltip("합성형 공격에만 추가하는 금빛 주변 효과 프리팹")]
+        public SynthesizedComboVfx synthesizedSurroundVfx;
+        SynthesizedComboVfx chargeSurround;
+        float nextChargeSurround;
+        // 일반형도 같은 궤적을 사용하되 기존 공격 사거리와 피해량은 유지합니다.
+        public bool UsesSynthesizedComboVfx=>synthesizedComboVfx&&item&&!SingleAttack;
         [SerializeField] float continuationGrace=.15f;
         PlayerInventory inventory;
         PlayerMotor motor;
@@ -49,6 +57,8 @@ namespace DogLife
         bool UsesUpperBody=>item&&(item.weaponCategory==InventoryWeapon.WeaponCategory.Dagger||item.weaponCategory==InventoryWeapon.WeaponCategory.Bow||item.weaponCategory==InventoryWeapon.WeaponCategory.Boomerang||((item.weaponCategory==InventoryWeapon.WeaponCategory.Sword||item.weaponCategory==InventoryWeapon.WeaponCategory.Spear)&&step<2));
         bool SingleAttack=>item&&(item.weaponCategory==InventoryWeapon.WeaponCategory.Bow||item.weaponCategory==InventoryWeapon.WeaponCategory.Boomerang);
         public bool LocksMovement=>IsAttacking&&!UsesUpperBody;
+        // 활과 상체만 사용하는 검 1·2타는 공격 중에도 점프와 앉기를 허용합니다.
+        public bool LocksPosture=>IsAttacking&&!(item&&(item.weaponCategory==InventoryWeapon.WeaponCategory.Bow||(item.weaponCategory==InventoryWeapon.WeaponCategory.Sword&&step>=0&&step<2)));
         // 기본형과 합성형은 같은 무기별 콤보와 애니메이션을 공유합니다.
         public bool Ready=>isActiveAndEnabled&&animator&&inventory&&inventory.EquippedWeapon;
         void Awake(){inventory=GetComponent<PlayerInventory>();motor=GetComponent<PlayerMotor>();weapons=GetComponent<PlayerWeapons>();health=GetComponent<CombatHealth>();}
@@ -165,8 +175,7 @@ namespace DogLife
             var capsule=GetComponent<CapsuleCollider>();
             Vector3 origin=capsule?capsule.bounds.center:transform.position+Vector3.up;
             Color color=item.boneOrigin==InventoryWeapon.BoneOrigin.Humanoid?new Color(.65f,.20f,.25f,.55f):new Color(.50f,.82f,1,.55f);
-            if(item.weaponForm==InventoryWeapon.WeaponForm.Synthesized)
-                color=item.boneOrigin==InventoryWeapon.BoneOrigin.Humanoid?new Color(1f,.12f,.18f,.85f):new Color(.12f,.55f,1f,.85f);
+            color=item.boneOrigin==InventoryWeapon.BoneOrigin.Humanoid?new Color(1f,.12f,.18f,.85f):new Color(.12f,.55f,1f,.85f);
             float reach=item.rangeDefined?item.meleeRange:move.reach;
             if(item.weaponCategory==InventoryWeapon.WeaponCategory.Bow||item.weaponCategory==InventoryWeapon.WeaponCategory.Boomerang)
             {
@@ -189,8 +198,19 @@ namespace DogLife
                 if(item.weaponCategory==InventoryWeapon.WeaponCategory.Spear&&step==2)
                     power=move.spearFlurryDamageMultiplier;
                 var surface=item.strikeAccentPrefab&&item.strikeAccentPrefab.surfaceMaterial?item.strikeAccentPrefab.surfaceMaterial:move.effectMaterial;
-                var effect=BoneWeaponVfx.Strike(origin,direction,reach,item.weaponCategory,step,color,surface,BoneWeaponVfx.SizeFor(item),secondStruck);
-                if(item.strikeAccentPrefab)
+                BoneWeaponVfx effect;
+                bool previousVisibility=BoneWeaponVfx.HideLegacyVisuals;
+                try
+                {
+                    BoneWeaponVfx.HideLegacyVisuals=UsesSynthesizedComboVfx;
+                    effect=BoneWeaponVfx.Strike(origin,direction,reach,item.weaponCategory,step,color,surface,BoneWeaponVfx.SizeFor(item),secondStruck);
+                }
+                finally{BoneWeaponVfx.HideLegacyVisuals=previousVisibility;}
+                if(UsesSynthesizedComboVfx)
+                    Instantiate(synthesizedComboVfx).Initialize(effect.HitShape,effect.ImpactShape,origin,direction,color,item.weaponCategory,step,thrustCount);
+                if(synthesizedSurroundVfx&&item.weaponForm==InventoryWeapon.WeaponForm.Synthesized)
+                    Instantiate(synthesizedSurroundVfx).InitializeSurround(effect.HitShape,effect.ImpactShape,origin,direction,item.weaponCategory,step,thrustCount);
+                if(!UsesSynthesizedComboVfx&&item.strikeAccentPrefab)
                 {
                     Instantiate(item.strikeAccentPrefab).Initialize(effect.HitShape,color);
                     if(effect.ImpactShape)Instantiate(item.strikeAccentPrefab).Initialize(effect.ImpactShape,color);
@@ -235,17 +255,24 @@ namespace DogLife
         {
             if(chargeArrow)Destroy(chargeArrow.gameObject);chargeArrow=null;
             if(chargeEffect)Destroy(chargeEffect.gameObject);chargeEffect=null;
+            if(chargeSurround)Destroy(chargeSurround.gameObject);chargeSurround=null;nextChargeSurround=0;
         }
         void UpdateChargeVisual()
         {
             if(!chargeArrow){var go=new GameObject("Charged bone arrow");chargeArrow=go.AddComponent<LineRenderer>();chargeArrow.sharedMaterial=move.bowChargeMaterial?move.bowChargeMaterial:move.effectMaterial;chargeArrow.positionCount=5;}
             var pos=weapons.SafeLaunchOrigin(weapons.GetWeaponSocket(item).position);
             var shotDirection=weapons.GetProjectileDirection(pos);var right=Vector3.Cross(Vector3.up,shotDirection).normalized;
+            // 응축 장식은 합성 활에만 표시하고 발사·취소·무기 교체 때 함께 정리합니다.
+            if(synthesizedSurroundVfx&&item.weaponForm==InventoryWeapon.WeaponForm.Synthesized&&Time.time>=nextChargeSurround)
+            {
+                if(!chargeSurround)chargeSurround=Instantiate(synthesizedSurroundVfx);
+                chargeSurround.ShowChargeSurround(pos,shotDirection,ChargeAmount);nextChargeSurround=Time.time+.06f;
+            }
             if(move.bowChargeVisual)
             {
                 if(!chargeEffect)chargeEffect=Instantiate(move.bowChargeVisual);
                 chargeEffect.transform.SetPositionAndRotation(pos,Quaternion.LookRotation(shotDirection));
-                chargeEffect.Show(ChargeAmount,item.boneOrigin==InventoryWeapon.BoneOrigin.Humanoid,item.weaponForm==InventoryWeapon.WeaponForm.Synthesized);
+                chargeEffect.Show(ChargeAmount,item.boneOrigin==InventoryWeapon.BoneOrigin.Humanoid,true);
             }
             float size=BoneWeaponVfx.SizeFor(item),length=Mathf.Lerp(.5f,1.1f,ChargeAmount)*size;
             var tip=pos+shotDirection*length;

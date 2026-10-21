@@ -60,14 +60,30 @@ namespace DogLife
                 weapons.readInput=item.weaponCategory==InventoryWeapon.WeaponCategory.Bow;
                 weapons.AimAt(target.transform.position);
                 float before=health.Current,until=Time.realtimeSinceStartup+6;
-                if(item.weaponCategory==InventoryWeapon.WeaponCategory.Bow){combat.PressAttack();yield return new WaitForSecondsRealtime(1.4f);combat.ReleaseAttack();}
+                if(item.weaponCategory==InventoryWeapon.WeaponCategory.Bow)
+                {
+                    combat.PressAttack();
+                    // 차징 상태를 유지한 채 앉기와 실제 물리 점프를 거친 뒤 화살을 발사합니다.
+                    Check("Bow charge allows crouching",motor.SetCrouching(true)&&motor.Crouching&&combat.IsCharging);
+                    motor.RequestJump();yield return new WaitForFixedUpdate();yield return null;
+                    Check("Bow charge allows jump from crouch",!motor.Crouching&&motor.GetComponent<Rigidbody>().linearVelocity.y>0&&combat.IsCharging);
+                    yield return Wait(()=>motor.Grounded,3);yield return new WaitForSecondsRealtime(.2f);
+                    Check("Bow charge survives jump and landing",combat.IsCharging&&combat.ChargeAmount>.9f);
+                    combat.ReleaseAttack();
+                }
                 while(Time.realtimeSinceStartup<until){weapons.AimAt(target.transform.position);if(item.weaponCategory!=InventoryWeapon.WeaponCategory.Bow){combat.PressAttack();combat.ReleaseAttack();}yield return null;}
                 Check(move.category+" real animation/VFX attack damages practice target",health.Current<before);combat.Cancel();
                 weapons.readInput=false;
             }
             if(OnlyBow){Destroy(target);yield break;}
             var sword=AssetDatabase.FindAssets("t:InventoryWeapon").Select(g=>AssetDatabase.LoadAssetAtPath<InventoryWeapon>(AssetDatabase.GUIDToAssetPath(g))).First(x=>x.weaponId=="dog_sword_basic");inventory.Equip(sword);yield return new WaitForSecondsRealtime(1.1f);
-            motor.SetCrouching(true);combat.PressAttack();yield return null;Check("Crouched attack can dash cancel",motor.RequestDash()&&!combat.IsAttacking);combat.Cancel();motor.MoveInput=Vector2.zero;yield return new WaitForSecondsRealtime(.5f);Destroy(target);
+            motor.SetCrouching(true);float crouchedHeight=motor.GetComponent<CapsuleCollider>().height;
+            combat.PressAttack();yield return null;Check("Crouched attack can dash cancel",motor.RequestDash()&&!combat.IsAttacking);
+            // 대시가 공격을 취소해도 앉은 몸통과 입력 상태는 유지되어야 합니다.
+            Check("Dash preserves crouched stance",motor.Crouching&&Mathf.Approximately(motor.GetComponent<CapsuleCollider>().height,crouchedHeight));
+            combat.Cancel();motor.MoveInput=Vector2.zero;yield return new WaitForSecondsRealtime(.5f);
+            Check("Crouch stays after dash until released",motor.Crouching);
+            Check("Crouch can be released after dash",motor.SetCrouching(false)&&!motor.Crouching);Destroy(target);
             Status="Shop and synthesis transactions";
             var stationGo=new GameObject("Regression shop");stationGo.transform.position=motor.transform.position;
             var shop=stationGo.AddComponent<EconomyStation>();shop.catalog=AssetDatabase.LoadAssetAtPath<WeaponCatalog>("Assets/Data/Weapons/WeaponCatalog.asset");shop.price=10;shop.displays=new[]{new GameObject("display").transform};shop.displays[0].SetParent(stationGo.transform,false);

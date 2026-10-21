@@ -28,6 +28,7 @@ namespace DogLife
         public static bool IsOpen => Instance && Instance.opened;
         public static bool BlocksGameplayInput => IsOpen || Time.frameCount == inputConsumedFrame || GameSettingsWindow.BlocksGameplayInput || EconomyWindow.BlocksInput;
         static int inputConsumedFrame = -1;
+        public int SelectedSlot {get;private set;}
         public SkillCard Selected { get; private set; }
         public SkillCard Dragged { get; private set; }
         public SkillSlot DragSource { get; private set; }
@@ -78,8 +79,6 @@ namespace DogLife
             dragGhost.gameObject.SetActive(false);
             foreach (var slot in slots) slot.Refresh();
             if (inventory) inventory.Changed += RefreshInventory;
-            if (equipButton) equipButton.onClick.AddListener(EquipSelected);
-            if (unequipButton) unequipButton.onClick.AddListener(UnequipWeapon);
             RefreshInventory();
             UpdateCount();
         }
@@ -154,7 +153,7 @@ namespace DogLife
         public void DropOn(SkillSlot target)
         {
             if (!Dragged || !Dragged.Item || !target || !inventory) return;
-            inventory.EquipInstance(Dragged.InstanceId);EndDrag();
+            SelectedSlot=System.Array.IndexOf(slots,target);inventory.AssignSlot(SelectedSlot,Dragged.InstanceId);EndDrag();
         }
         public void EndDrag()
         {
@@ -162,9 +161,15 @@ namespace DogLife
             if (dragGhost) dragGhost.gameObject.SetActive(false);
             foreach (var slot in slots) slot.SetHover(false);
         }
-        public void Unequip(SkillSlot slot) { UnequipWeapon(); }
-        public void EquipSelected() { if (inventory && Selected && Selected.Item) inventory.EquipInstance(Selected.InstanceId); }
-        public void UnequipWeapon() { if (inventory) inventory.Unequip(); }
+        public void SelectSlot(SkillSlot slot)
+        {
+            SelectedSlot=System.Array.IndexOf(slots,slot);
+            if(slot.Equipped)Select(slot.Equipped);
+            foreach(var item in slots)item.Refresh();UpdateCount();
+        }
+        public void Unequip(SkillSlot slot) { if(inventory)inventory.ClearSlot(System.Array.IndexOf(slots,slot)); }
+        public void EquipSelected() { if (inventory && Selected && Selected.Item) inventory.AssignSlot(SelectedSlot,Selected.InstanceId); }
+        public void UnequipWeapon() { if (inventory) inventory.ClearSlot(SelectedSlot); }
         void RefreshInventory()
         {
             var selected=Selected?Selected.InstanceId:null;
@@ -180,7 +185,7 @@ namespace DogLife
             foreach(var slot in slots)
             {
                 SkillCard card=null;
-                foreach(var item in skills)if(item.Item&&inventory&&item.InstanceId==inventory.EquippedInstanceId){card=item;break;}
+                foreach(var item in skills)if(item.Item&&inventory&&item.InstanceId==inventory.SlotInstanceId(System.Array.IndexOf(slots,slot))){card=item;break;}
                 slot.SetSkill(card);
             }
             if(!Selected)foreach(var card in skills)if(card.Item){Selected=card;break;}
@@ -196,17 +201,15 @@ namespace DogLife
         }
         void UpdateCount()
         {
-            bool equipped=inventory&&inventory.EquippedWeapon;
-            equippedCount.text=equipped?"1 / 1 장착":"0 / 1 장착 · 맨손";
+            int count=0;if(inventory)for(int n=0;n<2;n++)if(!string.IsNullOrEmpty(inventory.SlotInstanceId(n)))count++;
+            equippedCount.text=count+" / 2 장착  ·  [1] [2] 무기 전환";
             if(ownedCount)ownedCount.text=(inventory?inventory.OwnedWeapons.Count:0)+"개 보유";
-            if(equipButton)equipButton.interactable=Selected&&Selected.Item&&inventory&&Selected.InstanceId!=inventory.EquippedInstanceId;
-            if(unequipButton)unequipButton.interactable=equipped;
+            if(equipButton)equipButton.interactable=Selected&&Selected.Item&&inventory&&Selected.InstanceId!=inventory.SlotInstanceId(SelectedSlot);
+            if(unequipButton)unequipButton.interactable=inventory&&!string.IsNullOrEmpty(inventory.SlotInstanceId(SelectedSlot));
         }
         void OnDestroy()
         {
             if(inventory)inventory.Changed-=RefreshInventory;
-            if(equipButton)equipButton.onClick.RemoveListener(EquipSelected);
-            if(unequipButton)unequipButton.onClick.RemoveListener(UnequipWeapon);
             if(Instance==this)Instance=null;
         }
         void OnDisable() { if (opened) SetOpen(false); }

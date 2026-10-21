@@ -24,6 +24,8 @@ namespace DogLife
         void Awake()
         {
             health=GetComponent<CombatHealth>();body=GetComponent<Collider>();
+            // 토끼처럼 피격 범위가 몸통 뼈 아래에 있는 모델도 실제 몸 높이에 체력바를 표시합니다.
+            if(!body)body=GetComponentInChildren<Collider>();
             boarPhase=GetComponent<SpringBoarPhaseTransition>();
             var motor=FindFirstObjectByType<PlayerMotor>();if(motor)player=motor.transform;
             foreach(var t in GetComponentsInChildren<Transform>())if(t.name=="Head"){head=t;break;}

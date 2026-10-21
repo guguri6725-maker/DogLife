@@ -70,7 +70,8 @@ namespace DogLife
             if (TryGetComponent<CombatDamageGate>(out var gate) && gate.isActiveAndEnabled)
             {if(gate.BlocksDamage(amount))return;amount=gate.FilterDamage(amount);}
             var motor = GetComponent<PlayerMotor>();
-            if (motor && motor.IsDashing) return;
+            // 대시 이동 종료와 관계없이 별도로 설정된 무적시간만 적용합니다.
+            if (motor && motor.IsDashInvulnerable) return;
             // 발악을 공략한 보스는 피해량에 관계없이 다음 유효 타격 한 번으로 마무리됩니다.
             if(awaitingFinalHit)amount=Mathf.Max(amount,Current);
             // 플레이어는 공격 종류와 관계없이 유효한 피격 한 번에 하트 한 칸을 잃습니다.

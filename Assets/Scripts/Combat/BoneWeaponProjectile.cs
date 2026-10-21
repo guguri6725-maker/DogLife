@@ -16,23 +16,32 @@ namespace DogLife
         LineRenderer visual;
         Material effectMaterial;
         BowFlightVisual bowVisual;
+        SynthesizedComboVfx surroundVisual;
         float power=1,speedScale=1;
         // 화살의 판정은 충전 오라/합성 장식 크기와 분리해 바닥까지 늘어나지 않게 합니다.
         float HitRadius=>item.weaponCategory==InventoryWeapon.WeaponCategory.Bow?move.ProjectileHitRadius:.51f*visualScale;
         Vector3 BoomerangHalfExtents=>new Vector3(HitRadius,move.BoomerangHalfThickness*visualScale,HitRadius);
         public event System.Action Returned;
-        void OnDestroy(){flightSound.Stop();if(bowVisual&&Application.isPlaying)bowVisual.Finish();Returned?.Invoke();}
+        void OnDestroy(){flightSound.Stop();if(bowVisual&&Application.isPlaying)bowVisual.Finish();if(surroundVisual)Destroy(surroundVisual.gameObject);Returned?.Invoke();}
         public static BoneWeaponProjectile Launch(Vector3 position,Vector3 direction,Transform owner,InventoryWeapon item,BasicWeaponMoveset move,Color color,float reach,float charge=0)
         {
             var go=new GameObject(item.weaponCategory==InventoryWeapon.WeaponCategory.Bow?"Bone arrow":"Bone boomerang");go.transform.position=position;
             var p=go.AddComponent<BoneWeaponProjectile>();p.owner=owner;p.item=item;p.move=move;p.forward=direction.normalized;p.tint=color;p.reach=reach;p.visualScale=BoneWeaponVfx.SizeFor(item);
             // 활/부메랑의 비행 거리도 근접 공격과 동일한 일반 1배, 합성 1.5배를 사용합니다.
-            bool synthesized=item.weaponForm==InventoryWeapon.WeaponForm.Synthesized;
+            // 발사·비행 연출은 공용으로 쓰고 판정 배율은 위의 실제 무기 형태를 따릅니다.
+            bool synthesized=true;
             p.effectMaterial=synthesized&&item.strikeAccentPrefab&&item.strikeAccentPrefab.surfaceMaterial
                 ?item.strikeAccentPrefab.surfaceMaterial:move.effectMaterial;
             p.reach*=BoneWeaponVfx.SizeFor(item);
             p.visual=go.AddComponent<LineRenderer>();p.visual.sharedMaterial=p.effectMaterial;p.visual.useWorldSpace=false;p.visual.startWidth=.07f*p.visualScale;p.visual.endWidth=.025f*p.visualScale;p.visual.startColor=p.visual.endColor=color;p.visual.numCapVertices=4;
             bool bow=item.weaponCategory==InventoryWeapon.WeaponCategory.Bow;
+            // 투사체와 함께 움직이는 합성형 금빛 장식은 충돌 판정과 분리합니다.
+            var combat=owner?owner.GetComponent<BasicWeaponCombat>():null;
+            if(item.weaponForm==InventoryWeapon.WeaponForm.Synthesized&&combat&&combat.synthesizedSurroundVfx)
+            {
+                p.surroundVisual=Instantiate(combat.synthesizedSurroundVfx);
+                p.surroundVisual.InitializeProjectileSurround(go.transform,bow,direction);
+            }
             if(!bow)p.flightSound=GameAudio.Play("BoomerangLoop",position,.22f,GameAudio.WeaponPitch(item),follow:go.transform,loop:true);
             if(bow){p.power=Mathf.Lerp(1,move.bowFullChargeMultiplier,Mathf.Clamp01(charge));p.speedScale=Mathf.Lerp(.8f,1.4f,charge);p.visualScale*=Mathf.Lerp(1,1.5f,charge);}
             go.transform.rotation=Quaternion.LookRotation(direction);
@@ -78,7 +87,7 @@ namespace DogLife
         {
             if(item.weaponCategory==InventoryWeapon.WeaponCategory.Bow&&move.bowReleaseVisual)
             {
-                Instantiate(move.bowReleaseVisual,position,Quaternion.LookRotation(forward)).Initialize(item.boneOrigin==InventoryWeapon.BoneOrigin.Humanoid,item.weaponForm==InventoryWeapon.WeaponForm.Synthesized,0,true);return;
+                Instantiate(move.bowReleaseVisual,position,Quaternion.LookRotation(forward)).Initialize(item.boneOrigin==InventoryWeapon.BoneOrigin.Humanoid,true,0,true);return;
             }
             var ring=BoneWeaponVfx.Ring(position,x,y,radius,tint,effectMaterial,visualScale);
             if(item.strikeAccentPrefab)Instantiate(item.strikeAccentPrefab).Initialize(ring.HitShape,tint);

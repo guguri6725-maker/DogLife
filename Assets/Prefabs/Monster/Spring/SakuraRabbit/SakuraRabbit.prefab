@@ -1,5 +1,73 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &768239831233932755
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6636932532599051474}
+  - component: {fileID: 3681100624890440071}
+  - component: {fileID: 6735142632739515827}
+  m_Layer: 0
+  m_Name: HeadHurtbox
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6636932532599051474
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 768239831233932755}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0.7983487, y: 0.00000006121973, z: 0.00000006121973, w: 0.60219544}
+  m_LocalPosition: {x: 0, y: -0.000063185056, z: -0.0017499735}
+  m_LocalScale: {x: 0.008, y: 0.008000001, z: 0.008000001}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1776638125716101889}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!136 &3681100624890440071
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 768239831233932755}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.24
+  m_Height: 1
+  m_Direction: 1
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &6735142632739515827
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 768239831233932755}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 710524836a213f346b2f42d6ab9c1aea, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DogLife.MonsterHurtbox
 --- !u!1 &1421702323706944980
 GameObject:
   m_ObjectHideFlags: 0
@@ -9432,6 +9500,74 @@ MonoBehaviour:
   corridor: 0
   warningDuration: 1.42
   material: {fileID: 2100000, guid: 45c443755e5791b47a27030dcb8f3d15, type: 2}
+--- !u!1 &6062655219670886367
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1263192117935345599}
+  - component: {fileID: 2592877020528176150}
+  - component: {fileID: 3884044952225183418}
+  m_Layer: 0
+  m_Name: BodyHurtbox
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1263192117935345599
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6062655219670886367}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0.6697392, y: 0, z: 0, w: -0.7425964}
+  m_LocalPosition: {x: 0, y: 0.0010564304, z: -0.00049391587}
+  m_LocalScale: {x: 0.008, y: 0.008000002, z: 0.008000002}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4077429739163873981}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!136 &2592877020528176150
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6062655219670886367}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.35
+  m_Height: 1.05
+  m_Direction: 2
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &3884044952225183418
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6062655219670886367}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 710524836a213f346b2f42d6ab9c1aea, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DogLife.MonsterHurtbox
 --- !u!1 &8719923838393488895
 GameObject:
   m_ObjectHideFlags: 0
@@ -9441,14 +9577,12 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5640599690708858383}
-  - component: {fileID: 8549062756256932878}
   - component: {fileID: 6375255458121605441}
   - component: {fileID: 1242774284300859805}
   - component: {fileID: 1512353403964826079}
   - component: {fileID: 1315029113378659593}
   - component: {fileID: 7950534963502051268}
   - component: {fileID: 266845158629445317}
-  - component: {fileID: 2029438411881900480}
   m_Layer: 0
   m_Name: SakuraRabbit
   m_TagString: Untagged
@@ -9475,29 +9609,6 @@ Transform:
   - {fileID: 616771540128752037}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!136 &8549062756256932878
-CapsuleCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8719923838393488895}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 1
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 2
-  m_Radius: 0.24
-  m_Height: 0.8
-  m_Direction: 2
-  m_Center: {x: 0, y: 0, z: 0}
 --- !u!54 &6375255458121605441
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -9537,7 +9648,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7ec31b56d4fa0324ab9d3b38b177327c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DogLife.CombatHealth
-  maxHealth: 75
+  maxHealth: 13
   player: 0
   practiceTarget: 0
   playerHitInvulnerability: 0.7
@@ -9636,18 +9747,6 @@ MonoBehaviour:
   fillColor: {r: 0.84, g: 0.42, b: 0.53, a: 1}
   highlightColor: {r: 1, g: 0.76, b: 0.8, a: 0.9}
   trailColor: {r: 0.94, g: 0.7, b: 0.57, a: 1}
---- !u!114 &2029438411881900480
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8719923838393488895}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 710524836a213f346b2f42d6ab9c1aea, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::DogLife.MonsterHurtbox
 --- !u!1001 &6444603845634477424
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -9934,12 +10033,28 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
-    m_AddedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: 7059996820450131917, guid: 1c7f7e9ec9cce3c4883ad1444cfb2fb6, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1263192117935345599}
+    - targetCorrespondingSourceObject: {fileID: 4740100159530178161, guid: 1c7f7e9ec9cce3c4883ad1444cfb2fb6, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6636932532599051474}
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 1c7f7e9ec9cce3c4883ad1444cfb2fb6, type: 3}
       insertIndex: -1
       addedObject: {fileID: 5949835583551870833}
   m_SourcePrefab: {fileID: 100100000, guid: 1c7f7e9ec9cce3c4883ad1444cfb2fb6, type: 3}
+--- !u!4 &1776638125716101889 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 4740100159530178161, guid: 1c7f7e9ec9cce3c4883ad1444cfb2fb6, type: 3}
+  m_PrefabInstance: {fileID: 6444603845634477424}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &4077429739163873981 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 7059996820450131917, guid: 1c7f7e9ec9cce3c4883ad1444cfb2fb6, type: 3}
+  m_PrefabInstance: {fileID: 6444603845634477424}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &6174079794886864929 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 1c7f7e9ec9cce3c4883ad1444cfb2fb6, type: 3}

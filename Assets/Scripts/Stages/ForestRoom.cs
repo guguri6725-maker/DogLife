@@ -130,9 +130,33 @@ namespace DogLife
         }
         // 미리 로드한 방은 문이 닫히기 시작할 때까지 전투를 대기합니다.
         public bool CombatStarted { get; private set; }
+        // 클리어 상태를 보존하여 재방문으로 전투나 보상이 재생성되지 않게 합니다.
+        public bool Cleared { get; private set; }
+        public void MarkCleared() { Cleared = true; }
+        // 재방문한 방은 몬스터를 생성하지 않고 클리어 상태만 복원합니다.
+        public void RestoreClear()
+        {
+            Cleared=true;CombatStarted=true;Enemies=new CombatHealth[0];
+            if(encounter)encounter.SetActive(false);
+        }
+        // 미클리어 방은 입장문만 열고, 상점/합성 및 전방 출구는 닫아 둡니다.
+        public void PrepareDoorsForEntry(bool openRear)
+        {
+            if(forwardVines)forwardVines.SetOpenImmediate(Cleared);else if(forwardGate)forwardGate.SetActive(!Cleared);
+            if(rearVines)rearVines.SetOpenImmediate(openRear);else if(rearSeal)rearSeal.SetActive(!openRear);
+            foreach(var gate in sideVines)if(gate)gate.SetOpenImmediate(Cleared);
+        }
+        public void OpenClearedDoors(bool openRear)
+        {
+            if(!Cleared)return;
+            if(forwardVines)forwardVines.Open();else if(forwardGate)forwardGate.SetActive(false);
+            if(openRear){if(rearVines)rearVines.Open();else if(rearSeal)rearSeal.SetActive(false);}
+            foreach(var gate in sideVines)if(gate)gate.Open();
+        }
         public CombatHealth[] Enemies { get; private set; }
         public void BeginEncounter(bool startCombat=true)
         {
+            if(Cleared || (startCombat && CombatStarted))return;
             var spawner=GetComponent<RoomMonsterSpawner>();
             if(spawner&&!spawner.Prepare())return;
             CombatStarted |= startCombat;
