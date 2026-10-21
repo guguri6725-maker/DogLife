@@ -44,6 +44,8 @@ namespace DogLife
         GameAudio.Handle chargeSound;
         float chargeStarted,shotCharge;
         int thrustCount;
+        int damageNumberGroup;
+        public int DamageNumberGroup=>item&&item.weaponCategory==InventoryWeapon.WeaponCategory.Spear&&step==2?damageNumberGroup:0;
         BoneWeaponProjectile activeBoomerang;
         LineRenderer chargeArrow;
         BowChargeVisual chargeEffect;
@@ -53,6 +55,10 @@ namespace DogLife
         public bool BoomerangInFlight=>activeBoomerang;
         public float ChargeAmount=>charging?Mathf.Clamp01((Time.time-chargeStarted)*AttackSpeed/Mathf.Max(.1f,bowChargeSeconds)):shotCharge;
         public int ComboStep=>step+1;
+        // 3타 완주 보상. 창은 12회 전체에 나눠 적용해 연타 횟수를 유지합니다.
+        public float MeleeFinishBonus=>step==2&&item?(item.weaponCategory==InventoryWeapon.WeaponCategory.Axe?1.25f:item.weaponCategory==InventoryWeapon.WeaponCategory.Dagger?1.35f:1.3f):1;
+        public bool MeleeFinisher=>step==2&&item&&(item.weaponCategory!=InventoryWeapon.WeaponCategory.Spear||thrustCount>=12);
+        public float MeleePoise=>item?(item.weaponCategory==InventoryWeapon.WeaponCategory.Spear&&step==2?(thrustCount>=12?12:2):item.weaponCategory==InventoryWeapon.WeaponCategory.Axe?(step==2?35:16):item.weaponCategory==InventoryWeapon.WeaponCategory.Dagger?(step==2?20:5):(step==2?25:10)):0;
         public bool IsAttacking=>charging||(step>=0&&Time.time<endsAt);
         bool UsesUpperBody=>item&&(item.weaponCategory==InventoryWeapon.WeaponCategory.Dagger||item.weaponCategory==InventoryWeapon.WeaponCategory.Bow||item.weaponCategory==InventoryWeapon.WeaponCategory.Boomerang||((item.weaponCategory==InventoryWeapon.WeaponCategory.Sword||item.weaponCategory==InventoryWeapon.WeaponCategory.Spear)&&step<2));
         bool SingleAttack=>item&&(item.weaponCategory==InventoryWeapon.WeaponCategory.Bow||item.weaponCategory==InventoryWeapon.WeaponCategory.Boomerang);
@@ -104,6 +110,7 @@ namespace DogLife
         }
         void Begin(int index)
         {
+            damageNumberGroup=DamageNumber.NextGroup();
             facingLockedUntil=0;
             // Sample at execution, not at the buffered click or combo start.
             weapons.RefreshAimDirection();

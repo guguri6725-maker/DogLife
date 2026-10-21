@@ -62,8 +62,11 @@ namespace DogLife
                 Color tint=equipped.boneOrigin==InventoryWeapon.BoneOrigin.Humanoid?new Color(.8f,.24f,.3f,1):new Color(.5f,.85f,1,1);
                 float feedbackPower=attackCombo&&attackCombo.ComboStep==3&&equipped.weaponCategory!=InventoryWeapon.WeaponCategory.Spear?Mathf.Max(1.5f,power):power;
                 // 일반형·합성형 모두 공통 적중 효과를 한 번만 재생합니다.
-                if(CombatFeedback.DealDamage(target,equipped.damage*power,point,point-origin,feedbackPower,transform,tint))
+                if(CombatFeedback.DealDamage(target,equipped.damage*power*(attackCombo?attackCombo.MeleeFinishBonus:1),point,point-origin,feedbackPower,transform,tint,emphasized:attackCombo&&attackCombo.MeleeFinisher,numberGroup:attackCombo?attackCombo.DamageNumberGroup:0))
                 {
+                    // 유효한 근접 명중만 경직과 보스 무력화에 기여합니다.
+                    var response=target.GetComponent<CombatFeedback>();
+                    if(response&&attackCombo)response.ApplyMeleeAdvantage(equipped.weaponCategory,attackCombo.MeleeFinisher,attackCombo.MeleePoise);
                     GameAudio.WeaponHit(equipped,point);
                     if(target.Dead){var karma=GetComponent<PlayerKarma>();if(karma)karma.RecordDefeat(target,equipped);}
                 }
@@ -90,7 +93,9 @@ namespace DogLife
         {
             if(readInput&&aimCamera)
             {
-                var ray=aimCamera.ViewportPointToRay(new Vector3(.5f,.5f,0));
+                // 화면 반동이 다음 타격의 실제 조준 방향으로 누적되지 않게 합니다.
+                var control=aimCamera.GetComponent<PlayerCamera>();
+                var ray=control&&control.enabled?control.WeaponAimRay:aimCamera.ViewportPointToRay(new Vector3(.5f,.5f,0));
                 var target=ray.GetPoint(aimDistance);
                 int count=Physics.RaycastNonAlloc(ray,aimHits,aimDistance,~0,QueryTriggerInteraction.Collide);
                 // 포화 시에는 전체 결과를 사용해 가까운 벽/적을 놓치지 않습니다.
@@ -110,7 +115,8 @@ namespace DogLife
         public Vector3 GetProjectileDirection(Vector3 origin)
         {
             RefreshAimDirection();
-            var rayForward=aimCamera?aimCamera.transform.forward:AimDirection;
+            var control=aimCamera?aimCamera.GetComponent<PlayerCamera>():null;
+            var rayForward=control&&control.enabled?control.AimRotation*Vector3.forward:aimCamera?aimCamera.transform.forward:AimDirection;
             var delta=hasAimPoint?AimPoint-origin:rayForward;
             // A wall between the shoulder camera and the player must not turn a shot backwards.
             if(delta.sqrMagnitude<.001f||Vector3.Dot(delta,rayForward)<=0)return rayForward.normalized;
@@ -131,7 +137,9 @@ namespace DogLife
             var direction = Vector3.ProjectOnPlane(point - transform.position, Vector3.up);
             if(aimCamera)
             {
-                var view=Vector3.ProjectOnPlane(aimCamera.transform.forward,Vector3.up).normalized;
+                var control=aimCamera.GetComponent<PlayerCamera>();
+                var forward=control&&control.enabled?control.AimRotation*Vector3.forward:aimCamera.transform.forward;
+                var view=Vector3.ProjectOnPlane(forward,Vector3.up).normalized;
                 // 가까운 벽의 조준점 때문에 몸이 옆으로 꺾이지 않도록 모든 무기의 정면은 시점을 따릅니다.
                 // 투사체는 GetProjectileDirection에서 별도로 AimPoint를 향합니다.
                 if(view.sqrMagnitude>.01f)direction=view;

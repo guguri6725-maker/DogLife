@@ -65,10 +65,15 @@ namespace DogLife
         // 피해를 적용하고 사망 대상의 후처리를 실행합니다.
         public void Damage(float amount) { Damage(amount,false); }
         public void Damage(float amount,bool useFullPlayerDamage)
+        {Damage(amount,useFullPlayerDamage,false,0,null);}
+        public void Damage(float amount,bool useFullPlayerDamage,bool emphasized,int numberGroup,Vector3? contact)
         {
-            if (Dead || phaseTransitionPending || invulnerable || Time.time < invulnerableUntil || FrostProtectionRemaining>0 || amount <= 0) return;
+            if(Dead||phaseTransitionPending||amount<=0)return;
+            var numberPoint=contact??(transform.position+Vector3.up);
+            if(invulnerable||Time.time<invulnerableUntil||FrostProtectionRemaining>0)
+            {DamageNumber.Show(this,0,numberPoint,message:"무적");return;}
             if (TryGetComponent<CombatDamageGate>(out var gate) && gate.isActiveAndEnabled)
-            {if(gate.BlocksDamage(amount))return;amount=gate.FilterDamage(amount);}
+            {if(gate.BlocksDamage(amount)){DamageNumber.Show(this,0,numberPoint,message:"방어");return;}amount=gate.FilterDamage(amount);}
             var motor = GetComponent<PlayerMotor>();
             // 대시 이동 종료와 관계없이 별도로 설정된 무적시간만 적용합니다.
             if (motor && motor.IsDashInvulnerable) return;
@@ -78,6 +83,8 @@ namespace DogLife
             if (player && !useFullPlayerDamage) amount = 1;
             float beforeDamage=Current;
             Current = Mathf.Max(Mathf.Min(minimumHealth, Current), Current - amount);
+            // 사망·페이즈 전환으로 체력이 바뀌기 전에 실제 감소량을 확정합니다.
+            DamageNumber.Show(this,beforeDamage-Current,numberPoint,emphasized,numberGroup);
             if(player&&Current<beforeDamage)GameAudio.Variant("Hurt",transform.position,.85f);
             flashUntil = Time.time + .12f;
             if (player)
@@ -147,7 +154,7 @@ namespace DogLife
         // 1초 간격으로 세 번 지속 피해를 줍니다.
         System.Collections.IEnumerator Dot()
         {
-            for (int i = 0; i < 3; i++) { yield return new WaitForSeconds(1); if (Dead) yield break; Damage(.5f); }
+            for (int i = 0; i < 3; i++) { yield return new WaitForSeconds(1); if (Dead) yield break; Damage(.5f,false,false,-1,null); }
         }
         void Update()
         {

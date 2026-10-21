@@ -157,6 +157,8 @@ namespace DogLife
         {
             yield return new WaitForSeconds(combatGrace);
             while(running&&!health.Dead){
+                // 근접 누적 무력화로 생긴 빈틈에는 다음 패턴을 시작하지 않습니다.
+                if(CombatFeedback.Paused(this)){yield return null;continue;}
                 if(!AutomaticAttacks){yield return null;continue;}
                 if(HeartExecutions<2&&health.Current<=health.maxHealth*(HeartExecutions==0?heartTrigger:heartSecondTrigger)){yield return Heart();continue;}
                 int choice=-1;var available=new List<int>();

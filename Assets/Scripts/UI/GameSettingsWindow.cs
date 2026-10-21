@@ -14,6 +14,10 @@ namespace DogLife
         [SerializeField] Button[] fpsButtons, optionButtons;
         [SerializeField] Text[] optionLabels;
         [SerializeField] Text selectionLabel, liveFps, confirmationLabel;
+        public Text damageNumbersLabel;
+        // 버튼 이벤트와 라벨은 프리팹 Inspector에서 연결합니다. 표시 설정은 즉시 저장합니다.
+        public void ToggleDamageNumbers(){DamageNumber.SetVisible(!DamageNumber.Visible);RefreshDamageNumbers();}
+        void RefreshDamageNumbers(){if(damageNumbersLabel)damageNumbersLabel.text="피해 숫자  "+(DamageNumber.Visible?"켜짐":"꺼짐");}
         static GameSettingsWindow instance;
         // 설정창은 씬 전환 후에도 유지되는 단일 인스턴스를 사용합니다.
         public static GameSettingsWindow Instance => instance;
@@ -106,6 +110,7 @@ namespace DogLife
             previousTimeScale=Time.timeScale;previousCursor=Cursor.lockState;previousCursorVisible=Cursor.visible;
             draft=GameGraphicsSettings.Current.Copy();audioSettings.Begin();
             panel.SetActive(true);Time.timeScale=0;Cursor.lockState=CursorLockMode.None;Cursor.visible=true;
+            RefreshDamageNumbers();
             consumedFrame=Time.frameCount;elapsed=0;frames=0;liveFps.text="FPS 측정 중";RefreshSelection();
         }
         public void Close()

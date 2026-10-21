@@ -11,6 +11,7 @@ namespace DogLife
         Color tint;
         float distance,reach,age,visualScale=1f;
         bool returning;
+        bool fullyCharged;
         GameAudio.Handle flightSound;
         readonly HashSet<CombatHealth> outward=new HashSet<CombatHealth>(),inward=new HashSet<CombatHealth>();
         LineRenderer visual;
@@ -35,6 +36,7 @@ namespace DogLife
             p.reach*=BoneWeaponVfx.SizeFor(item);
             p.visual=go.AddComponent<LineRenderer>();p.visual.sharedMaterial=p.effectMaterial;p.visual.useWorldSpace=false;p.visual.startWidth=.07f*p.visualScale;p.visual.endWidth=.025f*p.visualScale;p.visual.startColor=p.visual.endColor=color;p.visual.numCapVertices=4;
             bool bow=item.weaponCategory==InventoryWeapon.WeaponCategory.Bow;
+            p.fullyCharged=bow&&charge>=.99f;
             // 투사체와 함께 움직이는 합성형 금빛 장식은 충돌 판정과 분리합니다.
             var combat=owner?owner.GetComponent<BasicWeaponCombat>():null;
             if(item.weaponForm==InventoryWeapon.WeaponForm.Synthesized&&combat&&combat.synthesizedSurroundVfx)
@@ -100,9 +102,12 @@ namespace DogLife
             if((returning?inward:outward).Add(health))
             {
                 Vector3 contact=collider.ClosestPoint(transform.position);
-                if(CombatFeedback.DealDamage(health,(returning?item.returnDamage:item.damage)*power,contact,forward,power,null,tint))
+                if(CombatFeedback.DealDamage(health,(returning?item.returnDamage:item.damage)*power,contact,forward,power,null,tint,emphasized:fullyCharged))
                 {
                     GameAudio.WeaponHit(item,contact);
+                    // 원거리 명중은 공격자 애니메이션 정지 없이 카메라에만 전달합니다.
+                    var view=Camera.main;var playerCamera=view?view.GetComponent<PlayerCamera>():null;
+                    if(playerCamera)playerCamera.WeaponContact(owner,power);
                     if(health.Dead&&owner){var karma=owner.GetComponent<PlayerKarma>();if(karma)karma.RecordDefeat(health,item);}
                 }
                 Burst(point,Vector3.right,Vector3.up,.25f*visualScale);

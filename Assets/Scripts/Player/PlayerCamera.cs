@@ -36,6 +36,30 @@ namespace DogLife
             public readonly Dictionary<Renderer, bool> renderers = new Dictionary<Renderer, bool>();
         }
         float impactShake,impactEnds,impactDuration;
+        // 명중할 때만 수평선을 유지한 미세 반동을 한 번 주고 부드럽게 복귀합니다.
+        [Header("무기 타격 카메라")]
+        [Range(0,2)] public float weaponFeedbackStrength = 1;
+        Vector3 weaponKick;
+        float weaponKickStarted, weaponKickDuration, nextWeaponContact;
+        public Quaternion AimRotation => Quaternion.Euler(pitch,yaw,0);
+        public Ray WeaponAimRay => new Ray(transform.position + AimRotation * Vector3.forward * (collisionCamera ? collisionCamera.nearClipPlane : .3f), AimRotation * Vector3.forward);
+        public void WeaponContact(Transform owner,float power)
+        {
+            if(!isActiveAndEnabled||!readInput||!target||!owner||!(target==owner||target.IsChildOf(owner))||Time.time<nextWeaponContact)return;
+            // 연타·광역 명중은 묶어서 처리하고 좌우 회전과 롤, 진동을 사용하지 않습니다.
+            nextWeaponContact=Time.time+.28f;
+            weaponKick=new Vector3(Mathf.Clamp(power*.06f,.045f,.09f),0,0);
+            weaponKickStarted=Time.time;weaponKickDuration=.12f;
+        }
+        Vector3 WeaponKickAt(float time)
+        {
+            if(weaponKickDuration<=0)return Vector3.zero;
+            float t=(time-weaponKickStarted)/weaponKickDuration;
+            if(t<0||t>=1)return Vector3.zero;
+            float attack=Mathf.SmoothStep(0,1,t/.3f);
+            float release=1-Mathf.SmoothStep(0,1,Mathf.Clamp01((t-.3f)/.7f));
+            return weaponKick*(attack*release*Mathf.Clamp(weaponFeedbackStrength,0,1.5f));
+        }
         public void AddImpactShake(float strength,float duration)
         { impactShake=Mathf.Clamp(strength,0,1);impactDuration=Mathf.Max(.01f,duration);impactEnds=Time.time+impactDuration; }
 
@@ -240,6 +264,7 @@ namespace DogLife
             if(water&&water.Submerged)position=ClipSegment(anchor,water.ConstrainCamera(position),radius);
             // 이동과 시점 회전은 즉시 반영하고, 충돌로 줄어든 거리의 복귀만 위에서 보간합니다.
             transform.SetPositionAndRotation(position,Quaternion.Slerp(cinematicRotation,rotation,blend));
+            if(readInput&&blend>=1)transform.rotation*=Quaternion.Euler(WeaponKickAt(Time.time));
             if(Time.time<impactEnds)
             {
                 float strength=impactShake*Mathf.Clamp01((impactEnds-Time.time)/impactDuration);
@@ -248,6 +273,6 @@ namespace DogLife
             if (IsClear(position, radius)) { lastClearPosition = position; hasClearPosition = true; }
             UpdateMonsterVisibility();
         }
-        void OnDisable() { RestoreMonsterVisibility(); armInitialized = false; hasClearPosition = false; armVelocity = shoulderVelocity = 0; CaptureCursor(false); }
+        void OnDisable() { weaponKickDuration=0;impactEnds=0;nextWeaponContact=0;RestoreMonsterVisibility(); armInitialized = false; hasClearPosition = false; armVelocity = shoulderVelocity = 0; CaptureCursor(false); }
     }
 }

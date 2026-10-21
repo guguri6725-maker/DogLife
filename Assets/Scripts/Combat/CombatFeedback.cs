@@ -21,6 +21,52 @@ namespace DogLife
         Quaternion baseRotation;
         Vector3 recoilAxis;
         public bool IsStopped=>stopped&&Time.time<stopUntil;
+        float nextMeleeStagger,poise,lastMeleeHit,poiseImmuneUntil;
+        bool poiseReady;
+        bool IsBoss=>GetComponent<SpringBoarBoss>()||GetComponent<SpringBoarPhaseTwo>()||GetComponent<KrakenBoss>()||GetComponent<KrakenPhaseTwo>()||GetComponent<HarvestReaperBoss>()||GetComponent<FrozenKnightBoss>();
+        // 패턴의 공격 판정·연출은 중단하지 않고 안전한 복귀 구간만 연장합니다.
+        bool BossOpening()
+        {
+            var spring2=GetComponent<SpringBoarPhaseTwo>();
+            if(spring2&&spring2.Active)return spring2.VulnerableWindow;
+            var spring=GetComponent<SpringBoarBoss>();
+            if(spring&&spring.enabled)return spring.State==SpringBoarBoss.Phase.Recovery||spring.State==SpringBoarBoss.Phase.Stunned;
+            var summer2=GetComponent<KrakenPhaseTwo>();
+            if(summer2&&summer2.enabled&&summer2.State!=KrakenPhaseTwo.Phase.Dormant)return summer2.State==KrakenPhaseTwo.Phase.Idle;
+            var summer=GetComponent<KrakenBoss>();
+            if(summer&&summer.enabled)return summer.State==KrakenBoss.Phase.Recovery||summer.State==KrakenBoss.Phase.Groggy;
+            var autumn=GetComponent<HarvestReaperBoss>();
+            if(autumn&&autumn.enabled)return autumn.State==HarvestReaperBoss.Phase.Recovery;
+            var winter=GetComponent<FrozenKnightBoss>();
+            return winter&&winter.enabled&&winter.State==FrozenKnightBoss.CombatState.Recovery;
+        }
+        public void ApplyMeleeAdvantage(InventoryWeapon.WeaponCategory category,bool finisher,float points)
+        {
+            var health=GetComponent<CombatHealth>();
+            if(!health||health.player||health.practiceTarget||health.Dead||health.Current<=0||health.invulnerable)return;
+            if(IsBoss)
+            {
+                if(Time.time<poiseImmuneUntil)return;
+                if(Time.time-lastMeleeHit>5&&!poiseReady)poise=0;
+                lastMeleeHit=Time.time;poise=Mathf.Min(100,poise+Mathf.Max(0,points));
+                poiseReady=poise>=100;return;
+            }
+            // 구조물은 제외하고, 모든 계절의 잡몹 AI가 공유하는 정지 처리를 사용합니다.
+            if(!GetComponent<MonsterHurtbox>()||Time.time<nextMeleeStagger)return;
+            float duration=category==InventoryWeapon.WeaponCategory.Axe?(finisher?.32f:.16f):category==InventoryWeapon.WeaponCategory.Dagger?(finisher?.16f:.07f):(finisher?.24f:.12f);
+            nextMeleeStagger=Time.time+duration+.35f;
+            Hold(duration);
+        }
+        void Hold(float duration)
+        {
+            if(!stopped)
+            {
+                if(animator){originalSpeed=animator.speed;animator.speed=0;}
+                if(agent){agentSpeed=agent.speed;agent.speed=0;}
+            }
+            stopped=true;stopUntil=Mathf.Max(stopUntil,Time.time+duration);
+            nextStop=Mathf.Max(nextStop,stopUntil+.07f);
+        }
         void Awake()
         {
             animator=GetComponentInChildren<Animator>();agent=GetComponent<NavMeshAgent>();
@@ -34,11 +80,17 @@ namespace DogLife
         }
         public static bool Paused(Component actor)
         {var feedback=actor.GetComponent<CombatFeedback>();return feedback&&feedback.IsStopped;}
-        public static bool DealDamage(CombatHealth target,float amount,Vector3 contact,Vector3 direction,float power,Transform attacker,Color tint,bool useFullPlayerDamage=false)
+        public static bool DealDamage(CombatHealth target,float amount,Vector3 contact,Vector3 direction,float power,Transform attacker,Color tint,bool useFullPlayerDamage=false,bool emphasized=false,int numberGroup=0)
         {
             if(!target)return false;
-            float before=target.Current;target.Damage(amount,useFullPlayerDamage);
+            float before=target.Current;target.Damage(amount,useFullPlayerDamage,emphasized,numberGroup,contact);
             if(target.Current>=before)return false;
+            // 실제 피해가 들어간 플레이어 공격에만 추가 명중 충격을 줍니다.
+            if(!target.player&&attacker&&attacker.GetComponent<PlayerWeapons>())
+            {
+                var view=Camera.main;var playerCamera=view?view.GetComponent<PlayerCamera>():null;
+                if(playerCamera)playerCamera.WeaponContact(attacker,power);
+            }
             var targetFeedback=target.GetComponent<CombatFeedback>();
             if(!target.player)CombatContactVfx.Spawn(contact,direction,tint,power,targetFeedback?targetFeedback.contactEffectScale:1);
             if(!target.Dead&&target.gameObject.activeInHierarchy)
@@ -77,6 +129,16 @@ namespace DogLife
         {
             RestorePose();
             if(stopped&&!IsStopped)Resume();
+            if(poiseReady)
+            {
+                var health=GetComponent<CombatHealth>();
+                if(!health||health.Dead||health.Current<=0||health.invulnerable){poiseReady=false;poise=0;}
+                else if(BossOpening())
+                {
+                    // 약 3~4회 콤보를 누적하면 0.65초의 추가 공격 기회, 이후 8초간 재발동 방지.
+                    poiseReady=false;poise=0;poiseImmuneUntil=Time.time+8;Hold(.65f);
+                }
+            }
         }
         void LateUpdate()
         {
@@ -94,6 +156,6 @@ namespace DogLife
             if(agent)agent.speed=agentSpeed;
         }
         public void CancelHitStop(){Resume();}
-        void OnDisable(){RestorePose();Resume();recoilStarted=-10;nextStop=0;}
+        void OnDisable(){RestorePose();Resume();recoilStarted=-10;nextStop=0;nextMeleeStagger=poise=lastMeleeHit=poiseImmuneUntil=0;poiseReady=false;}
     }
 }
