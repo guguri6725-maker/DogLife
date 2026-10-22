@@ -50,6 +50,15 @@ namespace DogLife
         int thrustCount;
         int spearFinisherThreshold=12;
         RelicLoadout relics;
+        RelicCombatEffects relicEffects;
+        bool attackHeld;
+        float nextWhirlwind,whirlwindEnds,whirlwindStarts;
+        bool whirlwindLooping,whirlwindRecovering;
+        [SerializeField,Min(.2f)] float whirlwindDuration=2f;
+        [SerializeField] float whirlwindInterval=.24f,whirlwindTickPower=.45f;
+        public bool RelicChannel=>step==2&&item&&relics&&(item.weaponCategory==InventoryWeapon.WeaponCategory.Axe&&relics.Has(RelicEffect.AxeWhirlwind,item.weaponCategory)||item.weaponCategory==InventoryWeapon.WeaponCategory.Spear&&relics.Has(RelicEffect.SpearStorm,item.weaponCategory));
+        bool Whirlwind=>RelicChannel&&item.weaponCategory==InventoryWeapon.WeaponCategory.Axe;
+
         int damageNumberGroup;
         public int DamageNumberGroup=>item&&item.weaponCategory==InventoryWeapon.WeaponCategory.Spear&&step==2?damageNumberGroup:0;
         BoneWeaponProjectile activeBoomerang;
@@ -70,16 +79,17 @@ namespace DogLife
         public bool IsAttacking=>charging||(step>=0&&Time.time<endsAt);
         bool UsesUpperBody=>item&&(item.weaponCategory==InventoryWeapon.WeaponCategory.Dagger||item.weaponCategory==InventoryWeapon.WeaponCategory.Bow||item.weaponCategory==InventoryWeapon.WeaponCategory.Boomerang||((item.weaponCategory==InventoryWeapon.WeaponCategory.Sword||item.weaponCategory==InventoryWeapon.WeaponCategory.Spear)&&step<2));
         bool SingleAttack=>item&&(item.weaponCategory==InventoryWeapon.WeaponCategory.Bow||item.weaponCategory==InventoryWeapon.WeaponCategory.Boomerang);
-        public bool LocksMovement=>IsAttacking&&!UsesUpperBody;
+        public bool LocksMovement=>IsAttacking&&!UsesUpperBody&&!RelicChannel;
         // 활·부메랑과 검 1·2타는 상체 공격을 유지하면서 점프와 앉기를 허용합니다.
-        public bool LocksPosture=>IsAttacking&&!(item&&(item.weaponCategory==InventoryWeapon.WeaponCategory.Bow||item.weaponCategory==InventoryWeapon.WeaponCategory.Boomerang||(item.weaponCategory==InventoryWeapon.WeaponCategory.Sword&&step>=0&&step<2)));
+        public bool LocksPosture=>IsAttacking&&!RelicChannel&&!(item&&(item.weaponCategory==InventoryWeapon.WeaponCategory.Bow||item.weaponCategory==InventoryWeapon.WeaponCategory.Boomerang||(item.weaponCategory==InventoryWeapon.WeaponCategory.Sword&&step>=0&&step<2)));
         // 기본형과 합성형은 같은 무기별 콤보와 애니메이션을 공유합니다.
         public bool Ready=>isActiveAndEnabled&&animator&&inventory&&inventory.EquippedWeapon;
-        void Awake(){inventory=GetComponent<PlayerInventory>();motor=GetComponent<PlayerMotor>();weapons=GetComponent<PlayerWeapons>();health=GetComponent<CombatHealth>();karma=GetComponent<PlayerKarma>();relics=RelicLoadout.Get(gameObject);}
-        bool Interrupted=>(health&&health.Dead)||!weapons.enabled||SkillWindow.BlocksGameplayInput||(motor&&(motor.IsKnockedBack||motor.IsDashing));
+        void Awake(){inventory=GetComponent<PlayerInventory>();motor=GetComponent<PlayerMotor>();weapons=GetComponent<PlayerWeapons>();health=GetComponent<CombatHealth>();karma=GetComponent<PlayerKarma>();relics=RelicLoadout.Get(gameObject);relicEffects=GetComponent<RelicCombatEffects>()??gameObject.AddComponent<RelicCombatEffects>();}
+        bool Interrupted=>(health&&health.Dead)||!weapons.enabled||SkillWindow.BlocksGameplayInput||(motor&&(motor.IsKnockedBack||(motor.IsDashing&&!RelicChannel)));
         public void PressAttack()
         {
-            if(!Ready||Interrupted)return;
+            if(!Ready||Interrupted||Whirlwind)return;
+            attackHeld=true;
             if(charging)return;
             if(inventory.EquippedWeapon.weaponCategory==InventoryWeapon.WeaponCategory.Boomerang&&activeBoomerang)return;
             if(SingleAttack&&IsAttacking)return;
@@ -105,6 +115,7 @@ namespace DogLife
         }
         public void ReleaseAttack()
         {
+            attackHeld=false;
             if(!charging)return;
             if(Interrupted||inventory.EquippedWeapon!=item){Cancel();return;}
             shotCharge=ChargeAmount;charging=false;chargeSound.Stop();
@@ -127,6 +138,9 @@ namespace DogLife
             direction=weapons.AimDirection;
             if(motor)motor.FaceForAttack(direction);
             step=index;queued=false;queuedUntil=0;struck=false;secondStruck=false;thrustCount=0;started=Time.time;endsAt=started+move.attacks[index].length/AttackSpeed;
+            nextWhirlwind=0;
+            whirlwindLooping=false;whirlwindRecovering=false;
+            if(Whirlwind){whirlwindStarts=started+(move.axeWhirlwindEnter?move.axeWhirlwindEnter.length:move.strikeTimes[index]/AttackSpeed);whirlwindEnds=whirlwindStarts+whirlwindDuration+Mathf.Max(0,relics.Level(RelicEffect.AxeWhirlwind)-1);endsAt=whirlwindEnds+(move.axeWhirlwindExit?move.axeWhirlwindExit.length:0);}
             spearFinisherThreshold=relics?relics.SpearFinisherThreshold():12;
             attackSoundPlayed=secondarySoundPlayed=false;thrustSounds=0;
             // Animator 전체 속도가 아니라 공격 상태의 배율만 변경합니다.
@@ -144,13 +158,14 @@ namespace DogLife
                 if(upperLayer>=0)animator.SetLayerWeight(upperLayer,0);
             }
             var openingClip=item.weaponCategory==InventoryWeapon.WeaponCategory.Bow&&move.bowDrawClip?move.bowDrawClip:move.attacks[index];
+            if(Whirlwind&&move.axeWhirlwindEnter)openingClip=move.axeWhirlwindEnter;
             animator.CrossFadeInFixedTime((upperBodyAttack?DaggerLayer:"Base Layer")+"."+openingClip.name,.09f/AttackSpeed,layer,0);
         }
         void Update()
         {
             if(CombatFeedback.Paused(this))
             {
-                if(step>=0){started+=Time.deltaTime;endsAt+=Time.deltaTime;}
+                if(step>=0){started+=Time.deltaTime;endsAt+=Time.deltaTime;if(Whirlwind){whirlwindStarts+=Time.deltaTime;whirlwindEnds+=Time.deltaTime;}}
                 if(queued)queuedUntil+=Time.deltaTime;
                 if(charging)chargeStarted+=Time.deltaTime;
                 if(Interrupted)Cancel();return;
@@ -171,6 +186,22 @@ namespace DogLife
                 if(move.bowDrawClip)animator.Play(DaggerLayer+"."+move.bowDrawClip.name,upperLayer,Mathf.Min(.9999f,ChargeAmount));
                 else animator.Play(DaggerLayer+"."+move.attacks[0].name,upperLayer,Mathf.Lerp(.02f,.42f,ChargeAmount));
                 UpdateChargeVisual();return;
+            }
+            if(Whirlwind){
+                if(Time.time<whirlwindStarts)return;
+                if(Time.time>=whirlwindEnds){
+                    if(!whirlwindRecovering){whirlwindRecovering=true;if(move.axeWhirlwindExit)animator.CrossFadeInFixedTime("Base Layer."+move.axeWhirlwindExit.name,.06f,0);}
+                    if(Time.time>=endsAt)Cancel();return;
+                }
+                if(!whirlwindLooping){whirlwindLooping=true;if(move.axeWhirlwindLoop)animator.CrossFadeInFixedTime("Base Layer."+move.axeWhirlwindLoop.name,.05f,0);}
+
+                if(Time.time>=nextWhirlwind){
+                    nextWhirlwind=Time.time+Mathf.Max(.05f,whirlwindInterval)/AttackSpeed;
+                    var origin=GetComponent<CapsuleCollider>().bounds.center;
+                    relicEffects.Whirlwind(item,move,origin,direction,(item.rangeDefined?item.meleeRange:move.reach)*BoneWeaponVfx.SizeFor(item),whirlwindTickPower*MeleeFinishBonus*KarmaDamageMultiplier,Color.cyan);
+                    weapons.NotifyRelicAttack();GameAudio.WeaponAttack(item,step,transform.position);
+                }
+                return;
             }
             bool flurry=item.weaponCategory==InventoryWeapon.WeaponCategory.Spear&&step==2;
             UpdateAttackAudio(flurry);
@@ -213,14 +244,12 @@ namespace DogLife
                 if(relics&&!boomerang&&shotCharge>=.99f&&relics.Has(RelicEffect.BowSplitShot,item.weaponCategory))
                 {
                     float spread=relics.Value(RelicEffect.BowSplitShot,item.weaponCategory);
-                    foreach(float angle in new[]{-spread,spread})
+                    int level=relics.Level(RelicEffect.BowSplitShot);
+                    for(int side=-level;side<=level;side++){if(side==0)continue;float angle=side*spread;
                         BoneWeaponProjectile.Launch(origin,Quaternion.Euler(0,angle,0)*shotDirection,transform,item,move,color,reach,shotCharge,KarmaDamageMultiplier);
+                    }
                 }
-                if(relics&&boomerang&&relics.Has(RelicEffect.BoomerangDouble,item.weaponCategory))
-                {
-                    float spread=relics.Value(RelicEffect.BoomerangDouble,item.weaponCategory);
-                    BoneWeaponProjectile.Launch(origin,Quaternion.Euler(0,spread,0)*shotDirection,transform,item,move,color,reach,0,KarmaDamageMultiplier);
-                }
+
             }
             else
             {
@@ -231,6 +260,8 @@ namespace DogLife
                 if(item.weaponCategory==InventoryWeapon.WeaponCategory.Spear&&step==2)
                     power=move.spearFlurryDamageMultiplier;
                 var surface=item.strikeAccentPrefab&&item.strikeAccentPrefab.surfaceMaterial?item.strikeAccentPrefab.surfaceMaterial:move.effectMaterial;
+                float relicPower=power*MeleeFinishBonus*KarmaDamageMultiplier;
+                if(relicEffects.ReplaceStrike(item,move,step,origin,direction,reach*BoneWeaponVfx.SizeFor(item),relicPower,color)){weapons.NotifyRelicAttack();return;}
                 BoneWeaponVfx effect;
                 bool previousVisibility=BoneWeaponVfx.HideLegacyVisuals;
                 try
@@ -249,11 +280,7 @@ namespace DogLife
                     if(effect.ImpactShape)Instantiate(item.strikeAccentPrefab).Initialize(effect.ImpactShape,color);
                 }
                 weapons.ApplyVisibleMelee(item,origin,effect.HitShape,!thrust,power,effect.ImpactShape);
-                // 유물: 도끼 마무리의 지면 충격파, 단검 첫 타격의 등 뒤 환영 일격.
-                if(relics&&item.weaponCategory==InventoryWeapon.WeaponCategory.Axe&&step==2&&relics.Has(RelicEffect.AxeShockwave,item.weaponCategory))
-                    weapons.ApplyRelicBurst(item,origin,2.4f,relics.Value(RelicEffect.AxeShockwave,item.weaponCategory),color);
-                if(relics&&item.weaponCategory==InventoryWeapon.WeaponCategory.Dagger&&step==0&&relics.Has(RelicEffect.DaggerPhantomStrike,item.weaponCategory))
-                    weapons.ApplyRelicBurst(item,origin-direction*1.3f,1.6f,relics.Value(RelicEffect.DaggerPhantomStrike,item.weaponCategory),color);
+                relicEffects.AfterStrike(item,move,step,origin,direction,reach*BoneWeaponVfx.SizeFor(item),relicPower,color,weapons.LastMeleeHit);
             }
         }
         void UpdateAttackAudio(bool flurry)
@@ -286,6 +313,7 @@ namespace DogLife
         }
         public void CancelForDash()
         {
+            if(RelicChannel&&!(health&&health.Dead))return;
             Cancel();
             int layer=animator?animator.GetLayerIndex(DaggerLayer):-1;
             if(layer>=0)animator.SetLayerWeight(layer,0);

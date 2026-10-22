@@ -27,7 +27,7 @@ namespace DogLife
         // 인벤토리는 현재 게임 씬에 하나만 두고, 열린 상태도 해당 인스턴스에서 읽습니다.
         public static SkillWindow Instance { get; private set; }
         public static bool IsOpen => Instance && Instance.opened;
-        public static bool BlocksGameplayInput => IsOpen || Time.frameCount == inputConsumedFrame || GameSettingsWindow.BlocksGameplayInput || EconomyWindow.BlocksInput;
+        public static bool BlocksGameplayInput => SeasonTrialRecords.IsOpen || IsOpen || RelicDraftUI.IsOpen || Time.frameCount == inputConsumedFrame || GameSettingsWindow.BlocksGameplayInput || EconomyWindow.BlocksInput;
         static int inputConsumedFrame = -1;
         public int SelectedSlot {get;private set;}
         public SkillCard Selected { get; private set; }
@@ -76,6 +76,7 @@ namespace DogLife
         void Start()
         {
             AdventureUI.Theme(windowRoot);
+            if(inventory)InventoryRelics.Attach(this);
             windowRoot.SetActive(false);
             dragGhost.gameObject.SetActive(false);
             foreach (var slot in slots) slot.Refresh();

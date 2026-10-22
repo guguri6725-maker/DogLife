@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 namespace DogLife
 {
     [CreateAssetMenu(menuName="DogLife/Basic Weapon Moveset")]
@@ -6,6 +6,7 @@ namespace DogLife
     {
         public InventoryWeapon.WeaponCategory category;
         public AnimationClip[] attacks;
+        public AnimationClip axeWhirlwindEnter,axeWhirlwindLoop,axeWhirlwindExit;
         [Header("활 충전")]
         [Tooltip("버튼을 누르는 동안 재생하고 마지막 자세를 유지할 당기기 동작")]
         public AnimationClip bowDrawClip;

@@ -15,7 +15,7 @@ namespace DogLife
             "Assets/Scenes/Stage3_Fall.unity", "Assets/Scenes/Stage4_Winter.unity" };
         bool loading;
         AudioClip titleMusic;
-        void Start(){ResumeMenuMusic();}
+        void Start(){ResumeMenuMusic();SeasonTrialRecords.AttachTitle(this);}
         public void ResumeMenuMusic()
         {
             if(loading||!isActiveAndEnabled||gameObject.scene.name!="Title")return;
@@ -141,6 +141,7 @@ namespace DogLife
             }
             loading = true;
             startButton.interactable = false;
+            SeasonTrialRecords.Prepare(season,scene);
             EnemyIntroduction.Prepare(scene, true);
             SceneManager.LoadSceneAsync(EnemyIntroduction.ScenePath);
         }

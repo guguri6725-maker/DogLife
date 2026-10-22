@@ -78,9 +78,10 @@ namespace DogLife
                         if (vines) vines.Open(); else gates[Cleared].SetActive(false);
                     }
                     Cleared++;
-                    bool bossEncounter=Cleared==encounters.Length-1;
+                    bool bossEncounter=Cleared==encounters.Length;
+                    if(bossEncounter)SeasonTrialRecords.Complete(this);
                     MetaProgress.AddPawprints(bossEncounter?15:1);
-                    if(hud&&hud.motor)RelicShrine.Spawn(hud.motor.gameObject,hud.motor.transform.position+hud.motor.transform.forward*3f);
+                    if(hud&&hud.motor){if(Cleared==encounters.Length)RelicLoadout.Get(hud.motor.gameObject).Clear();else if(Cleared>1)RelicShrine.Spawn(hud.motor.gameObject,hud.motor.transform.position+hud.motor.transform.forward*2f);}
                     if (Cleared < encounters.Length) encounters[Cleared].SetActive(true);
                     else if(StoryBook.Instance)StoryBook.Instance.QueueClear(this);
                 }
@@ -102,8 +103,9 @@ namespace DogLife
             if(advanced)
             {
                 bool bossRoom=streaming&&count==streaming.roomScenePaths.Length;
+                if(bossRoom)SeasonTrialRecords.Complete(this);
                 MetaProgress.AddPawprints(bossRoom?15:1);
-                if(hud&&hud.motor)RelicShrine.Spawn(hud.motor.gameObject,hud.motor.transform.position+hud.motor.transform.forward*3f);
+                if(hud&&hud.motor){if(bossRoom)RelicLoadout.Get(hud.motor.gameObject).Clear();else if(count>1)RelicShrine.Spawn(hud.motor.gameObject,hud.motor.transform.position+hud.motor.transform.forward*2f);}
             }
             if(streaming&&count==streaming.roomScenePaths.Length&&StoryBook.Instance)StoryBook.Instance.QueueClear(this);
         }

@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 namespace DogLife
 {
@@ -18,9 +18,12 @@ namespace DogLife
         readonly Collider[] meleeHits=new Collider[64];
         readonly HashSet<CombatHealth> meleeDamaged=new HashSet<CombatHealth>();
         // 주 궤적의 좌표와 두께를 판정에서도 공유합니다. 잔상/파편은 피해를 주지 않습니다.
+        public bool LastMeleeHit { get; private set; }
+        public CombatHealth LastMeleeTarget { get; private set; }
+        public void NotifyRelicAttack()=>Attacked?.Invoke();
         public void ApplyVisibleMelee(InventoryWeapon equipped,Vector3 origin,LineRenderer shape,bool sweep,float damageScale,LineRenderer impact=null)
         {
-            meleeDamaged.Clear();
+            LastMeleeHit=false;LastMeleeTarget=null;meleeDamaged.Clear();
             for(int i=1;i<shape.positionCount;i++)
             {
                 Vector3 a=shape.GetPosition(i-1),b=shape.GetPosition(i);
@@ -66,6 +69,7 @@ namespace DogLife
                 // 일반형·합성형 모두 공통 적중 효과를 한 번만 재생합니다.
                 if(CombatFeedback.DealDamage(target,equipped.damage*power*(attackCombo?attackCombo.MeleeFinishBonus*attackCombo.KarmaDamageMultiplier:1)*relicBonus,point,point-origin,feedbackPower,transform,tint,emphasized:finisher,numberGroup:attackCombo?attackCombo.DamageNumberGroup:0))
                 {
+                    LastMeleeHit=true;LastMeleeTarget=target;
                     // 유효한 근접 명중만 경직과 보스 무력화에 기여합니다.
                     var response=target.GetComponent<CombatFeedback>();
                     if(response&&attackCombo)response.ApplyMeleeAdvantage(equipped.weaponCategory,attackCombo.MeleeFinisher,attackCombo.MeleePoise);
@@ -110,7 +114,7 @@ namespace DogLife
             if(attackCombo&&Input.GetMouseButtonUp(0))attackCombo.ReleaseAttack();
         }
         void OnDisable() { if (attackCombo) attackCombo.Cancel(); }
-        void OnApplicationFocus(bool focused){if(!focused&&attackCombo&&attackCombo.IsCharging)attackCombo.Cancel();}
+        void OnApplicationFocus(bool focused){if(!focused&&attackCombo&&(attackCombo.IsCharging||attackCombo.RelicChannel))attackCombo.Cancel();}
         internal void RefreshAimDirection()
         {
             if(readInput&&aimCamera)

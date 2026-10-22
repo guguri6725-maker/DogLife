@@ -1,53 +1,40 @@
 using UnityEngine;
-namespace DogLife
-{
-    // 방 클리어 시 바닥에서 솟아오르는 석상. 다가가 F키를 누르면 유물 카드 3장을 보여줍니다.
-    // 지금은 자리표시용 실린더로 세우고, 나중에 실제 모델로 교체하면 됩니다.
-    public sealed class RelicShrine : MonoBehaviour
-    {
-        const float RiseHeight = 2f, RiseDuration = 1f, InteractDistance = 2.5f;
-        GameObject player;
-        RelicLoadout loadout;
-        WeaponRelic[] choices;
-        Vector3 risenPosition;
-        float riseStarted;
-        bool consumed;
-        GUIStyle prompt;
-        public static RelicShrine Spawn(GameObject player, Vector3 position)
-        {
-            if (!player) return null;
-            var loadout = RelicLoadout.Get(player);
-            var choices = RelicDraftUI.PrepareChoices(player, loadout);
-            if (choices == null || choices.Length == 0) return null;
-            var go = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            go.name = "Relic Shrine (placeholder)";
-            go.transform.localScale = new Vector3(1f, 1.1f, 1f);
-            var collider = go.GetComponent<Collider>(); if (collider) Destroy(collider);
-            var shrine = go.AddComponent<RelicShrine>();
-            shrine.player = player; shrine.loadout = loadout; shrine.choices = choices;
-            shrine.risenPosition = position; shrine.riseStarted = Time.time;
-            go.transform.position = position - Vector3.up * RiseHeight;
-            return shrine;
-        }
-        void Update()
-        {
-            if (consumed || !player) return;
-            float t = Mathf.Clamp01((Time.time - riseStarted) / RiseDuration);
-            transform.position = Vector3.Lerp(risenPosition - Vector3.up * RiseHeight, risenPosition, Mathf.SmoothStep(0, 1, t));
-            if (RelicDraftUI.IsOpen) return;
-            bool inReach = Vector3.Distance(player.transform.position, transform.position) <= InteractDistance;
-            if (inReach && Input.GetKeyDown(KeyCode.F))
-            {
-                consumed = true;
-                RelicDraftUI.Show(player, loadout, choices, () => { if (this) Destroy(gameObject); });
-            }
-        }
-        void OnGUI()
-        {
-            if (consumed || !player || RelicDraftUI.IsOpen) return;
-            if (Vector3.Distance(player.transform.position, transform.position) > InteractDistance) return;
-            if (prompt == null) prompt = new GUIStyle(GUI.skin.box) { fontSize = 22, alignment = TextAnchor.MiddleCenter };
-            GUI.Box(new Rect(Screen.width * .5f - 160, Screen.height * .72f, 320, 48), "[F] 유물 고르기", prompt);
-        }
-    }
+namespace DogLife {
+ public sealed class RelicShrine:MonoBehaviour {
+  const float InteractDistance=2.5f;
+  static bool introductionSeen;
+  [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)] static void ResetIntroduction(){introductionSeen=false;}
+  GameObject player; RelicLoadout loadout; bool consumed;
+  MemoryCollarVfx presentation;
+  public bool repeatable;
+  GUIStyle prompt;
+  public static RelicShrine Spawn(GameObject player,Vector3 position,bool repeatable=false){
+   if(!player)return null;
+   var loadout=RelicLoadout.Get(player);if(RelicDraftUI.PrepareChoices(player,loadout)==null)return null;
+   var prefab=Resources.Load<GameObject>("VFX/MemoryCollar/MemoryCollar");
+   if(!prefab){Debug.LogError("Memory collar prefab missing");return null;}
+   // Rest on actual floor, never on an enemy/player collider or water trigger.
+   var hits=Physics.RaycastAll(position+Vector3.up*3,Vector3.down,12,~0,QueryTriggerInteraction.Ignore);
+   System.Array.Sort(hits,(a,b)=>a.distance.CompareTo(b.distance));
+   foreach(var hit in hits)if(hit.normal.y>.65f&&!hit.collider.GetComponentInParent<CombatHealth>()){position=hit.point;break;}
+   var go=Instantiate(prefab,position,Quaternion.identity);go.name="이름을 잃은 목줄";
+   var towards=player.transform.position-position;towards.y=0;if(towards.sqrMagnitude>.01f)go.transform.rotation=Quaternion.LookRotation(towards);
+   var shrine=go.AddComponent<RelicShrine>();shrine.player=player;shrine.loadout=loadout;shrine.repeatable=repeatable;shrine.presentation=go.GetComponent<MemoryCollarVfx>();return shrine;
+  }
+  void Update(){if(Input.GetKeyDown(KeyCode.F))TryInteract();}
+  public bool TryInteract(){
+   if(consumed||!player||(presentation&&!presentation.Ready)||SkillWindow.BlocksGameplayInput||BossCinematicUI.Hidden||Time.timeScale<=0)return false;
+   if(Vector3.Distance(player.transform.position,transform.position)>InteractDistance)return false;
+   var choices=RelicDraftUI.PrepareChoices(player,loadout);if(choices==null)return false;
+   consumed=true;bool introduce=!introductionSeen;introductionSeen=true;
+   RelicDraftUI.Show(player,loadout,choices,()=>{if(this){if(repeatable)consumed=false;else Destroy(gameObject);}},introduce);
+   return true;
+  }
+  void OnGUI(){
+   if(consumed||!player||(presentation&&!presentation.Ready)||SkillWindow.BlocksGameplayInput||BossCinematicUI.Hidden)return;
+   if(Vector3.Distance(player.transform.position,transform.position)>InteractDistance)return;
+   if(prompt==null)prompt=new GUIStyle(GUI.skin.box){fontSize=22,alignment=TextAnchor.MiddleCenter};
+   GUI.Box(new Rect(Screen.width*.5f-210,Screen.height*.72f,420,68),repeatable?"이름을 잃은 목줄\n[F] 기억 이어받기 · 반복 테스트":"이름을 잃은 목줄\n[F] 기억 이어받기",prompt);
+  }
+ }
 }

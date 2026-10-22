@@ -7,11 +7,13 @@ namespace DogLife
         Transform owner;
         InventoryWeapon item;
         BasicWeaponMoveset move;
-        Vector3 forward;
+        Vector3 forward, launchDirection;
+        bool hasChaseTarget;
         Color tint;
         float distance,reach,age,visualScale=1f;
         bool returning;
         bool fullyCharged;
+        bool piercing,chasing;int chaseHits;float nextChaseHit;CombatHealth lastChased;
         GameAudio.Handle flightSound;
         readonly HashSet<CombatHealth> outward=new HashSet<CombatHealth>(),inward=new HashSet<CombatHealth>();
         LineRenderer visual;
@@ -31,9 +33,11 @@ namespace DogLife
         public static BoneWeaponProjectile Launch(Vector3 position,Vector3 direction,Transform owner,InventoryWeapon item,BasicWeaponMoveset move,Color color,float reach,float charge=0,float karmaDamageMultiplier=1)
         {
             var go=new GameObject(item.weaponCategory==InventoryWeapon.WeaponCategory.Bow?"Bone arrow":"Bone boomerang");go.transform.position=position;
-            var p=go.AddComponent<BoneWeaponProjectile>();p.owner=owner;p.item=item;p.move=move;p.forward=direction.normalized;p.tint=color;p.reach=reach;p.visualScale=BoneWeaponVfx.SizeFor(item);
+            var p=go.AddComponent<BoneWeaponProjectile>();p.owner=owner;p.item=item;p.move=move;p.forward=direction.normalized;p.launchDirection=p.forward;p.tint=color;p.reach=reach;p.visualScale=BoneWeaponVfx.SizeFor(item);
             p.karmaDamageMultiplier=karmaDamageMultiplier;
             if(owner){p.relics=owner.GetComponent<RelicLoadout>();p.karma=owner.GetComponent<PlayerKarma>();}
+            p.piercing=p.relics&&p.relics.Has(RelicEffect.BowPierce,item.weaponCategory);
+            p.chasing=item.weaponCategory==InventoryWeapon.WeaponCategory.Boomerang&&p.relics&&p.relics.Has(RelicEffect.BoomerangChase,item.weaponCategory);
             // 활/부메랑의 비행 거리도 근접 공격과 동일한 일반 1배, 합성 1.5배를 사용합니다.
             // 발사·비행 연출은 공용으로 쓰고 판정 배율은 위의 실제 무기 형태를 따릅니다.
             bool synthesized=true;
@@ -85,7 +89,13 @@ namespace DogLife
                 p.visual.enabled=false;trail.enabled=false;
                 p.bowVisual=Instantiate(move.bowFlightVisual,go.transform,false);
                 p.bowVisual.Initialize(item.boneOrigin==InventoryWeapon.BoneOrigin.Humanoid,synthesized,charge);
+                if(p.fullyCharged&&p.relics&&p.relics.Level(RelicEffect.BowSplitShot)==3){
+                    trail.enabled=true;trail.time=.35f;trail.startWidth=.22f*p.visualScale;
+                    trail.startColor=item.weaponForm==InventoryWeapon.WeaponForm.Synthesized?new Color(1,.8f,.35f,.9f):Color.Lerp(color,Color.white,.7f);
+                }
             }
+            if(bow&&p.fullyCharged&&p.relics&&p.relics.Level(RelicEffect.BowSplitShot)==3)
+                RelicMasteryVfx.Create(item,RelicMasteryVfx.Style.Arrow,position,direction,.2f,0,go.transform);
             if(bow&&move.bowReleaseVisual)
                 Instantiate(move.bowReleaseVisual,position,Quaternion.LookRotation(direction)).Initialize(item.boneOrigin==InventoryWeapon.BoneOrigin.Humanoid,synthesized,charge);
             else p.Burst(position,Vector3.Cross(Vector3.up,direction),Vector3.up,.2f*p.visualScale);
@@ -104,7 +114,8 @@ namespace DogLife
         {
             if(!MonsterHurtbox.Accepts(collider)||collider.transform.IsChildOf(owner))return false;
             var health=collider.GetComponentInParent<CombatHealth>();
-            if(!health||health.player)return false;
+            if(!health||health.player||health.Dead)return false;
+            if(chasing&&(returning||Time.time<nextChaseHit))return false;
             if((returning?inward:outward).Add(health))
             {
                 Vector3 contact=collider.ClosestPoint(transform.position);
@@ -116,6 +127,7 @@ namespace DogLife
                     if(health.Dead&&owner){var karma=owner.GetComponent<PlayerKarma>();if(karma)karma.RecordDefeat(health,item);}
                 }
                 Burst(point,Vector3.right,Vector3.up,.25f*visualScale);
+                if(chasing){chaseHits++;lastChased=health;nextChaseHit=Time.time+.22f;if(chaseHits>=4)returning=true;}
             }
             return true;
         }
@@ -134,17 +146,32 @@ namespace DogLife
                 if(!blocked)HitEnemy(collider,point);
             }
         }
+        void AimChase()
+        {
+            if(!chasing||returning||Time.time<nextChaseHit)return;
+            hasChaseTarget=false;
+            outward.Clear();CombatHealth chosen=null;Vector3 point=Vector3.zero;float best=float.MaxValue;
+            foreach(var c in Physics.OverlapSphere(transform.position,reach,~0,QueryTriggerInteraction.Collide)){
+                if(!MonsterHurtbox.Accepts(c))continue;var h=c.GetComponentInParent<CombatHealth>();if(!h||h.player||h.Dead)continue;
+                var d=c.bounds.center-transform.position;
+                if(Physics.Raycast(transform.position,d.normalized,out var wall,d.magnitude,1<<8,QueryTriggerInteraction.Ignore)&&wall.collider.GetComponentInParent<CombatHealth>()!=h)continue;
+                float rank=d.sqrMagnitude+(h==lastChased?reach*reach:0);if(rank<best){best=rank;chosen=h;point=c.bounds.center;}
+            }
+            if(chosen){hasChaseTarget=true;forward=(point-transform.position).normalized;}
+        }
         void FixedUpdate()
         {
             age+=Time.fixedDeltaTime;
             if(!owner||age>8||(owner.GetComponent<CombatHealth>()&&owner.GetComponent<CombatHealth>().Dead)){Destroy(gameObject);return;}
             bool bow=item.weaponCategory==InventoryWeapon.WeaponCategory.Bow;
+            AimChase();
             if(!bow)CheckBoomerangOverlap();
             Vector3 target=owner.GetComponent<CapsuleCollider>()?owner.GetComponent<CapsuleCollider>().bounds.center:owner.position+Vector3.up;
-            var direction=returning?(target-transform.position).normalized:forward;
+            // Piercing arrows retain the launch axis, including after impact feedback.
+            var direction=bow?launchDirection:(returning?(target-transform.position).normalized:forward);
             float length=move.projectileSpeed*speedScale*Time.fixedDeltaTime;
             if(returning&&Vector3.Distance(target,transform.position)<=length+.25f){GameAudio.Play("BoomerangReturn",target,.65f,GameAudio.WeaponPitch(item));Destroy(gameObject);return;}
-            if(!returning)length=Mathf.Min(length,Mathf.Max(0,reach-distance));
+            if(!returning&&(!chasing||!hasChaseTarget))length=Mathf.Min(length,Mathf.Max(0,reach-distance));
             // 화살 중심의 작은 구를 이동 구간 전체로 검사합니다. 뒤쪽 잔상은 충돌하지 않습니다.
             var hits=bow
                 ?Physics.SphereCastAll(transform.position,HitRadius,direction,length,~0,QueryTriggerInteraction.Collide)
@@ -158,14 +185,14 @@ namespace DogLife
                 if(health)
                 {
                     HitEnemy(hit.collider,transform.position+direction*hit.distance);
-                    if(bow){Destroy(gameObject);return;}
+                    if(bow&&!piercing){Destroy(gameObject);return;}
                 }
                 else if(!returning){Burst(transform.position+direction*hit.distance,Vector3.right,Vector3.up,.2f*visualScale);if(bow){Destroy(gameObject);return;}returning=true;return;}
             }
             transform.position+=direction*length;distance+=length;
             transform.rotation=Quaternion.LookRotation(direction)*Quaternion.Euler(0,bow?0:age*850,0);
             if(!bow)CheckBoomerangOverlap();
-            if(!returning&&distance>=reach){if(bow)Destroy(gameObject);else returning=true;}
+            if(!returning&&(!chasing||!hasChaseTarget)&&distance>=reach){if(bow)Destroy(gameObject);else returning=true;}
         }
     }
 }

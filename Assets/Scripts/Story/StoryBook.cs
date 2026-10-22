@@ -190,7 +190,7 @@ namespace DogLife
         {
             var key=director;
             yield return new WaitForSeconds(library.clearPause);
-            while(director&&(open||GameSettingsWindow.IsOpen||SkillWindow.IsOpen||EconomyWindow.IsOpen||CinematicActive()))yield return null;
+            while(director&&(SeasonTrialRecords.IsOpen||open||GameSettingsWindow.IsOpen||SkillWindow.IsOpen||EconomyWindow.IsOpen||CinematicActive()))yield return null;
             if(!director||director.hud.health.Dead){pendingClears.Remove(key);yield break;}
             var memory=BossMemoryPickup.Create(director,c);
             while(memory&&!memory.Collected&&director&&!director.hud.health.Dead)yield return null;

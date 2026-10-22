@@ -209,7 +209,7 @@ namespace DogLife
             Grounded = CheckGround(origin);
             if (Grounded) { lastGrounded = Time.time; jumping = false; }
             var horizontal = IsDashing ? dashDirection * dashSpeed : MoveDirection * moveSpeed * (Crouching ? .5f : 1);
-            if(!IsDashing)horizontal*=MovementSlowMultiplier;
+            if(!IsDashing){horizontal*=MovementSlowMultiplier;if(TryGetComponent<RelicCombatEffects>(out var relicEffects))horizontal*=relicEffects.MovementMultiplier;}
             if (TryGetComponent<BubbleDebuff>(out var bubbleDebuff))
                 horizontal *= IsDashing ? bubbleDebuff.RollMultiplier : bubbleDebuff.MoveMultiplier;
             if(Grounded&&!IsDashing&&!IsKnockedBack&&!AttackMovementLocked)

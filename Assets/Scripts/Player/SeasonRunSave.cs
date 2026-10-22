@@ -50,7 +50,7 @@ return SeasonLoadingScreen.Load(scene);
 }
 public static void SaveNext(StageOneDirector director){
 string next=Next(director.gameObject.scene.path);var economy=RunEconomy.Instance;if(next==null||!economy||!economy.inventory)return;
-Write(Capture(economy,next));
+var data=Capture(economy,next);data.relics=new string[0];Write(data);
 }
 public static void ContinueAfterMemory(StageOneDirector director){
 if(!Scenes.Contains(director.gameObject.scene.path))return;

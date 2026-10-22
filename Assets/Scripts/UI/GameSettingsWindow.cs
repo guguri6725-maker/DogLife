@@ -90,7 +90,7 @@ namespace DogLife
                 }
                 renderScale.enabled=WorldRenderScale.Scale<.999f;
             }
-            if(!SeasonLoadingScreen.IsLoading&&!StoryBook.BlocksInput&&!SkillWindow.IsOpen&&!EconomyWindow.BlocksInput&&(Input.GetKeyDown(KeyCode.Escape)||Input.GetKeyDown(KeyCode.F10)))Toggle();
+            if(!SeasonTrialRecords.IsOpen&&!SeasonLoadingScreen.IsLoading&&!StoryBook.BlocksInput&&!SkillWindow.IsOpen&&!EconomyWindow.BlocksInput&&(Input.GetKeyDown(KeyCode.Escape)||Input.GetKeyDown(KeyCode.F10)))Toggle();
             if(AwaitingConfirmation)
             {
                 float remaining=deadline-Time.unscaledTime;
@@ -104,7 +104,7 @@ namespace DogLife
         public void Toggle(){if(AwaitingConfirmation){Revert();return;}if(IsOpen)Close();else Open();}
         public void Open()
         {
-            if(PlayerDeathSequence.IsActive||SeasonLoadingScreen.IsLoading||StoryBook.BlocksInput)return;
+            if(SeasonTrialRecords.IsOpen||PlayerDeathSequence.IsActive||SeasonLoadingScreen.IsLoading||StoryBook.BlocksInput)return;
             if(IsOpen||SkillWindow.IsOpen||EconomyWindow.IsOpen||Applying||GameGraphicsSettings.Current==null)return;
             if(!EventSystem.current)new GameObject("Settings EventSystem",typeof(EventSystem),typeof(StandaloneInputModule));
             CombatFeedback.CancelGlobalHitSlow();
