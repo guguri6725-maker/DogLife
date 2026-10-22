@@ -57,6 +57,8 @@ namespace DogLife
             try
             {
                 var room=GetComponent<ForestRoom>();
+                // 각 계절 첫 방은 비전투 공간입니다. 빈 전투 목록으로 기존 클리어·문 개방 흐름을 유지합니다.
+                if(room.index==0&&!bossPrefab){Prepared=true;yield break;}
                 if(bossPrefab)
                 {
                     if(!room.encounter){Debug.LogError("Boss room has no encounter root",this);yield break;}

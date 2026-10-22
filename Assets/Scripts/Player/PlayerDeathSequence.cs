@@ -37,6 +37,7 @@ namespace DogLife
                 if(hit.collider.transform.IsChildOf(transform)||hit.collider.GetComponentInParent<CombatHealth>()||hit.normal.y<.6f)continue;
                 if(hit.distance<nearest){nearest=hit.distance;grounded.y=Mathf.Min(start.y,hit.point.y+footOffset+.02f);}
             }
+            CombatFeedback.CancelGlobalHitSlow();
             Time.timeScale=0;
             if(animator&&clip)
             {

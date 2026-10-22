@@ -19,11 +19,12 @@ Shader "DogLife/Forest Boar Surface"
   #pragma surface surf Standard fullforwardshadows vertex:vert addshadow
   #pragma target 3.0
   #include "UnityCG.cginc"
+  #include "../../../SpringMonsterKarma.cginc"
   sampler2D _MainTex,_BumpMap;
   fixed4 _Color;
   float _BumpScale,_Glossiness,_EyeRadius;
   float4 _EyeCenter,_EyeCenterRight;
-  struct Input {float2 uv_MainTex;float3 rest;};
+  struct Input {float2 uv_MainTex;float3 rest;float3 viewDir;};
   // 추가 UV에 원형 좌표를 보존해 움직이는 피부에도 재질 영역을 고정합니다.
   void vert(inout appdata_full v,out Input o){UNITY_INITIALIZE_OUTPUT(Input,o);o.rest=v.texcoord2.xyz;}
   void surf(Input IN,inout SurfaceOutputStandard o)
@@ -47,6 +48,7 @@ Shader "DogLife/Forest Boar Surface"
    o.Albedo=lerp(o.Albedo,iris,eye*.96);
    o.Normal=normalize(lerp(o.Normal,float3(0,0,1),eye*.92));
    o.Smoothness=lerp(smoothness,.88,eye);o.Alpha=1;
+   ApplySpringKarma(IN.uv_MainTex,IN.viewDir,o);
   }
   ENDCG
  }

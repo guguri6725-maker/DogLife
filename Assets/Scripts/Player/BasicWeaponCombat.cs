@@ -19,13 +19,17 @@ namespace DogLife
         PlayerMotor motor;
         PlayerWeapons weapons;
         CombatHealth health;
+        PlayerKarma karma;
+        float karmaAttackSpeed=1f;
+        public float KarmaDamageMultiplier=>1f/karmaAttackSpeed;
         BasicWeaponMoveset move;
         InventoryWeapon item;
         int step=-1;
         float started,endsAt;
         float queuedUntil;
         static readonly int AttackSpeedParameter=Animator.StringToHash("WeaponAttackSpeed");
-        float AttackSpeed=>move?Mathf.Max(.1f,move.attackSpeed)*(item&&item.weaponForm==InventoryWeapon.WeaponForm.Synthesized?Mathf.Max(.1f,move.synthesizedAttackSpeed):1f):1f;
+        float AttackSpeed=>move?Mathf.Max(.1f,move.attackSpeed)*(item&&item.weaponForm==InventoryWeapon.WeaponForm.Synthesized?Mathf.Max(.1f,move.synthesizedAttackSpeed):1f)*karmaAttackSpeed:1f;
+        float ComboBuffer=>Mathf.Clamp(move.inputBuffer,0,.1f)/AttackSpeed;
         float AttackElapsed=>(Time.time-started)*AttackSpeed;
         float ComboLinkTime=>started+move.attacks[step].length*move.comboLinkNormalized/AttackSpeed;
         float ComboGrace=>Mathf.Min(.1f,continuationGrace)/AttackSpeed;
@@ -55,6 +59,8 @@ namespace DogLife
         public bool BoomerangInFlight=>activeBoomerang;
         public float ChargeAmount=>charging?Mathf.Clamp01((Time.time-chargeStarted)*AttackSpeed/Mathf.Max(.1f,bowChargeSeconds)):shotCharge;
         public int ComboStep=>step+1;
+        // 조작 연습에서 실제 콤보 입력 가능 구간을 안내합니다.
+        public bool ComboInputWindow=>IsAttacking&&!SingleAttack&&move&&step>=0&&step<move.attacks.Length-1&&Time.time>=ComboLinkTime-ComboBuffer;
         // 3타 완주 보상. 창은 12회 전체에 나눠 적용해 연타 횟수를 유지합니다.
         public float MeleeFinishBonus=>step==2&&item?(item.weaponCategory==InventoryWeapon.WeaponCategory.Axe?1.25f:item.weaponCategory==InventoryWeapon.WeaponCategory.Dagger?1.35f:1.3f):1;
         public bool MeleeFinisher=>step==2&&item&&(item.weaponCategory!=InventoryWeapon.WeaponCategory.Spear||thrustCount>=12);
@@ -63,11 +69,11 @@ namespace DogLife
         bool UsesUpperBody=>item&&(item.weaponCategory==InventoryWeapon.WeaponCategory.Dagger||item.weaponCategory==InventoryWeapon.WeaponCategory.Bow||item.weaponCategory==InventoryWeapon.WeaponCategory.Boomerang||((item.weaponCategory==InventoryWeapon.WeaponCategory.Sword||item.weaponCategory==InventoryWeapon.WeaponCategory.Spear)&&step<2));
         bool SingleAttack=>item&&(item.weaponCategory==InventoryWeapon.WeaponCategory.Bow||item.weaponCategory==InventoryWeapon.WeaponCategory.Boomerang);
         public bool LocksMovement=>IsAttacking&&!UsesUpperBody;
-        // 활과 상체만 사용하는 검 1·2타는 공격 중에도 점프와 앉기를 허용합니다.
-        public bool LocksPosture=>IsAttacking&&!(item&&(item.weaponCategory==InventoryWeapon.WeaponCategory.Bow||(item.weaponCategory==InventoryWeapon.WeaponCategory.Sword&&step>=0&&step<2)));
+        // 활·부메랑과 검 1·2타는 상체 공격을 유지하면서 점프와 앉기를 허용합니다.
+        public bool LocksPosture=>IsAttacking&&!(item&&(item.weaponCategory==InventoryWeapon.WeaponCategory.Bow||item.weaponCategory==InventoryWeapon.WeaponCategory.Boomerang||(item.weaponCategory==InventoryWeapon.WeaponCategory.Sword&&step>=0&&step<2)));
         // 기본형과 합성형은 같은 무기별 콤보와 애니메이션을 공유합니다.
         public bool Ready=>isActiveAndEnabled&&animator&&inventory&&inventory.EquippedWeapon;
-        void Awake(){inventory=GetComponent<PlayerInventory>();motor=GetComponent<PlayerMotor>();weapons=GetComponent<PlayerWeapons>();health=GetComponent<CombatHealth>();}
+        void Awake(){inventory=GetComponent<PlayerInventory>();motor=GetComponent<PlayerMotor>();weapons=GetComponent<PlayerWeapons>();health=GetComponent<CombatHealth>();karma=GetComponent<PlayerKarma>();}
         bool Interrupted=>(health&&health.Dead)||!weapons.enabled||SkillWindow.BlocksGameplayInput||(motor&&(motor.IsKnockedBack||motor.IsDashing));
         public void PressAttack()
         {
@@ -80,7 +86,7 @@ namespace DogLife
             if(Time.time<endsAt)
             {
                 // 공격 초반의 클릭을 끝까지 보관하지 않고 연결 직전 입력 하나만 받습니다.
-                float buffer=Mathf.Clamp(move.inputBuffer,0,.1f);
+                float buffer=ComboBuffer;
                 if(step<move.attacks.Length-1&&Time.time>=ComboLinkTime-buffer)
                 {queued=true;queuedUntil=Time.time+buffer;}
                 return;
@@ -110,6 +116,8 @@ namespace DogLife
         }
         void Begin(int index)
         {
+            // 매 타격 시작에 고정합니다. 처치로 카르마가 바뀌어도 현재 모션·차징·피해량은 유지합니다.
+            karmaAttackSpeed=karma?karma.AttackSpeedMultiplier:1f;
             damageNumberGroup=DamageNumber.NextGroup();
             facingLockedUntil=0;
             // Sample at execution, not at the buffered click or combo start.
@@ -120,6 +128,8 @@ namespace DogLife
             attackSoundPlayed=secondarySoundPlayed=false;thrustSounds=0;
             // Animator 전체 속도가 아니라 공격 상태의 배율만 변경합니다.
             animator.SetFloat(AttackSpeedParameter,AttackSpeed);
+            // 첫 두 공격의 준비 구간에서만 접근하고, 타격·대시·취소 시에는 즉시 해제합니다.
+            if(motor)motor.BeginMeleeApproach(item,index,item.rangeDefined?item.meleeRange:move.reach,direction,move.strikeTimes[index]/AttackSpeed);
             if(motor&&LocksMovement)motor.StopForAttack();
             upperBodyAttack=UsesUpperBody;
             int layer=upperBodyAttack?animator.GetLayerIndex(DaggerLayer):0;
@@ -173,6 +183,7 @@ namespace DogLife
         }
         void Strike()
         {
+            if(motor)motor.CancelMeleeApproach();
             if(item.weaponCategory==InventoryWeapon.WeaponCategory.Axe)
                 GameAudio.Play("AxeGround",transform.position,step==2?.9f:.55f,GameAudio.WeaponPitch(item));
             // 각 타격 직전에 최신 조준을 읽고, 판정과 이펙트에 같은 방향을 사용합니다.
@@ -193,7 +204,7 @@ namespace DogLife
                 origin=weapons.SafeLaunchOrigin(origin);
                 var shotDirection=weapons.GetProjectileDirection(origin);
                 if(motor)motor.FaceForAttack(shotDirection);
-                var projectile=BoneWeaponProjectile.Launch(origin,shotDirection,transform,item,move,color,reach,boomerang?0:shotCharge);
+                var projectile=BoneWeaponProjectile.Launch(origin,shotDirection,transform,item,move,color,reach,boomerang?0:shotCharge,KarmaDamageMultiplier);
                 if(boomerang){activeBoomerang=projectile;inventory.SetHeldVisible(false);projectile.Returned+=()=>{if(inventory)inventory.SetHeldVisible(true);};}
             }
             else
@@ -240,6 +251,7 @@ namespace DogLife
         }
         public void Cancel()
         {
+            if(motor)motor.CancelMeleeApproach();
             chargeSound.Stop();
             bool restoreBowFacing=move&&move.bowDrawClip&&item&&item.weaponCategory==InventoryWeapon.WeaponCategory.Bow;
             facingLockedUntil=0;

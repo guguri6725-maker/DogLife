@@ -1,10 +1,11 @@
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
+using System.Linq;
 
 namespace DogLife
 {
-    // Existing Hierarchy card design is reused for each owned weapon instance.
+    // 같은 무기는 기존 Hierarchy 카드 하나에 묶고 실제 보유 인스턴스는 유지합니다.
     [DefaultExecutionOrder(-100)]
     public sealed class SkillWindow : MonoBehaviour
     {
@@ -104,6 +105,7 @@ namespace DogLife
             if (value)
             {
                 // UI 조작 중 공격·시점 이동을 막고, 닫을 때 기존 상태를 복원합니다.
+                CombatFeedback.CancelGlobalHitSlow();
                 previousTimeScale = Time.timeScale; Time.timeScale = 0;
                 cursorMode = Cursor.lockState; cursorVisible = Cursor.visible;
                 if (motor) { motorInput = motor.readInput; motor.readInput = false; motor.MoveInput = Vector2.zero; }
@@ -128,6 +130,7 @@ namespace DogLife
             detailName.text = card.skillName;
             var weapon=card.Item;
             detailType.text = (weapon.boneOrigin==InventoryWeapon.BoneOrigin.Humanoid?"인간뼈":"강아지뼈")+" · "+(weapon.weaponForm==InventoryWeapon.WeaponForm.Basic?"일반형":"합성형");
+            if(card.OwnedQuantity>1)detailType.text+=" · 보유 "+card.OwnedQuantity+"개";
             detailDescription.text = "뼈 종류   "+(string.IsNullOrWhiteSpace(weapon.boneName)?"미지정":weapon.boneName)+"\n\n"+weapon.description;
             detailSource.text = "공격력     "+weapon.DamageLabel+"\n공격 범위     "+weapon.RangeLabel;
             detailIcon.sprite = card.icon.sprite; detailIcon.color = card.icon.color;
@@ -153,7 +156,10 @@ namespace DogLife
         public void DropOn(SkillSlot target)
         {
             if (!Dragged || !Dragged.Item || !target || !inventory) return;
-            SelectedSlot=System.Array.IndexOf(slots,target);inventory.AssignSlot(SelectedSlot,Dragged.InstanceId);EndDrag();
+            SelectedSlot=System.Array.IndexOf(slots,target);
+            // 슬롯에서 끌 때는 그 칸의 실제 무기를, 목록에서는 사용 가능한 복사본을 옮깁니다.
+            var id=DragSource?inventory.SlotInstanceId(System.Array.IndexOf(slots,DragSource)):ResolveInstance(Dragged.Item,SelectedSlot);
+            inventory.AssignSlot(SelectedSlot,id);EndDrag();
         }
         public void EndDrag()
         {
@@ -168,24 +174,50 @@ namespace DogLife
             foreach(var item in slots)item.Refresh();UpdateCount();
         }
         public void Unequip(SkillSlot slot) { if(inventory)inventory.ClearSlot(System.Array.IndexOf(slots,slot)); }
-        public void EquipSelected() { if (inventory && Selected && Selected.Item) inventory.AssignSlot(SelectedSlot,Selected.InstanceId); }
+        public void EquipSelected() { if (inventory && Selected && Selected.Item) inventory.AssignSlot(SelectedSlot,ResolveInstance(Selected.Item,SelectedSlot)); }
         public void UnequipWeapon() { if (inventory) inventory.ClearSlot(SelectedSlot); }
+        string ResolveInstance(InventoryWeapon weapon,int slot)
+        {
+            // 같은 무기 두 개를 소유하면 각각 다른 장착칸에 넣을 수 있습니다.
+            var current=inventory.SlotInstanceId(slot);
+            if(inventory.FindInstance(current)==weapon)return current;
+            var other=inventory.SlotInstanceId(1-slot);
+            string fallback=null;
+            for(int i=0;i<inventory.OwnedWeapons.Count;i++)
+            {
+                if(inventory.OwnedWeapons[i]!=weapon)continue;
+                var id=inventory.GetInstanceId(i);fallback=id;
+                if(id!=other)return id;
+            }
+            return fallback;
+        }
         void RefreshInventory()
         {
-            var selected=Selected?Selected.InstanceId:null;
+            var selected=Selected?Selected.Item:null;
             EndDrag();
             Selected=null;
-            ResizeCards(inventory?inventory.OwnedWeapons.Count:0);
+            // 표시만 종류별로 묶습니다. 저장 순서와 장착·합성용 인스턴스 ID는 유지합니다.
+            var groups=Enumerable.Range(0,inventory?inventory.OwnedWeapons.Count:0)
+                .Where(i=>inventory.OwnedWeapons[i])
+                .GroupBy(i=>inventory.OwnedWeapons[i]).ToArray();
+            ResizeCards(groups.Length);
+            var order=groups.Select(g=>g.First())
+                .OrderBy(i=>inventory.OwnedWeapons[i]? (int)inventory.OwnedWeapons[i].weaponForm:int.MaxValue)
+                .ThenBy(i=>inventory.OwnedWeapons[i]? (int)inventory.OwnedWeapons[i].weaponCategory:int.MaxValue)
+                .ThenBy(i=>inventory.OwnedWeapons[i]&&inventory.OwnedWeapons[i].boneOrigin==InventoryWeapon.BoneOrigin.Dog?0:1)
+                .ThenBy(i=>inventory.OwnedWeapons[i]?inventory.OwnedWeapons[i].weaponId:"",System.StringComparer.Ordinal)
+                .ToArray();
+            var quantities=inventory?inventory.OwnedWeapons.Where(w=>w).GroupBy(w=>w).ToDictionary(g=>g.Key,g=>g.Count()):null;
             for(int i=0;i<skills.Length;i++)
             {
-                var item=inventory&&i<inventory.OwnedWeapons.Count?inventory.OwnedWeapons[i]:null;
-                skills[i].Bind(item,inventory.GetInstanceId(i));
-                if(item&&skills[i].InstanceId==selected)Selected=skills[i];
+                int source=order[i];var item=inventory.OwnedWeapons[source];
+                skills[i].Bind(item,inventory.GetInstanceId(source),item?quantities[item]:0);
+                if(item==selected)Selected=skills[i];
             }
             foreach(var slot in slots)
             {
                 SkillCard card=null;
-                foreach(var item in skills)if(item.Item&&inventory&&item.InstanceId==inventory.SlotInstanceId(System.Array.IndexOf(slots,slot))){card=item;break;}
+                foreach(var item in skills)if(item.Item&&inventory&&item.Item==inventory.FindInstance(inventory.SlotInstanceId(System.Array.IndexOf(slots,slot)))){card=item;break;}
                 slot.SetSkill(card);
             }
             if(!Selected)foreach(var card in skills)if(card.Item){Selected=card;break;}
@@ -204,7 +236,7 @@ namespace DogLife
             int count=0;if(inventory)for(int n=0;n<2;n++)if(!string.IsNullOrEmpty(inventory.SlotInstanceId(n)))count++;
             equippedCount.text=count+" / 2 장착  ·  [1] [2] 무기 전환";
             if(ownedCount)ownedCount.text=(inventory?inventory.OwnedWeapons.Count:0)+"개 보유";
-            if(equipButton)equipButton.interactable=Selected&&Selected.Item&&inventory&&Selected.InstanceId!=inventory.SlotInstanceId(SelectedSlot);
+            if(equipButton)equipButton.interactable=Selected&&Selected.Item&&inventory&&Selected.Item!=inventory.FindInstance(inventory.SlotInstanceId(SelectedSlot));
             if(unequipButton)unequipButton.interactable=inventory&&!string.IsNullOrEmpty(inventory.SlotInstanceId(SelectedSlot));
         }
         void OnDestroy()

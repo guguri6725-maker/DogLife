@@ -52,6 +52,8 @@ namespace DogLife
         }
         public InventoryWeapon EquippedWeapon => equippedWeapon;
         public event System.Action Changed;
+        // 이미 들고 있는 칸도 정상적인 단축키 선택으로 알려 튜토리얼 입력 누락을 막습니다.
+        public event System.Action<int> QuickSlotSelected;
         GameObject visual;
         public GameObject EquippedVisual=>visual;
         public void SetHeldVisible(bool value){if(visual)visual.SetActive(value);}
@@ -101,7 +103,8 @@ namespace DogLife
             var health=GetComponent<CombatHealth>();var weapons=GetComponent<PlayerWeapons>();var motor=GetComponent<PlayerMotor>();
             if(Time.timeScale<=0||SkillWindow.BlocksGameplayInput||StoryBook.BlocksInput||BossCinematicUI.Hidden||
                 (health&&health.Dead)||!weapons||!weapons.enabled||!weapons.readInput||(motor&&(!motor.enabled||!motor.readInput)))return false;
-            return SelectSlot(slot);
+            if(!SelectSlot(slot))return false;
+            QuickSlotSelected?.Invoke(slot);return true;
         }
         void Update()
         {

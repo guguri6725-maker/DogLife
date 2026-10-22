@@ -1,4 +1,3 @@
-using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -10,7 +9,7 @@ namespace DogLife
         [SerializeField] private string springScene = "Assets/Scenes/Stage1_Spring.unity";
         [SerializeField] private Button startButton;
         [SerializeField] private Text status;
-        // 전시용 단독 체험 진입점. 저장/이어하기 체계를 거치지 않고 해당 씬을 그대로 띄웁니다.
+        // 전시용 단독 체험은 전투 안내를 확인한 뒤 선택한 계절로 이동합니다.
         [SerializeField] private string[] seasonDemoScenes = {
             "Assets/Scenes/Stage1_Spring.unity", "Assets/Scenes/Stage3_Summer.unity",
             "Assets/Scenes/Stage3_Fall.unity", "Assets/Scenes/Stage4_Winter.unity" };
@@ -69,14 +68,33 @@ namespace DogLife
             }
             loading = true;
             startButton.interactable = false;
-            if(StoryBook.Instance)StoryBook.Instance.BeginNewGame(()=>StartCoroutine(LoadSpring()));
-            else StartCoroutine(LoadSpring());
+            // 안내는 타이틀 진입점에만 두어 일반 진행의 계절 전환에는 반복되지 않습니다.
+            if (!Application.CanStreamedLevelBeLoaded(EnemyIntroduction.ScenePath))
+            {
+                loading = false;
+                startButton.interactable = true;
+                status.text = "모험 안내 화면을 불러올 수 없습니다.";
+                return;
+            }
+            EnemyIntroduction.Prepare(springScene, false);
+            SceneManager.LoadSceneAsync(EnemyIntroduction.ScenePath);
         }
 
         public void OpenMemories()
         {
             if(loading||GameSettingsWindow.BlocksGameplayInput)return;
             if(StoryBook.Instance)StoryBook.Instance.OpenGallery();
+        }
+
+        // 조작 연습은 새 게임/이어하기와 분리하며 저장 데이터를 쓰지 않습니다.
+        public void OpenTutorial()
+        {
+            if (loading || GameSettingsWindow.BlocksGameplayInput || StoryBook.BlocksInput) return;
+            if (!Application.CanStreamedLevelBeLoaded(PracticeTutorial.ScenePath))
+            { status.text = "조작 연습 씬을 불러올 수 없습니다."; return; }
+            loading = true;
+            startButton.interactable = false;
+            SeasonLoadingScreen.Load(PracticeTutorial.ScenePath);
         }
 
         // 전시용 버튼: 진행 상황을 저장/불러오지 않고 선택한 계절 스테이지만 단독으로 체험합니다.
@@ -91,15 +109,16 @@ namespace DogLife
                 Debug.LogError("Missing demo scene: " + scene, this);
                 return;
             }
-            SeasonLoadingScreen.Load(scene);
+            if (!Application.CanStreamedLevelBeLoaded(EnemyIntroduction.ScenePath))
+            {
+                status.text = "모험 안내 화면을 불러올 수 없습니다.";
+                return;
+            }
+            loading = true;
+            startButton.interactable = false;
+            EnemyIntroduction.Prepare(scene, true);
+            SceneManager.LoadSceneAsync(EnemyIntroduction.ScenePath);
         }
 
-        IEnumerator LoadSpring()
-        {
-            SeasonRunSave.NewGame();
-            status.text = "봄의 숲으로 향하는 중...";
-            yield return null;
-            SeasonLoadingScreen.Load(springScene);
-        }
     }
 }

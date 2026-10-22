@@ -12,11 +12,24 @@ namespace DogLife
         public Transform[] displays=new Transform[0];
         public Transform fusionFocus;
         [Min(0)] public int price=30;
+        public const int HealingPotionPrice=50;
+        public const int HealingPotionStock=2;
+        public int RemainingHealingPotions=>stock==null||kind!=StationKind.Shop?0:Mathf.Max(0,HealingPotionStock-stock.potionsSold);
+        // 구매 수량을 상점 재고에 저장하여 방 재방문으로 물약이 보충되지 않게 합니다.
+        public bool BuyHealingPotion(RunEconomy wallet,out string message)
+        {
+            message="상점 가까이에서 구매하세요.";
+            if(kind!=StationKind.Shop||stock==null||!wallet||!InReach(wallet.inventory))return false;
+            if(RemainingHealingPotions==0){message="이 상점의 회복 물약은 품절입니다.";return false;}
+            if(!wallet.TryBuyHealingPotion(HealingPotionPrice)){message="골드가 부족하거나 더 보관할 수 없습니다.";return false;}
+            stock.potionsSold++;
+            message="회복 물약 구매 완료 · Q로 사용 · 체력 1칸 회복";return true;
+        }
         [Min(1)] public float interactionDistance=5;
         [Min(.01f)] public float displayScale=.65f;
         // 방을 다시 불러와도 성공한 합성 횟수를 유지합니다.
         const int FusionLimit=2;
-        class Stock {public InventoryWeapon[] items;public int fusionCount;public bool fusing;}
+        class Stock {public InventoryWeapon[] items;public int fusionCount,potionsSold;public bool fusing;}
         static Dictionary<string,Stock> saved=new Dictionary<string,Stock>();
         Stock stock;GameObject[] visuals;
         public int RemainingFusions=>Mathf.Max(0,FusionLimit-(stock==null?0:stock.fusionCount));

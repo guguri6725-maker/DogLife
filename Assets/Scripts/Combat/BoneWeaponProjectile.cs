@@ -19,15 +19,18 @@ namespace DogLife
         BowFlightVisual bowVisual;
         SynthesizedComboVfx surroundVisual;
         float power=1,speedScale=1;
+        // 발사 이후 처치나 무기 교체가 생겨도 왕복 전체에 같은 피해 배율을 사용합니다.
+        float karmaDamageMultiplier=1;
         // 화살의 판정은 충전 오라/합성 장식 크기와 분리해 바닥까지 늘어나지 않게 합니다.
         float HitRadius=>item.weaponCategory==InventoryWeapon.WeaponCategory.Bow?move.ProjectileHitRadius:.51f*visualScale;
         Vector3 BoomerangHalfExtents=>new Vector3(HitRadius,move.BoomerangHalfThickness*visualScale,HitRadius);
         public event System.Action Returned;
         void OnDestroy(){flightSound.Stop();if(bowVisual&&Application.isPlaying)bowVisual.Finish();if(surroundVisual)Destroy(surroundVisual.gameObject);Returned?.Invoke();}
-        public static BoneWeaponProjectile Launch(Vector3 position,Vector3 direction,Transform owner,InventoryWeapon item,BasicWeaponMoveset move,Color color,float reach,float charge=0)
+        public static BoneWeaponProjectile Launch(Vector3 position,Vector3 direction,Transform owner,InventoryWeapon item,BasicWeaponMoveset move,Color color,float reach,float charge=0,float karmaDamageMultiplier=1)
         {
             var go=new GameObject(item.weaponCategory==InventoryWeapon.WeaponCategory.Bow?"Bone arrow":"Bone boomerang");go.transform.position=position;
             var p=go.AddComponent<BoneWeaponProjectile>();p.owner=owner;p.item=item;p.move=move;p.forward=direction.normalized;p.tint=color;p.reach=reach;p.visualScale=BoneWeaponVfx.SizeFor(item);
+            p.karmaDamageMultiplier=karmaDamageMultiplier;
             // 활/부메랑의 비행 거리도 근접 공격과 동일한 일반 1배, 합성 1.5배를 사용합니다.
             // 발사·비행 연출은 공용으로 쓰고 판정 배율은 위의 실제 무기 형태를 따릅니다.
             bool synthesized=true;
@@ -102,12 +105,10 @@ namespace DogLife
             if((returning?inward:outward).Add(health))
             {
                 Vector3 contact=collider.ClosestPoint(transform.position);
-                if(CombatFeedback.DealDamage(health,(returning?item.returnDamage:item.damage)*power,contact,forward,power,null,tint,emphasized:fullyCharged))
+                if(CombatFeedback.DealDamage(health,(returning?item.returnDamage:item.damage)*power*karmaDamageMultiplier,contact,forward,power,owner,tint,emphasized:fullyCharged,rangedHit:true))
                 {
                     GameAudio.WeaponHit(item,contact);
-                    // 원거리 명중은 공격자 애니메이션 정지 없이 카메라에만 전달합니다.
-                    var view=Camera.main;var playerCamera=view?view.GetComponent<PlayerCamera>():null;
-                    if(playerCamera)playerCamera.WeaponContact(owner,power);
+                    // 근접과 동일한 공통 명중 경로에서 카메라와 짧은 슬로를 처리합니다.
                     if(health.Dead&&owner){var karma=owner.GetComponent<PlayerKarma>();if(karma)karma.RecordDefeat(health,item);}
                 }
                 Burst(point,Vector3.right,Vector3.up,.25f*visualScale);

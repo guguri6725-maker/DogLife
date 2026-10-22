@@ -27,7 +27,8 @@ namespace DogLife
                 darkLevel=Mathf.MoveTowards(darkLevel,source.DarkRatio,Time.deltaTime*changeSpeed);
             }
             instance.SetFloat("_LightFill",lightLevel);instance.SetFloat("_DarkFill",darkLevel);
-            instance.SetFloat("_WaveTime",Time.time);
+            // 인벤토리나 일시정지 중에도 UI 안의 연기는 부드럽게 흐릅니다.
+            instance.SetFloat("_WaveTime",Time.unscaledTime);
         }
         protected override void OnPopulateMesh(VertexHelper vh)
         {

@@ -1348,12 +1348,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3f86fbac750a56c4ebcf2ffc1945186c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DogLife.SideViewMotor
+  meleeApproachEnabled: 1
+  meleeApproachExtraRange: 1.6
+  approachAngle: 25
+  approachDuration: 0.13
   moveSpeed: 4
   jumpSpeed: 8
   dashSpeed: 12
   dashDuration: 0.22
   dashCooldown: 5
-  dashInvulnerabilityDuration: 0.22
+  dashInvulnerabilityDuration: 0.33
   jumpReleaseMultiplier: 0.45
   groundMask:
     serializedVersion: 2
@@ -1499,6 +1503,14 @@ MonoBehaviour:
   heavyStop: 0.15
   recoilAngle: 13
   recoilDuration: 0.22
+  hitSlowEnabled: 1
+  normalHitTimeScale: 0.4
+  heavyHitTimeScale: 0.25
+  normalHitSlowSeconds: 0.39
+  heavyHitSlowSeconds: 0.54
+  rangedNormalHitSlowSeconds: 0.26
+  rangedHeavyHitSlowSeconds: 0.36
+  hitSlowCooldown: 0.5
   recoilBone: {fileID: 0}
   contactEffectScale: 1
 --- !u!114 &3809714266145273905

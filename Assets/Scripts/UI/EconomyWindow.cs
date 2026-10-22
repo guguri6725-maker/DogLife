@@ -14,6 +14,11 @@ namespace DogLife
         public Image[] itemIcons;
         public Button[] buyButtons;
         public Button fuseButton;
+        // 물약 카드와 HUD는 프리팹 Hierarchy에서 제작하고 Inspector로 연결합니다.
+        public Button potionBuyButton;
+        public GameObject potionHud;
+        public Text potionCount,potionNotice,potionShopCount;
+        float potionNoticeUntil;
         public WeaponFusionSequence fusionSequencePrefab;
         public GameObject fusionPresentation;
         public Text fusionStatus,fusionActionLabel;
@@ -38,6 +43,10 @@ namespace DogLife
         {
             if(!wallet||!wallet.inventory)return;
             var health=wallet.inventory.GetComponent<CombatHealth>();
+            if(potionHud)potionHud.SetActive(health&&!health.Dead&&!BossCinematicUI.Hidden&&!StoryBook.BlocksInput&&!GameSettingsWindow.IsOpen&&!SkillWindow.IsOpen&&!IsOpen);
+            if(potionCount)potionCount.text=wallet.HealingPotionCooldownRemaining>0?"재사용 "+wallet.HealingPotionCooldownRemaining.ToString("0.0")+"초  · × "+wallet.HealingPotions:"Q  회복 물약  × "+wallet.HealingPotions;
+            if(potionNotice&&Time.unscaledTime>=potionNoticeUntil)potionNotice.text="";
+            if(!BlocksInput&&!SkillWindow.BlocksGameplayInput&&!GameSettingsWindow.IsOpen&&!StoryBook.BlocksInput&&!BossCinematicUI.Hidden&&Time.timeScale>0&&Input.GetKeyDown(KeyCode.Q))UseHealingPotion();
             if(health&&health.Dead){if(IsOpen)Close();prompt.text="";return;}
             goldLabel.text="<size=18><color=#B9AA88>골드</color></size>   "+wallet.Gold.ToString("N0");
             if(IsOpen)
@@ -59,12 +68,13 @@ namespace DogLife
         public void Open(EconomyStation target)
         {
             if(BossCinematicUI.Hidden||IsOpen||SkillWindow.IsOpen||GameSettingsWindow.IsOpen||StoryBook.BlocksInput||!target||!target.InReach(wallet.inventory))return;
+            CombatFeedback.CancelGlobalHitSlow();
             station=target;previousScale=Time.timeScale;previousCursor=Cursor.lockState;previousVisible=Cursor.visible;
             opened=true;
             GameAudio.EnterEconomyMenu();
             Time.timeScale=0;Cursor.lockState=CursorLockMode.None;Cursor.visible=true;consumed=Time.frameCount;
             panel.SetActive(true);prompt.text="";bool shop=station.kind==EconomyStation.StationKind.Shop;
-            shopPanel.SetActive(shop);fusionPanel.SetActive(!shop);title.text=shop?"뼈 상점":"영혼의 합성";message.text=shop?"구매한 무기는 가방에 들어갑니다.":"같은 계열의 일반 무기 2개를 선택하세요.\n비용 없음  ·  남은 합성 "+station.RemainingFusions+"회 / 방당 2회";
+            shopPanel.SetActive(shop);fusionPanel.SetActive(!shop);title.text=shop?"뼈 상점":"영혼의 합성";message.text=shop?"무기는 가방에 보관됩니다. 물약은 Q키로 사용합니다.":"같은 계열의 일반 무기 2개를 선택하세요.\n비용 없음  ·  남은 합성 "+station.RemainingFusions+"회 / 방당 2회";
             first=null;second=null;Cycle(true,1);Cycle(false,1);Refresh();
             GameAudio.Play("UI_Window_Open",Vector3.zero,.6f,ui:true);
             for(int i=0;i<buyButtons.Length;i++)if(!buyButtons[i].GetComponent<EconomyItemAudio>())buyButtons[i].gameObject.AddComponent<EconomyItemAudio>();
@@ -73,6 +83,18 @@ namespace DogLife
         public void Close()
         {if(!opened)return;opened=false;if(sequence){sequence.Release();Destroy(sequence.gameObject);sequence=null;}if(fusionPresentation)fusionPresentation.SetActive(false);panel.SetActive(false);Time.timeScale=previousScale;Cursor.lockState=previousCursor;Cursor.visible=previousVisible;consumed=Time.frameCount;station=null;GameAudio.Play("UI_Window_Close",Vector3.zero,.55f,ui:true);}
         public void Buy(int index){if(!station)return;string text;bool success=station.Buy(index,wallet,out text);message.text=text;Refresh();GameAudio.Play(success?"Shop_Purchase":"UI_Action_Denied",Vector3.zero,.7f,ui:true);}
+        public void BuyHealingPotion()
+        {
+            if(!opened||!station)return;
+            string text;bool success=station.BuyHealingPotion(wallet,out text);message.text=text;Refresh();
+            GameAudio.Play(success?"Shop_Purchase":"UI_Action_Denied",Vector3.zero,.7f,ui:true);
+        }
+        public void UseHealingPotion()
+        {
+            string text;bool success=wallet.TryUseHealingPotion(out text);
+            if(potionNotice){potionNotice.text=text;potionNoticeUntil=Time.unscaledTime+2;}
+            GameAudio.Play(success?"UI_Button_Click":"UI_Action_Denied",Vector3.zero,.65f,ui:true);
+        }
         public void Fuse()
         {
             if(!station||sequence)return;
@@ -111,6 +133,8 @@ namespace DogLife
         void Refresh()
         {
             if(!station)return;
+            if(potionBuyButton)potionBuyButton.interactable=station.RemainingHealingPotions>0&&wallet.Gold>=EconomyStation.HealingPotionPrice;
+            if(potionShopCount)potionShopCount.text=(station.RemainingHealingPotions>0?"재고 "+station.RemainingHealingPotions+" / 2":"품절")+" · 보유 "+wallet.HealingPotions+"개";
             for(int i=0;i<buyButtons.Length;i++)
             {
                 bool exists=i<station.Items.Length;buyButtons[i].gameObject.SetActive(exists);if(!exists)continue;

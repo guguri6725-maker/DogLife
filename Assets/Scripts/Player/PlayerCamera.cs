@@ -39,23 +39,29 @@ namespace DogLife
         // 명중할 때만 수평선을 유지한 미세 반동을 한 번 주고 부드럽게 복귀합니다.
         [Header("무기 타격 카메라")]
         [Range(0,2)] public float weaponFeedbackStrength = 1;
-        Vector3 weaponKick;
+        float weaponKick;
         float weaponKickStarted, weaponKickDuration, nextWeaponContact;
+        [Header("활 차징 줌")]
+        [SerializeField, Min(0), Tooltip("활을 당길 때 카메라를 앞으로 당기는 거리")]
+        float bowZoomDistance = 2f;
+        [SerializeField, Min(.05f)] float bowZoomSmoothTime = .22f;
+        float bowZoom, bowZoomVelocity;
+        BasicWeaponCombat bowCombat;
         public Quaternion AimRotation => Quaternion.Euler(pitch,yaw,0);
         public Ray WeaponAimRay => new Ray(transform.position + AimRotation * Vector3.forward * (collisionCamera ? collisionCamera.nearClipPlane : .3f), AimRotation * Vector3.forward);
         public void WeaponContact(Transform owner,float power)
         {
             if(!isActiveAndEnabled||!readInput||!target||!owner||!(target==owner||target.IsChildOf(owner))||Time.time<nextWeaponContact)return;
             // 연타·광역 명중은 묶어서 처리하고 좌우 회전과 롤, 진동을 사용하지 않습니다.
-            nextWeaponContact=Time.time+.28f;
-            weaponKick=new Vector3(Mathf.Clamp(power*.06f,.045f,.09f),0,0);
-            weaponKickStarted=Time.time;weaponKickDuration=.12f;
+            nextWeaponContact=Time.time+.32f;
+            weaponKick=Mathf.Clamp(power*.06f,.045f,.09f);
+            weaponKickStarted=Time.time;weaponKickDuration=.20f;
         }
-        Vector3 WeaponKickAt(float time)
+        float WeaponKickAt(float time)
         {
-            if(weaponKickDuration<=0)return Vector3.zero;
+            if(weaponKickDuration<=0)return 0;
             float t=(time-weaponKickStarted)/weaponKickDuration;
-            if(t<0||t>=1)return Vector3.zero;
+            if(t<0||t>=1)return 0;
             float attack=Mathf.SmoothStep(0,1,t/.3f);
             float release=1-Mathf.SmoothStep(0,1,Mathf.Clamp01((t-.3f)/.7f));
             return weaponKick*(attack*release*Mathf.Clamp(weaponFeedbackStrength,0,1.5f));
@@ -237,7 +243,7 @@ namespace DogLife
             pitch = Mathf.Clamp(pitch - Input.GetAxis("Mouse Y") * sensitivity, -25, 65);
         }
         void LateUpdate() {
-            if (!target) { RestoreMonsterVisibility(); return; }
+            if (!target) { bowZoom=bowZoomVelocity=0;RestoreMonsterVisibility(); return; }
             var rotation = Quaternion.Euler(pitch, yaw, 0);
             float blend=cinematicReturnDuration>0?Mathf.SmoothStep(0,1,(Time.unscaledTime-cinematicReturnStart)/cinematicReturnDuration):1;
             if(ownCamera){ownCamera.fieldOfView=Mathf.Lerp(cinematicFov,gameplayFov,blend);if(blend>=1)ownCamera=null;}
@@ -257,14 +263,22 @@ namespace DogLife
             // 장애물 쪽으로는 즉시 당기고, 경계가 잠깐 풀려도 곧바로 줌아웃하지 않습니다.
             if (allowedLength < armLength) { armLength = allowedLength; armVelocity = 0; releaseAt = Time.time + obstructionHoldTime; }
             else if (Time.time >= releaseAt) armLength = Mathf.Min(allowedLength, Mathf.SmoothDamp(armLength, allowedLength, ref armVelocity, returnSmoothTime));
-            var position = ClearPosition(anchor, pivot + back * armLength, radius);
+            // 벽 충돌 거리와 차징 줌을 분리해 발사·취소 시에도 부드럽게 원래 거리로 돌아옵니다.
+            if(!bowCombat||!target.IsChildOf(bowCombat.transform))bowCombat=target.GetComponentInParent<BasicWeaponCombat>();
+            bool drawing=readInput&&blend>=1&&bowCombat&&bowCombat.IsCharging;
+            float zoomTarget=drawing?Mathf.Min(bowZoomDistance,Mathf.Max(0,distance-.75f)):0;
+            bowZoom=Mathf.SmoothDamp(bowZoom,zoomTarget,ref bowZoomVelocity,bowZoomSmoothTime);
+            float viewLength=Mathf.Max(Mathf.Min(.75f,armLength),armLength-bowZoom);
+            var position = ClearPosition(anchor, pivot + back * viewLength, radius);
             // 연출 복귀 보간과 방 경계 보정 뒤의 최종 위치도 다시 검사합니다.
             position = ClearPosition(anchor, Vector3.Lerp(cinematicFrom, position, blend), radius);
             var water=target.GetComponentInParent<PlayerWaterMovement>();
             if(water&&water.Submerged)position=ClipSegment(anchor,water.ConstrainCamera(position),radius);
+            // 명중 시에만 렌즈를 아주 조금 앞으로 당깁니다. 각도/FOV는 고정하고 벽 근처에서는 생략합니다.
+            if(readInput&&blend>=1&&armLength>=distance-.1f)
+                position=ClipSegment(position,position-back*WeaponKickAt(Time.time),radius);
             // 이동과 시점 회전은 즉시 반영하고, 충돌로 줄어든 거리의 복귀만 위에서 보간합니다.
             transform.SetPositionAndRotation(position,Quaternion.Slerp(cinematicRotation,rotation,blend));
-            if(readInput&&blend>=1)transform.rotation*=Quaternion.Euler(WeaponKickAt(Time.time));
             if(Time.time<impactEnds)
             {
                 float strength=impactShake*Mathf.Clamp01((impactEnds-Time.time)/impactDuration);
@@ -273,6 +287,6 @@ namespace DogLife
             if (IsClear(position, radius)) { lastClearPosition = position; hasClearPosition = true; }
             UpdateMonsterVisibility();
         }
-        void OnDisable() { weaponKickDuration=0;impactEnds=0;nextWeaponContact=0;RestoreMonsterVisibility(); armInitialized = false; hasClearPosition = false; armVelocity = shoulderVelocity = 0; CaptureCursor(false); }
+        void OnDisable() { bowZoom=bowZoomVelocity=0;bowCombat=null;weaponKickDuration=0;impactEnds=0;nextWeaponContact=0;RestoreMonsterVisibility(); armInitialized = false; hasClearPosition = false; armVelocity = shoulderVelocity = 0; CaptureCursor(false); }
     }
 }

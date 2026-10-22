@@ -44,17 +44,28 @@ Shader "DogLife/UI/Karma Water"
             fixed4 frag(v2f i):SV_Target
             {
                 float2 p=(i.uv-.5)*2;float d=length(p);float radius=.66;
-                float time=_WaveTime*.055;
-                float cloud=mist(p*3+float2(time,-time*.7));
-                cloud=cloud*.65+mist(p*7+cloud*2-float2(time*.4,time))*.35;
-                float veil=smoothstep(.27,.78,cloud);
-                // 중립 색은 유지하고, 카르마가 쌓일수록 차가운 청록과 따뜻한 적갈색이 은은하게 드러납니다.
-                float mood=smoothstep(0,1,saturate(.5+(_DarkFill-_LightFill)*.5));
-                float3 tint=lerp(float3(.17,.34,.34),float3(.38,.22,.20),mood);
+                // 서로 다른 속도의 상승 흐름을 휘게 만들어 연기가 피어오르고 풀어지도록 합니다.
+                float time=_WaveTime*.22;
+                float2 drift=float2(.10*sin(time*.8),-time*.55);
+                float2 flow=p*2.6+drift;
+                float2 curl=float2(mist(flow+float2(time*.24,3.7)),
+                    mist(flow*1.13+float2(8.1,-time*.19)))-.5;
+                float cloud=mist(flow+curl*1.35);
+                float detail=mist(p*6.5+curl*2.2+float2(-time*.18,-time*.85));
+                cloud=cloud*.68+detail*.32;
+                // 0에서는 얇은 중립 안개, 절댓값이 커질수록 안개의 면적과 농도를 함께 늘립니다.
+                float karma=clamp(_DarkFill-_LightFill,-1,1);
+                float strength=abs(karma);
+                float veil=smoothstep(lerp(.60,.20,strength),lerp(.90,.70,strength),cloud);
+                // 음수는 푸른빛, 양수는 붉은빛. 중립을 통과할 때 회색으로 부드럽게 돌아옵니다.
+                float3 stateTint=karma<0?float3(.10,.55,1.0):float3(1.0,.14,.20);
+                float3 tint=lerp(float3(.25,.29,.32),stateTint,saturate(strength*2));
                 float bowl=sqrt(saturate(1-dot(p,p)/(radius*radius)));
-                float3 inside=float3(.035,.042,.046)+tint*veil*(.17+.33*bowl);
+                float density=lerp(.14,1.15,strength);
+                float3 inside=float3(.025,.032,.040)+tint*veil*density*(.35+.65*bowl);
                 float wisp=pow(saturate(1-abs(cloud-.52)*9),3);
-                inside+=tint*wisp*.13*bowl;
+                inside+=tint*wisp*lerp(.025,.26,strength)*bowl;
+                inside+=stateTint*strength*.055*bowl;
                 float glow=exp(-max(0,d-radius)*20)*(1-smoothstep(.70,.84,d))*.06;
                 float4 result=float4(float3(.35,.30,.22),glow);
                 float disc=1-smoothstep(radius-.006,radius+.006,d);

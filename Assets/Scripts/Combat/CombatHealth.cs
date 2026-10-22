@@ -24,6 +24,8 @@ namespace DogLife
         }
         public bool Dead => Current <= 0 && !phaseTransitionPending;
         public event Action Died;
+        // 연습 목표는 입력 횟수가 아니라 실제로 적용된 피해를 확인합니다.
+        public event Action<float> Damaged;
         float invulnerableUntil, restoreAt;
         float frostProtectionUntil;
         public bool FrostProtectionPaused {get;set;}
@@ -83,6 +85,7 @@ namespace DogLife
             if (player && !useFullPlayerDamage) amount = 1;
             float beforeDamage=Current;
             Current = Mathf.Max(Mathf.Min(minimumHealth, Current), Current - amount);
+            if (Current < beforeDamage) Damaged?.Invoke(beforeDamage - Current);
             // 사망·페이즈 전환으로 체력이 바뀌기 전에 실제 감소량을 확정합니다.
             DamageNumber.Show(this,beforeDamage-Current,numberPoint,emphasized,numberGroup);
             if(player&&Current<beforeDamage)GameAudio.Variant("Hurt",transform.position,.85f);
@@ -102,6 +105,12 @@ namespace DogLife
             GrantReward();Died?.Invoke();
             if (practiceTarget) restoreAt = Time.time + 2;
             else if (!player) gameObject.SetActive(false);
+        }
+        // 물약은 현재 체력만 회복하며 피격 무적이나 상태 효과를 초기화하지 않습니다.
+        public bool TryHeal(float amount)
+        {
+            if(Dead||RecoveryBlocked||amount<=0||Current>=maxHealth)return false;
+            Current=Mathf.Min(maxHealth,Current+amount);return true;
         }
         public void Restore() {
             if(player && RecoveryBlocked)return;

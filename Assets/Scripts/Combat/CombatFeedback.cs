@@ -3,7 +3,7 @@ using UnityEngine.AI;
 
 namespace DogLife
 {
-    // 전역 시간을 바꾸지 않고 맞은 몸과 근접 공격 애니메이션만 짧게 멈춥니다.
+    // 명중 시 짧은 전역 슬로와 적의 피격 반응을 처리합니다.
     [DefaultExecutionOrder(15000)]
     public sealed class CombatFeedback : MonoBehaviour
     {
@@ -11,6 +11,49 @@ namespace DogLife
         [SerializeField,Range(0,.15f)] private float heavyStop=.08f;
         [SerializeField,Range(0,30)] private float recoilAngle=13;
         [SerializeField,Min(.05f)] private float recoilDuration=.22f;
+        [Header("플레이어 명중 슬로")]
+        [SerializeField] bool hitSlowEnabled=true;
+        [SerializeField,Range(.1f,1f)] float normalHitTimeScale=.4f,heavyHitTimeScale=.25f;
+        [SerializeField,Range(.02f,1f)] float normalHitSlowSeconds=.39f,heavyHitSlowSeconds=.54f;
+        [SerializeField,Range(.02f,1f)] float rangedNormalHitSlowSeconds=.26f,rangedHeavyHitSlowSeconds=.36f;
+        [SerializeField,Min(.15f)] float hitSlowCooldown=.5f;
+        static CombatFeedback slowOwner;
+        float slowStarted,slowDuration,slowScale,savedScale,savedFixed,lastScale,lastFixed,nextSlow;
+        // UI가 일시정지 직전 정상 속도를 저장하도록 공통 취소 진입점을 제공합니다.
+        public static void CancelGlobalHitSlow(){if(slowOwner)slowOwner.EndHitSlow();}
+        void StartHitSlow(float power,bool rangedHit)
+        {
+            if(!hitSlowEnabled||slowOwner||Time.unscaledTime<nextSlow||!Mathf.Approximately(Time.timeScale,1f)
+                ||SkillWindow.BlocksGameplayInput||StoryBook.BlocksInput||BossCinematicUI.Hidden||PlayerDeathSequence.IsActive||SeasonLoadingScreen.IsLoading)return;
+            savedScale=Time.timeScale;savedFixed=Time.fixedDeltaTime;slowOwner=this;
+            slowStarted=Time.unscaledTime;bool heavy=power>=1.4f;
+            // 발사체 자체의 명중 종류를 사용하므로 비행 중 무기를 바꿔도 원거리 지속시간을 유지합니다.
+            slowDuration=rangedHit?(heavy?rangedHeavyHitSlowSeconds:rangedNormalHitSlowSeconds):(heavy?heavyHitSlowSeconds:normalHitSlowSeconds);
+            slowScale=heavy?heavyHitTimeScale:normalHitTimeScale;
+            nextSlow=slowStarted+Mathf.Max(hitSlowCooldown,slowDuration);
+            ApplyHitScale(slowScale);
+        }
+        void ApplyHitScale(float scale)
+        {
+            lastScale=scale;lastFixed=savedFixed*scale/savedScale;
+            Time.timeScale=lastScale;Time.fixedDeltaTime=lastFixed;
+        }
+        void TickHitSlow()
+        {
+            if(slowOwner!=this)return;
+            // 외부 일시정지/연출이 시간을 가져갔으면 그 값을 덮어쓰지 않습니다.
+            if(!Mathf.Approximately(Time.timeScale,lastScale)||BossCinematicUI.Hidden){EndHitSlow();return;}
+            float t=(Time.unscaledTime-slowStarted)/Mathf.Max(.01f,slowDuration);
+            if(t>=1){EndHitSlow();return;}
+            ApplyHitScale(Mathf.Lerp(slowScale,savedScale,Mathf.SmoothStep(0,1,Mathf.InverseLerp(.35f,1,t))));
+        }
+        void EndHitSlow()
+        {
+            if(slowOwner!=this)return;
+            if(Mathf.Approximately(Time.timeScale,lastScale))Time.timeScale=savedScale;
+            if(Mathf.Approximately(Time.fixedDeltaTime,lastFixed))Time.fixedDeltaTime=savedFixed;
+            slowOwner=null;
+        }
         [SerializeField,Tooltip("비인간형 몬스터의 피격 반응 관절을 직접 연결합니다.")] private Transform recoilBone;
         [SerializeField,Range(.5f,3)] private float contactEffectScale=1;
         Animator animator;
@@ -80,7 +123,7 @@ namespace DogLife
         }
         public static bool Paused(Component actor)
         {var feedback=actor.GetComponent<CombatFeedback>();return feedback&&feedback.IsStopped;}
-        public static bool DealDamage(CombatHealth target,float amount,Vector3 contact,Vector3 direction,float power,Transform attacker,Color tint,bool useFullPlayerDamage=false,bool emphasized=false,int numberGroup=0)
+        public static bool DealDamage(CombatHealth target,float amount,Vector3 contact,Vector3 direction,float power,Transform attacker,Color tint,bool useFullPlayerDamage=false,bool emphasized=false,int numberGroup=0,bool rangedHit=false)
         {
             if(!target)return false;
             float before=target.Current;target.Damage(amount,useFullPlayerDamage,emphasized,numberGroup,contact);
@@ -90,6 +133,8 @@ namespace DogLife
             {
                 var view=Camera.main;var playerCamera=view?view.GetComponent<PlayerCamera>():null;
                 if(playerCamera)playerCamera.WeaponContact(attacker,power);
+                var playerFeedback=attacker.GetComponent<CombatFeedback>();
+                if(playerFeedback)playerFeedback.StartHitSlow(power,rangedHit);
             }
             var targetFeedback=target.GetComponent<CombatFeedback>();
             if(!target.player)CombatContactVfx.Spawn(contact,direction,tint,power,targetFeedback?targetFeedback.contactEffectScale:1);
@@ -98,7 +143,8 @@ namespace DogLife
                 var feedback=target.GetComponent<CombatFeedback>();if(!feedback)feedback=target.gameObject.AddComponent<CombatFeedback>();
                 feedback.React(direction,power);
             }
-            if(attacker&&attacker.gameObject.activeInHierarchy)
+            // 플레이어는 전역 슬로와 로컬 정지를 겹치지 않게 합니다.
+            if(attacker&&attacker.gameObject.activeInHierarchy&&!attacker.GetComponent<PlayerWeapons>())
             {
                 var feedback=attacker.GetComponent<CombatFeedback>();if(!feedback)feedback=attacker.gameObject.AddComponent<CombatFeedback>();
                 feedback.Freeze(power);
@@ -119,7 +165,7 @@ namespace DogLife
         }
         void React(Vector3 direction,float power)
         {
-            Freeze(power);strength=Mathf.Clamp(power,.6f,1.65f);recoilStarted=Time.time;
+            if(!slowOwner)Freeze(power);strength=Mathf.Clamp(power,.6f,1.65f);recoilStarted=Time.time;
             Vector3 worldAxis=Vector3.Cross(Vector3.up,direction.normalized).normalized;
             recoilAxis=bone&&bone.parent?bone.parent.InverseTransformDirection(worldAxis):worldAxis;
             if(recoilAxis.sqrMagnitude<.01f)recoilAxis=Vector3.right;
@@ -127,6 +173,7 @@ namespace DogLife
         void RestorePose(){if(poseApplied&&bone)bone.localRotation=baseRotation;poseApplied=false;}
         void Update()
         {
+            TickHitSlow();
             RestorePose();
             if(stopped&&!IsStopped)Resume();
             if(poiseReady)
@@ -156,6 +203,6 @@ namespace DogLife
             if(agent)agent.speed=agentSpeed;
         }
         public void CancelHitStop(){Resume();}
-        void OnDisable(){RestorePose();Resume();recoilStarted=-10;nextStop=0;nextMeleeStagger=poise=lastMeleeHit=poiseImmuneUntil=0;poiseReady=false;}
+        void OnDisable(){EndHitSlow();RestorePose();Resume();recoilStarted=-10;nextStop=0;nextSlow=0;nextMeleeStagger=poise=lastMeleeHit=poiseImmuneUntil=0;poiseReady=false;}
     }
 }

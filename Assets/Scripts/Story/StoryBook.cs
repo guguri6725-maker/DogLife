@@ -95,6 +95,7 @@ namespace DogLife
         }
         void Acquire()
         {
+            CombatFeedback.CancelGlobalHitSlow();
             savedTime=Time.timeScale;savedCursor=Cursor.lockState;savedVisible=Cursor.visible;
             savedSelection=EventSystem.current?EventSystem.current.currentSelectedGameObject:null;
             if(!EventSystem.current)new GameObject("Story EventSystem",typeof(EventSystem),typeof(StandaloneInputModule));

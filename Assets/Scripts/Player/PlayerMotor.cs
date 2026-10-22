@@ -3,7 +3,7 @@ namespace DogLife
 {
     [RequireComponent(typeof(Rigidbody), typeof(CapsuleCollider))]
     // 카메라 기준 3D 이동, 점프, 웅크리기와 대시를 처리합니다.
-    public sealed class PlayerMotor : MonoBehaviour
+    public sealed partial class PlayerMotor : MonoBehaviour
     {
         public float moveSpeed = 4, jumpSpeed = 8, dashSpeed = 12;
         public float dashDuration = .22f, dashCooldown = 5;
@@ -21,6 +21,8 @@ namespace DogLife
         public bool Grounded { get; private set; }
         public bool Crouching { get; private set; }
         public bool IsDashing => Time.time < dashUntil;
+        // 짧은 대쉬도 튜토리얼에서 프레임 간 누락 없이 확인합니다.
+        public event System.Action Dashed;
         public bool IsDashInvulnerable => isActiveAndEnabled && Time.time < dashInvulnerableUntil;
         public float DashRemaining => Mathf.Max(0, nextDash - Time.time);
         public Vector3 Facing { get; private set; } = Vector3.right;
@@ -56,6 +58,7 @@ namespace DogLife
         }
         public void ApplyKnockback(Vector3 direction,float speed,float lift,float duration)
         {
+            CancelMeleeApproach();
             if(!isActiveAndEnabled||body.isKinematic)return;
             direction=Vector3.ProjectOnPlane(direction,Vector3.up).normalized;
             knockbackVelocity=direction*Mathf.Max(0,speed);knockbackDuration=Mathf.Max(.02f,duration);
@@ -79,6 +82,8 @@ namespace DogLife
             if (!readInput) return;
             if (Cursor.lockState != CursorLockMode.Locked) { MoveInput = Vector2.zero; ReleaseJump(); return; }
             MoveInput = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
+            // 도끼처럼 이동이 잠긴 공격도 뒤로 입력하면 접근 보정부터 취소합니다.
+            if(approachCollider&&Vector3.Dot(MoveDirection,approachDirection)<-.05f)CancelMeleeApproach();
             bool crouchHeld = Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.C);
             if (!crouchHeld) suppressCrouchUntilRelease = false;
             // Shift와 마우스 우클릭은 같은 대시 조건과 쿨타임을 사용합니다.
@@ -92,6 +97,7 @@ namespace DogLife
         public void RequestJump() {
             if (waterMovement && waterMovement.Submerged) { waterMovement.AscendHeld = true; return; }
             if (IsKnockedBack || AttackPostureLocked || !StandForAction()) return;
+            CancelMeleeApproach();
             jumpHeld = true; jumpBuffer = Time.time + .12f;
         }
         // 물리 프레임 전에 짧게 눌렀다 놓아도 점프 예약은 유지합니다.
@@ -101,13 +107,14 @@ namespace DogLife
             if (!isActiveAndEnabled || SkillWindow.BlocksGameplayInput || (health&&health.Dead) || IsKnockedBack) return false;
             // 대시는 현재 자세를 유지합니다. 앉기 키를 떼기 전까지 낮은 몸통과 자세로 이동합니다.
             if (Time.time < nextDash) return false;
+            CancelMeleeApproach();
             dashDirection = MoveDirection.sqrMagnitude > .01f ? MoveDirection.normalized : Facing;
             if(attackCombo)attackCombo.CancelForDash();
             var feedback=GetComponent<CombatFeedback>();if(feedback)feedback.CancelHitStop();
             GameAudio.Play("Roll",transform.position,.75f);
             dashUntil = Time.time + dashDuration;
             dashInvulnerableUntil = Time.time + Mathf.Max(0, dashInvulnerabilityDuration);
-            nextDash = Time.time + dashCooldown; return true;
+            nextDash = Time.time + dashCooldown; Dashed?.Invoke(); return true;
         }
         bool StandForAction()
         {
@@ -209,6 +216,7 @@ namespace DogLife
                 horizontal=WinterIcePatch.ApplySurface(new Vector3(b.center.x,b.min.y,b.center.z),body.linearVelocity,horizontal,Time.fixedDeltaTime);
             if (AttackMovementLocked) horizontal = Vector3.zero;
             if(IsKnockedBack)horizontal=knockbackVelocity*Mathf.Clamp01((knockbackUntil-Time.time)/knockbackDuration);
+            horizontal=ResolveMeleeApproach(horizontal);
             horizontal = LimitWallMovement(horizontal);
             var velocity = new Vector3(horizontal.x, body.linearVelocity.y, horizontal.z);
             if (!(waterMovement && waterMovement.Submerged) && !AttackPostureLocked && !Crouching && jumpBuffer > Time.time && Time.time - lastGrounded < .1f) {
@@ -228,7 +236,7 @@ namespace DogLife
             if (horizontal.sqrMagnitude > .01f && !directionalLocomotion) Face(horizontal);
             if (body.position.y < -12) Respawn();
         }
-        public void Respawn() { if(waterMovement)waterMovement.Leave(); dashInvulnerableUntil=0;movementSlowUntil=0;knockbackUntil=0;wallNormals.Clear(); ClearJumpInput(); body.position = spawn; body.linearVelocity = Vector3.zero; }
+        public void Respawn() { CancelMeleeApproach();if(waterMovement)waterMovement.Leave(); dashInvulnerableUntil=0;movementSlowUntil=0;knockbackUntil=0;wallNormals.Clear(); ClearJumpInput(); body.position = spawn; body.linearVelocity = Vector3.zero; }
         public void SetRespawnPoint(Vector3 point) { spawn = point; }
         public void StopForAttack()
         {
@@ -236,7 +244,7 @@ namespace DogLife
             if (body && !body.isKinematic) body.linearVelocity = new Vector3(0, body.linearVelocity.y, 0);
         }
         void ClearJumpInput() { jumpHeld = jumping = jumpReleased = false; jumpBuffer = 0; lastGrounded = -10; }
-        void OnDisable() { dashInvulnerableUntil=0;movementSlowUntil=0;knockbackUntil=0;wallNormals.Clear(); MoveInput = Vector2.zero; ClearJumpInput(); }
+        void OnDisable() { CancelMeleeApproach();dashInvulnerableUntil=0;movementSlowUntil=0;knockbackUntil=0;wallNormals.Clear(); MoveInput = Vector2.zero; ClearJumpInput(); }
     }
 }
 

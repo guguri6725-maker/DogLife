@@ -6,7 +6,7 @@ namespace DogLife {
 public static class SeasonRunSave {
 public const string Key="DogLife.SeasonCheckpoint.v1";
 public static readonly string[] Scenes={"Assets/Scenes/Stage1_Spring.unity","Assets/Scenes/Stage3_Summer.unity","Assets/Scenes/Stage3_Fall.unity","Assets/Scenes/Stage4_Winter.unity"};
-[Serializable] public sealed class Data {public int version=1;public string scene;public string[] weapons;public int equipped,gold;public int[] slots;public int activeSlot;public float health,maxHealth,karma,dashCooldown=1;}
+[Serializable] public sealed class Data {public int version=1;public string scene;public string[] weapons;public int equipped,gold,healingPotions;public int[] slots;public int activeSlot;public float health,maxHealth,karma,dashCooldown=1;}
 static Data pending, seasonEntry;
 [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]static void Reset(){pending=null;seasonEntry=null;}
 static void Write(Data d){PlayerPrefs.SetString(Key,JsonUtility.ToJson(d));PlayerPrefs.Save();}
@@ -22,6 +22,8 @@ public static bool Apply(RunEconomy economy){
 if(pending==null||economy.gameObject.scene.path!=pending.scene)return false;
 var d=pending;var catalog=Resources.Load<RunWeaponCatalog>("RunWeaponCatalog");if(!catalog)return false;
 economy.inventory.RestoreRunInventory(d.weapons.Select(catalog.Find),d.equipped,d.slots,d.activeSlot);economy.SetGold(d.gold);
+// 기존 저장에는 수량이 없으므로 0개로 호환됩니다.
+economy.SetHealingPotions(d.healingPotions);
 var hp=economy.inventory.GetComponent<CombatHealth>();hp.RestoreCheckpoint(d.health,d.maxHealth);
 var motor=economy.inventory.GetComponent<PlayerMotor>();if(motor)motor.dashCooldown=d.dashCooldown;
 var karma=economy.inventory.GetComponent<PlayerKarma>();if(karma)karma.SetValue(d.karma);
@@ -32,7 +34,7 @@ static Data Capture(RunEconomy economy,string scene){
 var inventory=economy.inventory;int equipped=-1;
 for(int i=0;i<inventory.OwnedWeapons.Count;i++)if(inventory.GetInstanceId(i)==inventory.EquippedInstanceId)equipped=i;
 var karma=inventory.GetComponent<PlayerKarma>();var motor=inventory.GetComponent<PlayerMotor>();
-return new Data{scene=scene,weapons=inventory.OwnedWeapons.Select(w=>w.weaponId).ToArray(),equipped=equipped,slots=inventory.SlotIndices(),activeSlot=inventory.ActiveSlot,gold=economy.Gold,health=5,maxHealth=5,karma=karma?karma.Value:0,dashCooldown=motor?motor.dashCooldown:1};
+return new Data{scene=scene,weapons=inventory.OwnedWeapons.Select(w=>w.weaponId).ToArray(),equipped=equipped,slots=inventory.SlotIndices(),activeSlot=inventory.ActiveSlot,gold=economy.Gold,healingPotions=economy.HealingPotions,health=5,maxHealth=5,karma=karma?karma.Value:0,dashCooldown=motor?motor.dashCooldown:1};
 }
 // Keep an immutable entry snapshot separate from the next-season LOAD checkpoint.
 public static void RecordEntry(RunEconomy economy){

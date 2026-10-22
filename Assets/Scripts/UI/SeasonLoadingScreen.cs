@@ -58,6 +58,7 @@ namespace DogLife
             chapterLabel.text = season >= 0 ? new[]{"I  /  SPRING", "II  /  SUMMER", "III  /  AUTUMN", "IV  /  WINTER"}[season] : "THE JOURNEY HOME";
             if (season >= 0 && season < seasonArt.Length) landscape.texture = seasonArt[season];
             caption.text = title ? "여정을 추억하며..." : season == 1 ? "여름의 바다로 향하는 중..." : heading.text + "으로 향하는 중...";
+            CombatFeedback.CancelGlobalHitSlow();
             Time.timeScale = 0;
             yield return Fade(1, fadeOutSeconds);
             // Present the opaque overlay before expensive scene activation begins.

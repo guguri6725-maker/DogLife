@@ -62,7 +62,7 @@ namespace DogLife
                 Color tint=equipped.boneOrigin==InventoryWeapon.BoneOrigin.Humanoid?new Color(.8f,.24f,.3f,1):new Color(.5f,.85f,1,1);
                 float feedbackPower=attackCombo&&attackCombo.ComboStep==3&&equipped.weaponCategory!=InventoryWeapon.WeaponCategory.Spear?Mathf.Max(1.5f,power):power;
                 // 일반형·합성형 모두 공통 적중 효과를 한 번만 재생합니다.
-                if(CombatFeedback.DealDamage(target,equipped.damage*power*(attackCombo?attackCombo.MeleeFinishBonus:1),point,point-origin,feedbackPower,transform,tint,emphasized:attackCombo&&attackCombo.MeleeFinisher,numberGroup:attackCombo?attackCombo.DamageNumberGroup:0))
+                if(CombatFeedback.DealDamage(target,equipped.damage*power*(attackCombo?attackCombo.MeleeFinishBonus*attackCombo.KarmaDamageMultiplier:1),point,point-origin,feedbackPower,transform,tint,emphasized:attackCombo&&attackCombo.MeleeFinisher,numberGroup:attackCombo?attackCombo.DamageNumberGroup:0))
                 {
                     // 유효한 근접 명중만 경직과 보스 무력화에 기여합니다.
                     var response=target.GetComponent<CombatFeedback>();

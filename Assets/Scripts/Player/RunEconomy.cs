@@ -7,11 +7,36 @@ namespace DogLife
     {
         public PlayerInventory inventory;
         [SerializeField, Min(0)] int gold;
-        [SerializeField, Min(0)] int monsterReward=10, bossReward=100;
+        // 일반 몬스터는 한 마리당 20G를 지급합니다.
+        [SerializeField, Min(0)] int monsterReward=20, bossReward=100;
         public int Gold=>gold;
+        [SerializeField, Min(0)] int healingPotions;
+        public int HealingPotions=>healingPotions;
+        [SerializeField, Min(0)] float healingPotionCooldown=5f;
+        float nextHealingPotionAt;
+        public float HealingPotionCooldownRemaining=>Mathf.Max(0,nextHealingPotionAt-Time.time);
+        public void SetHealingPotions(int value){healingPotions=Mathf.Max(0,value);}
+        // 구매는 보관만 하고, 실제 사용에 성공했을 때만 한 개를 소모합니다.
+        public bool TryBuyHealingPotion(int price)
+        {
+            if(healingPotions==int.MaxValue||!Spend(price))return false;
+            healingPotions++;return true;
+        }
+        public bool TryUseHealingPotion(out string message)
+        {
+            message="지금은 물약을 사용할 수 없습니다.";
+            if(!inventory||BossCinematicUI.Hidden||StoryBook.BlocksInput||GameSettingsWindow.IsOpen||EconomyWindow.BlocksInput||SkillWindow.BlocksGameplayInput||SeasonLoadingScreen.IsLoading||Time.timeScale<=0)return false;
+            var hp=inventory.GetComponent<CombatHealth>();
+            if(!hp||hp.Dead||hp.RecoveryBlocked)return false;
+            if(healingPotions<=0){message="회복 물약이 없습니다.";return false;}
+            // 게임 시간 기준으로 재사용을 제한하므로 일시정지 중에는 쿨타임도 멈춥니다.
+            if(HealingPotionCooldownRemaining>0){message="물약 재사용까지 "+Mathf.CeilToInt(HealingPotionCooldownRemaining)+"초";return false;}
+            if(!hp.TryHeal(1)){message="체력이 가득 찼습니다.";return false;}
+            healingPotions--;nextHealingPotionAt=Time.time+healingPotionCooldown;message="체력 1칸 회복";return true;
+        }
         public static RunEconomy Instance {get;private set;}
         static List<InventoryWeapon> carried;
-        static int carriedGold, equippedIndex,carriedActiveSlot;
+        static int carriedGold, equippedIndex,carriedActiveSlot,carriedPotions;
         static int[] carriedSlots;
         static float carriedKarma;
         static float carriedHealth,carriedMaxHealth,carriedDash;
@@ -31,7 +56,7 @@ namespace DogLife
             if(SeasonRunSave.Apply(this)){ClearCarry();SeasonRunSave.RecordEntry(this);return;}
             if(carried!=null&&gameObject.scene.path==destination)
             {
-                gold=carriedGold;inventory.RestoreRunInventory(carried,equippedIndex,carriedSlots,carriedActiveSlot);
+                gold=carriedGold;healingPotions=carriedPotions;inventory.RestoreRunInventory(carried,equippedIndex,carriedSlots,carriedActiveSlot);
                 var karma=inventory.GetComponent<PlayerKarma>();if(karma)karma.SetValue(carriedKarma);
                 var hp=inventory.GetComponent<CombatHealth>();if(hp&&carriedMaxHealth>0)hp.RestoreCheckpoint(carriedHealth,carriedMaxHealth);
                 var motor=inventory.GetComponent<PlayerMotor>();if(motor)motor.dashCooldown=carriedDash;
@@ -47,6 +72,7 @@ namespace DogLife
             if(!inventory)return;
             carriedSlots=inventory.SlotIndices();carriedActiveSlot=inventory.ActiveSlot;
             carried=new List<InventoryWeapon>(inventory.OwnedWeapons);carriedGold=gold;destination=scene;equippedIndex=-1;
+            carriedPotions=healingPotions;
             var karma=inventory.GetComponent<PlayerKarma>();carriedKarma=karma?karma.Value:0;
             var hp=inventory.GetComponent<CombatHealth>();carriedHealth=hp?hp.Current:5;carriedMaxHealth=hp?hp.maxHealth:5;
             var motor=inventory.GetComponent<PlayerMotor>();carriedDash=motor?motor.dashCooldown:1;

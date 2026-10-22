@@ -24,12 +24,13 @@ Shader "DogLife/Spring Boar Peeling"
         #pragma surface surf Standard fullforwardshadows addshadow vertex:vert
         #pragma target 3.0
         #include "UnityCG.cginc"
+        #include "../../../SpringMonsterKarma.cginc"
         sampler2D _MainTex, _BumpMap;
         fixed4 _Color, _EdgeColor;
         half _Glossiness, _BumpScale, _Peel, _Reveal, _Cracks;
         float4x4 _BossWorldToLocal;
         float _RealisticSurface,_EyeRadius;float4 _EyeCenter,_EyeCenterRight;
-        struct Input { float2 uv_MainTex; float3 worldPos; float3 rest; };
+        struct Input { float2 uv_MainTex; float3 worldPos; float3 rest; float3 viewDir; };
         void vert(inout appdata_full v,out Input o){UNITY_INITIALIZE_OUTPUT(Input,o);o.rest=v.texcoord2.xyz;}
         float hash(float2 p) { return frac(sin(dot(p,float2(127.1,311.7)))*43758.5453); }
         float noise(float2 p)
@@ -66,6 +67,7 @@ Shader "DogLife/Spring Boar Peeling"
             }
             float cracks=1-smoothstep(.015,.048,abs(noise(p.xy*42+p.z*16)-.5));
             o.Emission=_EdgeColor.rgb*rim*.6+float3(.8,.28,.38)*cracks*_Cracks*.65*(1-_Reveal); o.Alpha=1;
+            ApplySpringKarma(IN.uv_MainTex,IN.viewDir,o);
         }
         ENDCG
     }

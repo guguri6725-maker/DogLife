@@ -107,6 +107,7 @@ namespace DogLife
             if(PlayerDeathSequence.IsActive||SeasonLoadingScreen.IsLoading||StoryBook.BlocksInput)return;
             if(IsOpen||SkillWindow.IsOpen||EconomyWindow.IsOpen||Applying||GameGraphicsSettings.Current==null)return;
             if(!EventSystem.current)new GameObject("Settings EventSystem",typeof(EventSystem),typeof(StandaloneInputModule));
+            CombatFeedback.CancelGlobalHitSlow();
             previousTimeScale=Time.timeScale;previousCursor=Cursor.lockState;previousCursorVisible=Cursor.visible;
             draft=GameGraphicsSettings.Current.Copy();audioSettings.Begin();
             panel.SetActive(true);Time.timeScale=0;Cursor.lockState=CursorLockMode.None;Cursor.visible=true;
