@@ -78,6 +78,9 @@ namespace DogLife
                         if (vines) vines.Open(); else gates[Cleared].SetActive(false);
                     }
                     Cleared++;
+                    bool bossEncounter=Cleared==encounters.Length-1;
+                    MetaProgress.AddPawprints(bossEncounter?15:1);
+                    if(hud&&hud.motor)RelicShrine.Spawn(hud.motor.gameObject,hud.motor.transform.position+hud.motor.transform.forward*3f);
                     if (Cleared < encounters.Length) encounters[Cleared].SetActive(true);
                     else if(StoryBook.Instance)StoryBook.Instance.QueueClear(this);
                 }
@@ -94,7 +97,14 @@ namespace DogLife
         }
         public void RecordStreamedClear(int count)
         {
+            bool advanced=count>Cleared;
             Cleared = count;
+            if(advanced)
+            {
+                bool bossRoom=streaming&&count==streaming.roomScenePaths.Length;
+                MetaProgress.AddPawprints(bossRoom?15:1);
+                if(hud&&hud.motor)RelicShrine.Spawn(hud.motor.gameObject,hud.motor.transform.position+hud.motor.transform.forward*3f);
+            }
             if(streaming&&count==streaming.roomScenePaths.Length&&StoryBook.Instance)StoryBook.Instance.QueueClear(this);
         }
     }

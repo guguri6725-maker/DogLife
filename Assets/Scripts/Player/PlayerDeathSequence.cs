@@ -63,6 +63,10 @@ namespace DogLife
         void ShowMenu()
         {
             if(MenuVisible)return;
+            // 사망해도 남은 골드 일부는 영구 재화(발자국)로 바뀝니다.
+            var economy=RunEconomy.Instance;
+            int earned=economy&&economy.Gold>0?Mathf.Clamp(Mathf.RoundToInt(economy.Gold*.1f),1,20):0;
+            if(earned>0)MetaProgress.AddPawprints(earned);
             resultSound=GameAudio.Play("Death_Result_Show",Vector3.zero,resultVolume,ui:true,follow:transform,minimumInterval:0);
             MenuVisible=true;Cursor.lockState=CursorLockMode.None;Cursor.visible=true;
             var root=new GameObject("Journey Retry",typeof(RectTransform),typeof(Canvas),typeof(CanvasScaler),typeof(GraphicRaycaster));root.transform.SetParent(transform,false);
@@ -72,7 +76,9 @@ namespace DogLife
             var card=AdventureUI.Rect("Retry Card",root.transform,Vector2.zero,new Vector2(800,390));AdventureUI.Surface(card.gameObject);
             var font=StoryBook.Instance?StoryBook.Instance.Library.font:Font.CreateDynamicFontFromOSFont("Malgun Gothic",28);
             AdventureUI.Label(card,"Heading","아직, 여정은 끝나지 않았어",new Vector2(0,110),new Vector2(720,70),36,font).color=AdventureUI.Gold;
-            AdventureUI.Label(card,"Description","이 계절의 시작에서 다시 일어날 수 있어요.",new Vector2(0,28),new Vector2(720,60),24,font);
+            AdventureUI.Label(card,"Description","이 계절의 시작에서 다시 일어날 수 있어요.",new Vector2(0,40),new Vector2(720,50),24,font);
+            string pawprintText=earned>0?"발자국 +"+earned+" (누적 "+MetaProgress.Pawprints+")":"누적 발자국 "+MetaProgress.Pawprints;
+            AdventureUI.Label(card,"Pawprints",pawprintText,new Vector2(0,-16),new Vector2(720,36),20,font).color=AdventureUI.Gold;
             AdventureUI.Button(card,"Retry","재도전",new Vector2(-177,-94),new Vector2(300,70),font,()=>SeasonRunSave.RestartSeason(gameObject.scene.path),true);
             AdventureUI.Button(card,"Title","타이틀",new Vector2(177,-94),new Vector2(300,70),font,()=>SeasonLoadingScreen.Load("Assets/Scenes/Title.unity"));
             AdventureUI.Theme(card.gameObject);

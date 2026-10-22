@@ -21,6 +21,8 @@ namespace DogLife
         float power=1,speedScale=1;
         // 발사 이후 처치나 무기 교체가 생겨도 왕복 전체에 같은 피해 배율을 사용합니다.
         float karmaDamageMultiplier=1;
+        RelicLoadout relics;
+        PlayerKarma karma;
         // 화살의 판정은 충전 오라/합성 장식 크기와 분리해 바닥까지 늘어나지 않게 합니다.
         float HitRadius=>item.weaponCategory==InventoryWeapon.WeaponCategory.Bow?move.ProjectileHitRadius:.51f*visualScale;
         Vector3 BoomerangHalfExtents=>new Vector3(HitRadius,move.BoomerangHalfThickness*visualScale,HitRadius);
@@ -31,6 +33,7 @@ namespace DogLife
             var go=new GameObject(item.weaponCategory==InventoryWeapon.WeaponCategory.Bow?"Bone arrow":"Bone boomerang");go.transform.position=position;
             var p=go.AddComponent<BoneWeaponProjectile>();p.owner=owner;p.item=item;p.move=move;p.forward=direction.normalized;p.tint=color;p.reach=reach;p.visualScale=BoneWeaponVfx.SizeFor(item);
             p.karmaDamageMultiplier=karmaDamageMultiplier;
+            if(owner){p.relics=owner.GetComponent<RelicLoadout>();p.karma=owner.GetComponent<PlayerKarma>();}
             // 활/부메랑의 비행 거리도 근접 공격과 동일한 일반 1배, 합성 1.5배를 사용합니다.
             // 발사·비행 연출은 공용으로 쓰고 판정 배율은 위의 실제 무기 형태를 따릅니다.
             bool synthesized=true;
@@ -105,7 +108,8 @@ namespace DogLife
             if((returning?inward:outward).Add(health))
             {
                 Vector3 contact=collider.ClosestPoint(transform.position);
-                if(CombatFeedback.DealDamage(health,(returning?item.returnDamage:item.damage)*power*karmaDamageMultiplier,contact,forward,power,owner,tint,emphasized:fullyCharged,rangedHit:true))
+                float relicBonus=relics?relics.DamageMultiplier(item.weaponCategory,item.weaponForm==InventoryWeapon.WeaponForm.Synthesized,false,karma?Mathf.Clamp01(-karma.Value/karma.Maximum):0):1f;
+                if(CombatFeedback.DealDamage(health,(returning?item.returnDamage:item.damage)*power*karmaDamageMultiplier*relicBonus,contact,forward,power,owner,tint,emphasized:fullyCharged,rangedHit:true))
                 {
                     GameAudio.WeaponHit(item,contact);
                     // 근접과 동일한 공통 명중 경로에서 카메라와 짧은 슬로를 처리합니다.

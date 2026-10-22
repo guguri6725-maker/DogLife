@@ -55,6 +55,31 @@ namespace DogLife
             Time.timeScale = 1;
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;
+            EnsureResetButton();
+        }
+
+        // 전시회 빌드 전용: 다음 관람객을 위해 저장된 진행도·발자국을 전부 지웁니다.
+        void EnsureResetButton()
+        {
+            if (transform.Find("Reset Data Button")) return;
+            var font = Font.CreateDynamicFontFromOSFont("Malgun Gothic", 22);
+            var root = new GameObject("Reset Data Button", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+            root.transform.SetParent(transform, false);
+            var canvas = root.GetComponent<Canvas>(); canvas.renderMode = RenderMode.ScreenSpaceOverlay; canvas.sortingOrder = 500;
+            var scaler = root.GetComponent<CanvasScaler>(); scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize; scaler.referenceResolution = new Vector2(1920, 1080); scaler.matchWidthOrHeight = .5f;
+            var anchor = AdventureUI.Rect("Anchor", root.transform, Vector2.zero, Vector2.zero);
+            anchor.anchorMin = anchor.anchorMax = new Vector2(1, 0); anchor.anchoredPosition = new Vector2(-150, 60);
+            AdventureUI.Button(anchor, "Reset", "데이터 초기화", Vector2.zero, new Vector2(240, 60), font, ResetAllData);
+        }
+
+        public void ResetAllData()
+        {
+            if (loading || GameSettingsWindow.BlocksGameplayInput) return;
+            PlayerPrefs.DeleteKey(SeasonRunSave.Key);
+            PlayerPrefs.Save();
+            MetaProgress.ResetAll();
+            RunEconomy.ClearCarry();
+            if (status) status.text = "모든 데이터가 초기화되었습니다.";
         }
 
         public void StartGame()

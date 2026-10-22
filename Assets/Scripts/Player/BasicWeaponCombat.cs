@@ -48,6 +48,8 @@ namespace DogLife
         GameAudio.Handle chargeSound;
         float chargeStarted,shotCharge;
         int thrustCount;
+        int spearFinisherThreshold=12;
+        RelicLoadout relics;
         int damageNumberGroup;
         public int DamageNumberGroup=>item&&item.weaponCategory==InventoryWeapon.WeaponCategory.Spear&&step==2?damageNumberGroup:0;
         BoneWeaponProjectile activeBoomerang;
@@ -63,8 +65,8 @@ namespace DogLife
         public bool ComboInputWindow=>IsAttacking&&!SingleAttack&&move&&step>=0&&step<move.attacks.Length-1&&Time.time>=ComboLinkTime-ComboBuffer;
         // 3타 완주 보상. 창은 12회 전체에 나눠 적용해 연타 횟수를 유지합니다.
         public float MeleeFinishBonus=>step==2&&item?(item.weaponCategory==InventoryWeapon.WeaponCategory.Axe?1.25f:item.weaponCategory==InventoryWeapon.WeaponCategory.Dagger?1.35f:1.3f):1;
-        public bool MeleeFinisher=>step==2&&item&&(item.weaponCategory!=InventoryWeapon.WeaponCategory.Spear||thrustCount>=12);
-        public float MeleePoise=>item?(item.weaponCategory==InventoryWeapon.WeaponCategory.Spear&&step==2?(thrustCount>=12?12:2):item.weaponCategory==InventoryWeapon.WeaponCategory.Axe?(step==2?35:16):item.weaponCategory==InventoryWeapon.WeaponCategory.Dagger?(step==2?20:5):(step==2?25:10)):0;
+        public bool MeleeFinisher=>step==2&&item&&(item.weaponCategory!=InventoryWeapon.WeaponCategory.Spear||thrustCount>=spearFinisherThreshold);
+        public float MeleePoise=>item?(item.weaponCategory==InventoryWeapon.WeaponCategory.Spear&&step==2?(thrustCount>=spearFinisherThreshold?12:2):item.weaponCategory==InventoryWeapon.WeaponCategory.Axe?(step==2?35:16):item.weaponCategory==InventoryWeapon.WeaponCategory.Dagger?(step==2?20:5):(step==2?25:10)):0;
         public bool IsAttacking=>charging||(step>=0&&Time.time<endsAt);
         bool UsesUpperBody=>item&&(item.weaponCategory==InventoryWeapon.WeaponCategory.Dagger||item.weaponCategory==InventoryWeapon.WeaponCategory.Bow||item.weaponCategory==InventoryWeapon.WeaponCategory.Boomerang||((item.weaponCategory==InventoryWeapon.WeaponCategory.Sword||item.weaponCategory==InventoryWeapon.WeaponCategory.Spear)&&step<2));
         bool SingleAttack=>item&&(item.weaponCategory==InventoryWeapon.WeaponCategory.Bow||item.weaponCategory==InventoryWeapon.WeaponCategory.Boomerang);
@@ -73,7 +75,7 @@ namespace DogLife
         public bool LocksPosture=>IsAttacking&&!(item&&(item.weaponCategory==InventoryWeapon.WeaponCategory.Bow||item.weaponCategory==InventoryWeapon.WeaponCategory.Boomerang||(item.weaponCategory==InventoryWeapon.WeaponCategory.Sword&&step>=0&&step<2)));
         // 기본형과 합성형은 같은 무기별 콤보와 애니메이션을 공유합니다.
         public bool Ready=>isActiveAndEnabled&&animator&&inventory&&inventory.EquippedWeapon;
-        void Awake(){inventory=GetComponent<PlayerInventory>();motor=GetComponent<PlayerMotor>();weapons=GetComponent<PlayerWeapons>();health=GetComponent<CombatHealth>();karma=GetComponent<PlayerKarma>();}
+        void Awake(){inventory=GetComponent<PlayerInventory>();motor=GetComponent<PlayerMotor>();weapons=GetComponent<PlayerWeapons>();health=GetComponent<CombatHealth>();karma=GetComponent<PlayerKarma>();relics=RelicLoadout.Get(gameObject);}
         bool Interrupted=>(health&&health.Dead)||!weapons.enabled||SkillWindow.BlocksGameplayInput||(motor&&(motor.IsKnockedBack||motor.IsDashing));
         public void PressAttack()
         {
@@ -125,6 +127,7 @@ namespace DogLife
             direction=weapons.AimDirection;
             if(motor)motor.FaceForAttack(direction);
             step=index;queued=false;queuedUntil=0;struck=false;secondStruck=false;thrustCount=0;started=Time.time;endsAt=started+move.attacks[index].length/AttackSpeed;
+            spearFinisherThreshold=relics?relics.SpearFinisherThreshold():12;
             attackSoundPlayed=secondarySoundPlayed=false;thrustSounds=0;
             // Animator 전체 속도가 아니라 공격 상태의 배율만 변경합니다.
             animator.SetFloat(AttackSpeedParameter,AttackSpeed);
@@ -173,7 +176,7 @@ namespace DogLife
             UpdateAttackAudio(flurry);
             if(flurry)
             {
-                while(thrustCount<12&&AttackElapsed>=move.strikeTimes[step]+thrustCount*spearThrustInterval){thrustCount++;Strike();}
+                while(thrustCount<spearFinisherThreshold&&AttackElapsed>=move.strikeTimes[step]+thrustCount*spearThrustInterval){thrustCount++;Strike();}
             }
             else if(!struck&&AttackElapsed>=move.strikeTimes[step]){struck=true;Strike();}
             if(!secondStruck&&move.secondaryStrikeTimes!=null&&step<move.secondaryStrikeTimes.Length&&move.secondaryStrikeTimes[step]>0&&AttackElapsed>=move.secondaryStrikeTimes[step]){secondStruck=true;Strike();}
@@ -206,6 +209,18 @@ namespace DogLife
                 if(motor)motor.FaceForAttack(shotDirection);
                 var projectile=BoneWeaponProjectile.Launch(origin,shotDirection,transform,item,move,color,reach,boomerang?0:shotCharge,KarmaDamageMultiplier);
                 if(boomerang){activeBoomerang=projectile;inventory.SetHeldVisible(false);projectile.Returned+=()=>{if(inventory)inventory.SetHeldVisible(true);};}
+                // 유물: 완충 사격을 세 갈래로, 부메랑을 두 자루로 늘립니다. 본 발사체와 별개로 날아갑니다.
+                if(relics&&!boomerang&&shotCharge>=.99f&&relics.Has(RelicEffect.BowSplitShot,item.weaponCategory))
+                {
+                    float spread=relics.Value(RelicEffect.BowSplitShot,item.weaponCategory);
+                    foreach(float angle in new[]{-spread,spread})
+                        BoneWeaponProjectile.Launch(origin,Quaternion.Euler(0,angle,0)*shotDirection,transform,item,move,color,reach,shotCharge,KarmaDamageMultiplier);
+                }
+                if(relics&&boomerang&&relics.Has(RelicEffect.BoomerangDouble,item.weaponCategory))
+                {
+                    float spread=relics.Value(RelicEffect.BoomerangDouble,item.weaponCategory);
+                    BoneWeaponProjectile.Launch(origin,Quaternion.Euler(0,spread,0)*shotDirection,transform,item,move,color,reach,0,KarmaDamageMultiplier);
+                }
             }
             else
             {
@@ -234,6 +249,11 @@ namespace DogLife
                     if(effect.ImpactShape)Instantiate(item.strikeAccentPrefab).Initialize(effect.ImpactShape,color);
                 }
                 weapons.ApplyVisibleMelee(item,origin,effect.HitShape,!thrust,power,effect.ImpactShape);
+                // 유물: 도끼 마무리의 지면 충격파, 단검 첫 타격의 등 뒤 환영 일격.
+                if(relics&&item.weaponCategory==InventoryWeapon.WeaponCategory.Axe&&step==2&&relics.Has(RelicEffect.AxeShockwave,item.weaponCategory))
+                    weapons.ApplyRelicBurst(item,origin,2.4f,relics.Value(RelicEffect.AxeShockwave,item.weaponCategory),color);
+                if(relics&&item.weaponCategory==InventoryWeapon.WeaponCategory.Dagger&&step==0&&relics.Has(RelicEffect.DaggerPhantomStrike,item.weaponCategory))
+                    weapons.ApplyRelicBurst(item,origin-direction*1.3f,1.6f,relics.Value(RelicEffect.DaggerPhantomStrike,item.weaponCategory),color);
             }
         }
         void UpdateAttackAudio(bool flurry)
@@ -241,7 +261,7 @@ namespace DogLife
             float lead=move.attackAudioLeadTimes!=null&&step<move.attackAudioLeadTimes.Length?Mathf.Max(0,move.attackAudioLeadTimes[step]):0;
             if(flurry)
             {
-                while(thrustSounds<12&&AttackElapsed>=Mathf.Max(0,move.strikeTimes[step]+thrustSounds*spearThrustInterval-lead))
+                while(thrustSounds<spearFinisherThreshold&&AttackElapsed>=Mathf.Max(0,move.strikeTimes[step]+thrustSounds*spearThrustInterval-lead))
                 { thrustSounds++;GameAudio.WeaponAttack(item,step,transform.position); }
             }
             else if(!attackSoundPlayed&&AttackElapsed>=Mathf.Max(0,move.strikeTimes[step]-lead))

@@ -61,8 +61,10 @@ namespace DogLife
                 meleeDamaged.Add(target);
                 Color tint=equipped.boneOrigin==InventoryWeapon.BoneOrigin.Humanoid?new Color(.8f,.24f,.3f,1):new Color(.5f,.85f,1,1);
                 float feedbackPower=attackCombo&&attackCombo.ComboStep==3&&equipped.weaponCategory!=InventoryWeapon.WeaponCategory.Spear?Mathf.Max(1.5f,power):power;
+                bool finisher=attackCombo&&attackCombo.MeleeFinisher;
+                float relicBonus=relics?relics.DamageMultiplier(equipped.weaponCategory,equipped.weaponForm==InventoryWeapon.WeaponForm.Synthesized,finisher,DarkFactor):1f;
                 // 일반형·합성형 모두 공통 적중 효과를 한 번만 재생합니다.
-                if(CombatFeedback.DealDamage(target,equipped.damage*power*(attackCombo?attackCombo.MeleeFinishBonus*attackCombo.KarmaDamageMultiplier:1),point,point-origin,feedbackPower,transform,tint,emphasized:attackCombo&&attackCombo.MeleeFinisher,numberGroup:attackCombo?attackCombo.DamageNumberGroup:0))
+                if(CombatFeedback.DealDamage(target,equipped.damage*power*(attackCombo?attackCombo.MeleeFinishBonus*attackCombo.KarmaDamageMultiplier:1)*relicBonus,point,point-origin,feedbackPower,transform,tint,emphasized:finisher,numberGroup:attackCombo?attackCombo.DamageNumberGroup:0))
                 {
                     // 유효한 근접 명중만 경직과 보스 무력화에 기여합니다.
                     var response=target.GetComponent<CombatFeedback>();
@@ -76,7 +78,27 @@ namespace DogLife
         PlayerMotor motor;
         BasicWeaponCombat attackCombo;
         PlayerInventory inventory;
-        void Awake() { motor = GetComponent<PlayerMotor>(); attackCombo = GetComponent<BasicWeaponCombat>(); inventory=GetComponent<PlayerInventory>(); }
+        RelicLoadout relics;
+        PlayerKarma karma;
+        void Awake() { motor = GetComponent<PlayerMotor>(); attackCombo = GetComponent<BasicWeaponCombat>(); inventory=GetComponent<PlayerInventory>(); relics=RelicLoadout.Get(gameObject); karma=GetComponent<PlayerKarma>(); }
+        // 어둠에 가까울수록 1에 가까워집니다. 카르마 전용 유물 판정에 씁니다.
+        float DarkFactor=>karma?Mathf.Clamp01(-karma.Value/karma.Maximum):0;
+        // 도끼 충격파·단검 환영처럼 본 타격과 분리된 추가 판정에 씁니다.
+        public void ApplyRelicBurst(InventoryWeapon equipped,Vector3 origin,float radius,float damageScale,Color tint)
+        {
+            foreach(var hit in Physics.OverlapSphere(origin,radius,~0,QueryTriggerInteraction.Collide))
+            {
+                if(!MonsterHurtbox.Accepts(hit))continue;
+                var target=hit.GetComponentInParent<CombatHealth>();
+                if(!target||target.player)continue;
+                var point=hit.ClosestPoint(origin);var delta=point-origin;if(delta.sqrMagnitude<.0001f)delta=Vector3.up;
+                if(CombatFeedback.DealDamage(target,equipped.damage*damageScale,point,delta,damageScale,transform,tint))
+                {
+                    GameAudio.WeaponHit(equipped,point);
+                    if(target.Dead&&karma)karma.RecordDefeat(target,equipped);
+                }
+            }
+        }
         void Start() { if (!aimCamera) aimCamera = Camera.main; }
         void Update()
         {

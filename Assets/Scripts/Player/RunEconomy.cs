@@ -40,11 +40,12 @@ namespace DogLife
         static int[] carriedSlots;
         static float carriedKarma;
         static float carriedHealth,carriedMaxHealth,carriedDash;
-        public static void ClearCarry(){carried=null;destination=null;}
+        static string[] carriedRelics;
+        public static void ClearCarry(){carried=null;destination=null;carriedRelics=null;}
         public void SetGold(int value){gold=Mathf.Max(0,value);}
         static string destination;
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        static void ResetRun(){Instance=null;carried=null;destination=null;}
+        static void ResetRun(){Instance=null;carried=null;destination=null;carriedRelics=null;}
         void Awake()
         {
             Instance=this;
@@ -60,8 +61,9 @@ namespace DogLife
                 var karma=inventory.GetComponent<PlayerKarma>();if(karma)karma.SetValue(carriedKarma);
                 var hp=inventory.GetComponent<CombatHealth>();if(hp&&carriedMaxHealth>0)hp.RestoreCheckpoint(carriedHealth,carriedMaxHealth);
                 var motor=inventory.GetComponent<PlayerMotor>();if(motor)motor.dashCooldown=carriedDash;
+                RelicLoadout.Get(inventory.gameObject).RestoreIds(carriedRelics);
             }
-            carried=null;destination=null;
+            carried=null;destination=null;carriedRelics=null;
             SeasonRunSave.RecordEntry(this);
         }
         void OnDestroy(){if(Instance==this)Instance=null;}
@@ -76,6 +78,7 @@ namespace DogLife
             var karma=inventory.GetComponent<PlayerKarma>();carriedKarma=karma?karma.Value:0;
             var hp=inventory.GetComponent<CombatHealth>();carriedHealth=hp?hp.Current:5;carriedMaxHealth=hp?hp.maxHealth:5;
             var motor=inventory.GetComponent<PlayerMotor>();carriedDash=motor?motor.dashCooldown:1;
+            carriedRelics=inventory.GetComponent<RelicLoadout>()?.Ids()??new string[0];
             for(int i=0;i<carried.Count;i++)if(inventory.GetInstanceId(i)==inventory.EquippedInstanceId)equippedIndex=i;
         }
         public void Reward(CombatHealth target)
