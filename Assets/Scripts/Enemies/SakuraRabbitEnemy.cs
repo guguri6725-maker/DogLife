@@ -31,6 +31,8 @@ namespace DogLife
         Transform biteHead;
         bool biteVisualActive;
         int biteSoundCount;
+        // 착지까지의 전체 준비 시간을 공유해 비행 중 채움이 초기화되지 않습니다.
+        public float TelegraphProgress=>Mathf.Clamp01(((phase==Phase.Air?crouchTime:0)+Time.time-phaseStarted)/Mathf.Max(.01f,crouchTime+jumpTime));
         bool Navigable=>agent&&agent.isActiveAndEnabled&&agent.isOnNavMesh;
         float Offset=>agent?agent.baseOffset:.35f;
         void Awake()

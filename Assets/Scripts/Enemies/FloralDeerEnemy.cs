@@ -102,6 +102,8 @@ namespace DogLife
                 if(!hit.transform.IsChildOf(transform)&&!hit.GetComponentInParent<CombatHealth>())return 0;
             return allowed;
         }
+        // 돌진이 시작되는 순간까지 실제 준비 시간을 사용합니다.
+        public float TelegraphProgress=>Mathf.Clamp01((Time.time-phaseStarted)/Mathf.Max(.01f,windupTime));
         void DrawWarning()
         {
             if(!warning)return;

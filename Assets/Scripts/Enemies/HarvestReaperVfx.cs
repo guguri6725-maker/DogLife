@@ -194,6 +194,8 @@ namespace DogLife
     Vector3 p=boss.Ground;var state=boss.State;var kind=boss.CurrentPattern;var cfg=boss.CurrentAttack;float yaw=Mathf.Atan2(boss.Forward.x,boss.Forward.z)*Mathf.Rad2Deg,t=boss.Progress;
     bool warning=state==HarvestReaperBoss.Phase.Warning,active=state==HarvestReaperBoss.Phase.Active;
     float alpha=warningOpacity*.45f;
+    // 안전지대/잔류 장판은 그대로 두고 공격 예고 바탕만 옅은 빨강으로 표시합니다.
+    Color warningBase=new Color(1,.30f,.36f,.24f);
     bool melee=kind==HarvestReaperBoss.Pattern.Sweep||kind==HarvestReaperBoss.Pattern.Cleave||kind==HarvestReaperBoss.Pattern.Shockwave;
     // Match the existing damage frame, including the weapon wind-up inside the active animation.
     float fill=melee?Mathf.Clamp01((warning?t*cfg.warning:cfg.warning+t*cfg.duration)/Mathf.Max(.01f,cfg.warning+cfg.duration*cfg.hitTime)):(warning?t:1f);
@@ -207,7 +209,7 @@ namespace DogLife
       if(boss.Gathering)
       {
        Sigil(p,sp.innerRadius,sp.outerRadius,0,360,t,active);
-       Sector(p,sp.innerRadius,sp.outerRadius,0,360,A(amber,alpha));
+       Sector(p,sp.innerRadius,sp.outerRadius,0,360,(warning?warningBase:A(amber,alpha)));
        TimingSector(p,sp.innerRadius,sp.outerRadius,0,360,warning?t:1);
        Ring(p,sp.innerRadius,A(safe,1));
       }
@@ -215,7 +217,7 @@ namespace DogLife
       {
        // The wedge is safe ONLY inside the former safe circle.
        Sigil(p,0,sp.innerRadius,boss.SafeYaw+180,360-sp.safeAngle,t,active);
-       Sector(p,0,sp.innerRadius,boss.SafeYaw+180,360-sp.safeAngle,A(amber,active?.08f:alpha));
+       Sector(p,0,sp.innerRadius,boss.SafeYaw+180,360-sp.safeAngle,(warning?warningBase:A(amber,.08f)));
        TimingSector(p,0,sp.innerRadius,boss.SafeYaw+180,360-sp.safeAngle,warning?t:1);
        Sector(p,0,sp.innerRadius,boss.SafeYaw,sp.safeAngle,A(safe,.12f));
        for(int sign=-1;sign<=1;sign+=2)Line(p,p+D(boss.SafeYaw+sign*sp.safeAngle*.5f)*sp.innerRadius,edgeWidth,A(safe,1));
@@ -225,7 +227,7 @@ namespace DogLife
      else if(kind==HarvestReaperBoss.Pattern.Cleave)
      {
       Vector3 side=Vector3.Cross(Vector3.up,boss.Forward)*cfg.width*.5f,end=p+boss.Forward*cfg.range;
-      Quad(p-side,p+side,end+side,end-side,A(amber,active?.08f:alpha));Line(p-side,end-side,edgeWidth,A(gold,.9f));Line(p+side,end+side,edgeWidth,A(gold,.9f));Line(end-side,end+side,edgeWidth,A(gold,.9f));
+      Quad(p-side,p+side,end+side,end-side,(warning?warningBase:A(amber,.08f)));Line(p-side,end-side,edgeWidth,A(gold,.9f));Line(p+side,end+side,edgeWidth,A(gold,.9f));Line(end-side,end+side,edgeWidth,A(gold,.9f));
       Vector3 filledEnd=Vector3.Lerp(p,end,fill),lift=Vector3.up*.012f;
       Quad(p-side+lift,p+side+lift,filledEnd+side+lift,filledEnd-side+lift,A(amber,timingFillOpacity*(active?.2f:1)));
       Line(filledEnd-side+lift,filledEnd+side+lift,edgeWidth,A(gold,.95f));
@@ -251,7 +253,7 @@ namespace DogLife
      else if(kind==HarvestReaperBoss.Pattern.Sweep)
      {
       Sigil(p,0,cfg.range,yaw,cfg.angle,t,active);
-      Sector(p,0,cfg.range,yaw,cfg.angle,A(amber,active?.06f:alpha));Sector(p,cfg.range-edgeWidth,cfg.range,yaw,cfg.angle,A(gold,.9f));
+      Sector(p,0,cfg.range,yaw,cfg.angle,(warning?warningBase:A(amber,.06f)));Sector(p,cfg.range-edgeWidth,cfg.range,yaw,cfg.angle,A(gold,.9f));
       TimingSector(p,0,cfg.range,yaw,cfg.angle,fill);
       for(int sign=-1;sign<=1;sign+=2)Line(p,p+D(yaw+sign*cfg.angle*.5f)*cfg.range,edgeWidth,A(gold,.8f));
       if(active)
@@ -273,7 +275,7 @@ namespace DogLife
      {
       Sigil(p,0,cfg.range,0,360,t,active);
       if(active&&t>=cfg.hitTime&&kind==HarvestReaperBoss.Pattern.Shockwave)Flames(p,0,cfg.range,0,360,impact);
-      Sector(p,0,cfg.range,0,360,A(amber,alpha));Ring(p,cfg.range,A(gold,.9f));Ring(p,cfg.range-.4f,A(amber,.6f));
+      Sector(p,0,cfg.range,0,360,(warning?warningBase:A(amber,alpha)));Ring(p,cfg.range,A(gold,.9f));Ring(p,cfg.range-.4f,A(amber,.6f));
       // 50% 폭풍은 바닥을 읽을 수 있게 얇게 표시하고 가장자리는 유지합니다.
       TimingSector(p,0,cfg.range,0,360,fill,kind==HarvestReaperBoss.Pattern.Storm?stormPatternOpacity:-1);
       if(active&&t>=cfg.hitTime&&kind==HarvestReaperBoss.Pattern.Shockwave){Ring(p,cfg.range*impact,A(gold,1-impact));Burst(p,cfg.range,impact);}
@@ -314,7 +316,7 @@ namespace DogLife
     foreach(var patch in boss.Patches)
     {
      Vector3 at=patch.point+Vector3.up*.07f;float age=Time.time-patch.born;
-     if(age<pc.explosionWarning){Sigil(at,0,pc.explosionRadius,0,360,age/Mathf.Max(.01f,pc.explosionWarning),false);Sector(at,0,pc.explosionRadius,0,360,A(amber,alpha));Ring(at,pc.explosionRadius,A(gold,1));TimingSector(at,0,pc.explosionRadius,0,360,age/Mathf.Max(.01f,pc.explosionWarning));Pumpkin(at+Vector3.up*Mathf.Max(0,Mathf.Min(.65f,pc.spawnHeight)-age*pc.fallSpeed),pumpkinSize,Mathf.Clamp01(age/Mathf.Max(.01f,pc.explosionWarning)));}
+     if(age<pc.explosionWarning){Sigil(at,0,pc.explosionRadius,0,360,age/Mathf.Max(.01f,pc.explosionWarning),false);Sector(at,0,pc.explosionRadius,0,360,warningBase);Ring(at,pc.explosionRadius,A(gold,1));TimingSector(at,0,pc.explosionRadius,0,360,age/Mathf.Max(.01f,pc.explosionWarning));Pumpkin(at+Vector3.up*Mathf.Max(0,Mathf.Min(.65f,pc.spawnHeight)-age*pc.fallSpeed),pumpkinSize,Mathf.Clamp01(age/Mathf.Max(.01f,pc.explosionWarning)));}
      else{float life=age-pc.explosionWarning,fade=Mathf.Clamp01((pc.poolDuration-life));Sector(at,0,pc.poolRadius,0,360,A(umber,.34f*fade));Ring(at,pc.poolRadius,A(amber,.8f*fade));GroundMist(at,0,pc.poolRadius,0,360,smokeOpacity*fade);Embers(at,0,pc.poolRadius,0,360,Time.time,.5f*fade);for(int i=0;i<10;i++)Leaf(at+D(i*137.5f+Time.time*15)*pc.poolRadius*.7f,.3f,i*39,A(amber,.65f*fade));if(life<pc.explosionDuration){float burst=life/Mathf.Max(.01f,pc.explosionDuration);Burst(at,pc.explosionRadius,burst);Flames(at,0,pc.explosionRadius,0,360,burst);}}
     }
    }

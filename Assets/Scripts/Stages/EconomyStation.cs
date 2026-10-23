@@ -10,6 +10,8 @@ namespace DogLife
         public StationKind kind;
         public WeaponCatalog catalog;
         public Transform[] displays=new Transform[0];
+        // Hierarchy에 배치한 두 병을 저장된 상점 재고와 동기화합니다.
+        public GameObject[] healingPotionDisplays=new GameObject[0];
         public Transform fusionFocus;
         [Min(0)] public int price=30;
         public const int HealingPotionPrice=50;
@@ -23,6 +25,7 @@ namespace DogLife
             if(RemainingHealingPotions==0){message="이 상점의 회복 물약은 품절입니다.";return false;}
             if(!wallet.TryBuyHealingPotion(HealingPotionPrice)){message="골드가 부족하거나 더 보관할 수 없습니다.";return false;}
             stock.potionsSold++;
+            RefreshPotionDisplays();
             message="회복 물약 구매 완료 · Q로 사용 · 체력 1칸 회복";return true;
         }
         [Min(1)] public float interactionDistance=5;
@@ -50,7 +53,30 @@ namespace DogLife
             }
             visuals=new GameObject[stock.items.Length];
             for(int i=0;i<visuals.Length;i++)if(stock.items[i]&&stock.items[i].visualPrefab&&displays[i])
-            {visuals[i]=Instantiate(stock.items[i].visualPrefab,displays[i],false);visuals[i].transform.localScale*=displayScale;}
+            {
+                visuals[i]=Instantiate(stock.items[i].visualPrefab,displays[i],false);
+                visuals[i].transform.localScale*=displayScale;
+                PlaceOnDish(visuals[i],displays[i]);
+            }
+            RefreshPotionDisplays();
+        }
+        void RefreshPotionDisplays()
+        {
+            for(int i=0;i<healingPotionDisplays.Length;i++)
+                if(healingPotionDisplays[i])healingPotionDisplays[i].SetActive(i<RemainingHealingPotions);
+        }
+        static void PlaceOnDish(GameObject item,Transform anchor)
+        {
+            // 무기마다 다른 피벗 대신 실제 메시의 바닥과 중심을 그릇에 맞춥니다.
+            var renderers=item.GetComponentsInChildren<Renderer>().Where(r=>r is MeshRenderer||r is SkinnedMeshRenderer).ToArray();
+            if(renderers.Length==0)return;
+            var bounds=renderers[0].bounds;
+            foreach(var r in renderers)bounds.Encapsulate(r.bounds);
+            float width=Mathf.Max(bounds.size.x,bounds.size.z);
+            if(width>1.05f)item.transform.localScale*=1.05f/width;
+            bounds=renderers[0].bounds;
+            foreach(var r in renderers)bounds.Encapsulate(r.bounds);
+            item.transform.position+=anchor.position-new Vector3(bounds.center.x,bounds.min.y,bounds.center.z);
         }
         public bool InReach(PlayerInventory player)
         {return player&&Vector3.Distance(player.transform.position,transform.position)<=interactionDistance;}

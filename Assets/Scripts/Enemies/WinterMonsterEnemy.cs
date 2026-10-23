@@ -42,6 +42,17 @@ namespace DogLife
         public Species Kind=>species;
         public Phase State {get;private set;}
         public float Progress=>Mathf.Clamp01(elapsed/Duration(State));
+        // 늑대 착지/후속타와 장판 생성도 각자의 실제 발동 시점에 맞춥니다.
+        public float TelegraphProgress
+        {
+            get
+            {
+                float lead=ClawPhase?reaimTime:warningTime;
+                float contact=species==Species.Wolf?(ClawPhase?.36f:.8f):species==Species.Golem?.28f:species==Species.Spirit?.32f:.36f;
+                float duration=ClawPhase?clawTime:attackTime;
+                return Mathf.Clamp01(((State==Phase.Warning||State==Phase.Reaim)?elapsed:lead+elapsed)/Mathf.Max(.01f,lead+duration*contact));
+            }
+        }
         public Vector3 Forward {get;private set;}=Vector3.forward;
         public Vector3 Origin {get;private set;}
         public Vector3 TargetPoint=>end;

@@ -82,7 +82,8 @@ namespace DogLife
         // 피해 범위의 외곽은 공통으로 정확히 유지하고 내부 문양과 발동 동작을 분리합니다.
         void Boundary(Vector3 c,Color accent)
         {
-            Color fill=Ink(accent,active?.15f:.085f),edge=Ink(Color.Lerp(accent,Color.white,.45f),.78f);
+            // 기존 문양/가장자리 색은 유지하고 바탕만 공통 예고색으로 구분합니다.
+            Color fill=active?Ink(accent,.15f):new Color(1,.30f,.36f,.24f),edge=Ink(Color.Lerp(accent,Color.white,.45f),.78f);
             if(shape==Shape.Line)
             {
                 Vector3 side=Vector3.Cross(Vector3.up,direction).normalized*width*.5f,end=c+direction*length;

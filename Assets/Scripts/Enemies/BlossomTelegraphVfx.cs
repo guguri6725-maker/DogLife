@@ -14,6 +14,7 @@ namespace DogLife
         MeshRenderer surface;
         float began;
         bool wasVisible;
+        readonly List<Vector3> clipped=new List<Vector3>(40);
         readonly List<Vector3> vertices=new List<Vector3>(1024);
         readonly List<Color> colors=new List<Color>(1024);
         readonly List<int> indices=new List<int>(2048);
@@ -53,7 +54,9 @@ namespace DogLife
         {
             Ensure();if(outline.positionCount<5)return;
             vertices.Clear();colors.Clear();indices.Clear();
-            Color pink=new Color(1,.30f,.55f,.12f),bright=new Color(1,.76f,.88f,.8f);
+            // 옅은 빨강으로 전체 범위를 먼저 알리고 벚꽃색이 차오르게 표시합니다.
+            progress=Mathf.Clamp01(progress);
+            Color pink=new Color(1,.30f,.36f,.24f),fill=new Color(1,.50f,.75f,.42f),bright=new Color(1,.76f,.88f,.8f);
             if(corridor)
             {
                 bool rounded=outline.positionCount==35;
@@ -67,6 +70,19 @@ namespace DogLife
                 }
                 var start=(a+d)*.5f;var end=(b+c)*.5f;var forward=(end-start).normalized;var side=(d-a).normalized;
                 float length=Vector3.Distance(start,end),width=Vector3.Distance(a,d)*.40f;
+                // 캡슐 외곽을 진행 평면으로 잘라 둥근 끝까지 빈틈 없이 채웁니다.
+                clipped.Clear();float min=float.PositiveInfinity,max=float.NegativeInfinity;
+                int count=outline.positionCount-1;
+                for(int i=0;i<count;i++){float dot=Vector3.Dot(outline.GetPosition(i)-start,forward);min=Mathf.Min(min,dot);max=Mathf.Max(max,dot);}
+                float cut=Mathf.Lerp(min,max,progress);
+                for(int i=0;i<count;i++)
+                {
+                    Vector3 x=outline.GetPosition(i),y=outline.GetPosition((i+1)%count);
+                    float dx=Vector3.Dot(x-start,forward)-cut,dy=Vector3.Dot(y-start,forward)-cut;
+                    if(dx<=0)clipped.Add(x+Vector3.up*.013f);
+                    if((dx<=0)!=(dy<=0))clipped.Add(Vector3.Lerp(x,y,dx/(dx-dy))+Vector3.up*.013f);
+                }
+                for(int i=1;i+1<clipped.Count;i++)Triangle(clipped[0],clipped[i],clipped[i+1],fill);
                 for(float distance=.65f;distance<length-.35f;distance+=1.1f)
                 {
                     var center=start+forward*distance;float alpha=.22f+.55f*Mathf.Pow(Mathf.Max(0,1-Mathf.Abs(distance/length-progress)*3),2);
@@ -86,6 +102,8 @@ namespace DogLife
                     float a=i*Mathf.PI/48,b=(i+1)*Mathf.PI/48;
                     var v0=new Vector3(Mathf.Cos(a),0,Mathf.Sin(a));var v1=new Vector3(Mathf.Cos(b),0,Mathf.Sin(b));
                     Triangle(center,center+v0*radius,center+v1*radius,pink);
+                    var fillCenter=center+Vector3.up*.009f;
+                    Triangle(fillCenter,fillCenter+v0*radius*progress,fillCenter+v1*radius*progress,fill);
                     if(i/96f<progress)Quad(center+v0*radius*.89f,center+v0*radius*.94f,center+v1*radius*.94f,center+v1*radius*.89f,bright);
                     if(i%12<8)Quad(center+v0*radius*.70f,center+v0*radius*.715f,center+v1*radius*.715f,center+v1*radius*.70f,new Color(1,.5f,.72f,.4f));
                 }
@@ -98,7 +116,8 @@ namespace DogLife
             Ensure();bool visible=outline.enabled;
             if(!visible){surface.enabled=false;wasVisible=false;return;}
             if(!wasVisible)began=Time.time;wasVisible=true;
-            RenderPreview(Mathf.Clamp01((Time.time-began)/Mathf.Max(.1f,warningDuration)));
+            var rabbit=GetComponentInParent<SakuraRabbitEnemy>();var deer=GetComponentInParent<FloralDeerEnemy>();
+            RenderPreview(rabbit?rabbit.TelegraphProgress:deer?deer.TelegraphProgress:Mathf.Clamp01((Time.time-began)/Mathf.Max(.1f,warningDuration)));
         }
         void OnDisable(){wasVisible=false;if(surface)surface.enabled=false;}
         void OnDestroy(){if(mesh){if(Application.isPlaying)Destroy(mesh);else DestroyImmediate(mesh);}}

@@ -121,7 +121,7 @@ SkinnedMeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 47f000f6838cfb949a56facc2fb695b5, type: 2}
+  - {fileID: 2100000, guid: fdc7b7e916fe12a44a08b7e101178dbe, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -806,7 +806,7 @@ SkinnedMeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 47f000f6838cfb949a56facc2fb695b5, type: 2}
+  - {fileID: 2100000, guid: fdc7b7e916fe12a44a08b7e101178dbe, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -1487,6 +1487,9 @@ MonoBehaviour:
   strikeFacingLock: 0.045
   bowChargeSeconds: 1.2
   spearThrustInterval: 0.08
+  whirlwindDuration: 2
+  whirlwindInterval: 0.24
+  whirlwindTickPower: 0.45
 --- !u!114 &6610545758423212493
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1510,7 +1513,7 @@ MonoBehaviour:
   heavyHitSlowSeconds: 0.54
   rangedNormalHitSlowSeconds: 0.26
   rangedHeavyHitSlowSeconds: 0.36
-  hitSlowCooldown: 0.5
+  hitSlowCooldown: 0.8
   recoilBone: {fileID: 0}
   contactEffectScale: 1
 --- !u!114 &3809714266145273905

@@ -12,6 +12,10 @@ namespace DogLife
         Color tint;
         float distance,reach,age,visualScale=1f;
         bool returning;
+        bool firstBoomerangHitConsumed;
+        // 한 번에 발사한 화살들은 관통·다중 발사 여부와 관계없이 첫 명중 기회를 공유합니다.
+        public sealed class ShotFeedback { internal bool consumed; }
+        ShotFeedback shotFeedback;
         bool fullyCharged;
         bool piercing,chasing;int chaseHits;float nextChaseHit;CombatHealth lastChased;
         GameAudio.Handle flightSound;
@@ -30,11 +34,12 @@ namespace DogLife
         Vector3 BoomerangHalfExtents=>new Vector3(HitRadius,move.BoomerangHalfThickness*visualScale,HitRadius);
         public event System.Action Returned;
         void OnDestroy(){flightSound.Stop();if(bowVisual&&Application.isPlaying)bowVisual.Finish();if(surroundVisual)Destroy(surroundVisual.gameObject);Returned?.Invoke();}
-        public static BoneWeaponProjectile Launch(Vector3 position,Vector3 direction,Transform owner,InventoryWeapon item,BasicWeaponMoveset move,Color color,float reach,float charge=0,float karmaDamageMultiplier=1)
+        public static BoneWeaponProjectile Launch(Vector3 position,Vector3 direction,Transform owner,InventoryWeapon item,BasicWeaponMoveset move,Color color,float reach,float charge=0,float karmaDamageMultiplier=1,ShotFeedback shotFeedback=null)
         {
             var go=new GameObject(item.weaponCategory==InventoryWeapon.WeaponCategory.Bow?"Bone arrow":"Bone boomerang");go.transform.position=position;
             var p=go.AddComponent<BoneWeaponProjectile>();p.owner=owner;p.item=item;p.move=move;p.forward=direction.normalized;p.launchDirection=p.forward;p.tint=color;p.reach=reach;p.visualScale=BoneWeaponVfx.SizeFor(item);
             p.karmaDamageMultiplier=karmaDamageMultiplier;
+            p.shotFeedback=shotFeedback??new ShotFeedback();
             if(owner){p.relics=owner.GetComponent<RelicLoadout>();p.karma=owner.GetComponent<PlayerKarma>();}
             p.piercing=p.relics&&p.relics.Has(RelicEffect.BowPierce,item.weaponCategory);
             p.chasing=item.weaponCategory==InventoryWeapon.WeaponCategory.Boomerang&&p.relics&&p.relics.Has(RelicEffect.BoomerangChase,item.weaponCategory);
@@ -120,8 +125,13 @@ namespace DogLife
             {
                 Vector3 contact=collider.ClosestPoint(transform.position);
                 float relicBonus=relics?relics.DamageMultiplier(item.weaponCategory,item.weaponForm==InventoryWeapon.WeaponForm.Synthesized,false,karma?Mathf.Clamp01(-karma.Value/karma.Maximum):0):1f;
-                if(CombatFeedback.DealDamage(health,(returning?item.returnDamage:item.damage)*power*karmaDamageMultiplier*relicBonus,contact,forward,power,owner,tint,emphasized:fullyCharged,rangedHit:true))
+                bool boomerang=item.weaponCategory==InventoryWeapon.WeaponCategory.Boomerang;
+                bool allowSlow=boomerang?(!returning&&!firstBoomerangHitConsumed):(fullyCharged&&!shotFeedback.consumed);
+                if(CombatFeedback.DealDamage(health,(returning?item.returnDamage:item.damage)*power*karmaDamageMultiplier*relicBonus,contact,forward,power,owner,tint,emphasized:fullyCharged,rangedHit:true,hitSlow:allowSlow,boomerangHit:boomerang,bowHit:!boomerang))
                 {
+                    // 대시·점프·쿨타임으로 슬로를 생략해도 첫 실제 명중 기회는 소모합니다.
+                    if(boomerang)firstBoomerangHitConsumed=true;
+                    else shotFeedback.consumed=true;
                     GameAudio.WeaponHit(item,contact);
                     // 근접과 동일한 공통 명중 경로에서 카메라와 짧은 슬로를 처리합니다.
                     if(health.Dead&&owner){var karma=owner.GetComponent<PlayerKarma>();if(karma)karma.RecordDefeat(health,item);}

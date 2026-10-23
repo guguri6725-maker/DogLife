@@ -142,6 +142,7 @@ namespace DogLife
             loading = true;
             startButton.interactable = false;
             SeasonTrialRecords.Prepare(season,scene);
+            SeasonDemoWeaponChoice.Prepare(scene);
             EnemyIntroduction.Prepare(scene, true);
             SceneManager.LoadSceneAsync(EnemyIntroduction.ScenePath);
         }

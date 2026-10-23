@@ -274,8 +274,12 @@ namespace DogLife
                 }
                 if((warning||attack)&&enemy.Kind!=SummerMonsterEnemy.Species.Crab)
                 {
-                    float radius=enemy.Radius;Ring(center,radius,.065f,warning?Tide:Bright);Disc(center,radius,new Color(.06f,.22f,.35f,warning?.10f+.08f*t:.15f));
-                    Ring(center+Vector3.up*.008f,radius*(warning?Mathf.Lerp(.15f,1,t):1),.04f,Water);
+                    float radius=enemy.Radius;float fill=enemy.TelegraphProgress;
+                    // 옅은 빨강으로 전체 범위를 알리고 기존 물빛으로 채웁니다.
+                    Disc(center,radius,new Color(1,.30f,.36f,.24f));
+                    Disc(center+Vector3.up*.008f,radius*fill,Alpha(Water,.42f));
+                    Ring(center,radius,.065f,warning?Tide:Bright);
+                    Ring(center+Vector3.up*.012f,radius*fill,.06f,Alpha(Bright,.9f));
                     for(int i=0;i<12;i++){float a=i*Mathf.PI/6;Vector3 radial=new Vector3(Mathf.Cos(a),0,Mathf.Sin(a));Stroke(center+radial*(radius-.16f),center+radial*(radius-.35f),.045f,Tide);}
                     for(int i=0;i<48;i++)if(i%4<2){float a=i*Mathf.PI/24,b=(i+1)*Mathf.PI/24;Vector3 d=new Vector3(Mathf.Cos(a),0,Mathf.Sin(a)),e=new Vector3(Mathf.Cos(b),0,Mathf.Sin(b));Quad(center+d*(radius-.22f),center+e*(radius-.22f),center+e*(radius-.245f),center+d*(radius-.245f),Alpha(Bright,.38f));}
                 }

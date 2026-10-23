@@ -107,6 +107,8 @@ namespace DogLife
             if (!isActiveAndEnabled || SkillWindow.BlocksGameplayInput || (health&&health.Dead) || IsKnockedBack) return false;
             // 대시는 현재 자세를 유지합니다. 앉기 키를 떼기 전까지 낮은 몸통과 자세로 이동합니다.
             if (Time.time < nextDash) return false;
+            // 대시가 실제 발동할 때 타격 슬로만 해제합니다. 재발동 시각은 유지합니다.
+            CombatFeedback.CancelGlobalHitSlow();
             CancelMeleeApproach();
             dashDirection = MoveDirection.sqrMagnitude > .01f ? MoveDirection.normalized : Facing;
             if(attackCombo)attackCombo.CancelForDash();

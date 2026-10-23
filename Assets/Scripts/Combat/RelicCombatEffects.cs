@@ -9,7 +9,8 @@ namespace DogLife
         [SerializeField] float waveSpeed=12,waveDistance=8,waveAngle=70;
         [SerializeField] float shockRadius=2.4f,stormAngle=100;
         [SerializeField] float phantomRange=5;
-        [SerializeField] float orbitRadius=1.8f,orbitSpeed=190,orbitHitInterval=.6f,orbitDamage=.5f;
+        // 큰 적에게 겹친 회전 부메랑의 반복 피해를 제한합니다.
+        [SerializeField] float orbitRadius=1.8f,orbitSpeed=190,orbitHitInterval=.8f;
         [SerializeField,Min(.1f)] float daggerHasteDuration=2f;
         float hasteUntil; InventoryWeapon hasteItem; GameObject hasteVisual;
         public float MovementMultiplier => hasteItem && Valid(hasteItem) && Time.time<hasteUntil && Has(RelicEffect.DaggerHaste,hasteItem) ? 1f+relics.Value(RelicEffect.DaggerHaste,hasteItem.weaponCategory) : 1f;
@@ -20,6 +21,9 @@ namespace DogLife
         readonly List<Dictionary<CombatHealth,float>> orbitHits=new List<Dictionary<CombatHealth,float>>();
         readonly List<Transform> orbitBlades=new List<Transform>();
         int stormVisualTick;
+        bool whirlwindHit;
+        // 새 휠윈드마다 첫 실제 명중 한 번만 전역 슬로를 허용합니다.
+        public void BeginWhirlwind(){whirlwindHit=false;}
         void Awake(){inventory=GetComponent<PlayerInventory>();weapons=GetComponent<PlayerWeapons>();health=GetComponent<CombatHealth>();karma=GetComponent<PlayerKarma>();relics=RelicLoadout.Get(gameObject);}
         void OnEnable(){if(relics)relics.Changed+=ClearEffects;}
         bool Valid(InventoryWeapon item)=>isActiveAndEnabled&&health&&!health.Dead&&inventory&&inventory.EquippedWeapon==item;
@@ -48,8 +52,8 @@ namespace DogLife
             }
         }
         public void Whirlwind(InventoryWeapon item,BasicWeaponMoveset move,Vector3 origin,Vector3 forward,float reach,float power,Color tint)
-        {Area(item,origin,forward,reach,360,power,tint,null,true);Arc(item,move,origin,forward,reach,360,2);if(relics.Level(RelicEffect.AxeWhirlwind)==3)MasteryAccent(item,move,origin,forward,reach);}
-        public List<CombatHealth> Area(InventoryWeapon item,Vector3 origin,Vector3 forward,float radius,float angle,float power,Color tint,HashSet<CombatHealth> already=null,bool melee=false)
+        {var hits=Area(item,origin,forward,reach,360,power,tint,null,true,!whirlwindHit,true);whirlwindHit|=hits.Count>0;Arc(item,move,origin,forward,reach,360,2);if(relics.Level(RelicEffect.AxeWhirlwind)==3)MasteryAccent(item,move,origin,forward,reach);}
+        public List<CombatHealth> Area(InventoryWeapon item,Vector3 origin,Vector3 forward,float radius,float angle,float power,Color tint,HashSet<CombatHealth> already=null,bool melee=false,bool hitSlow=true,bool singleHitSlow=false)
         {
             var hits=new List<CombatHealth>();var seen=already??new HashSet<CombatHealth>();
             forward=Vector3.ProjectOnPlane(forward,Vector3.up).normalized;
@@ -59,14 +63,16 @@ namespace DogLife
                 var point=c.ClosestPoint(origin);var delta=point-origin;var flat=Vector3.ProjectOnPlane(delta,Vector3.up);
                 if(angle<360&&flat.sqrMagnitude>.001f&&Vector3.Angle(forward,flat)>angle*.5f)continue;
                 if(delta.sqrMagnitude>.001f&&Physics.Raycast(origin,delta.normalized,out var wall,delta.magnitude,1<<8,QueryTriggerInteraction.Ignore)&&wall.collider.GetComponentInParent<CombatHealth>()!=target)continue;
-                seen.Add(target);if(Deal(item,target,point,delta,power,tint,melee))hits.Add(target);
+                seen.Add(target);if(Deal(item,target,point,delta,power,tint,melee,hitSlow&&(!singleHitSlow||hits.Count==0)))hits.Add(target);
             }
             return hits;
         }
-        bool Deal(InventoryWeapon item,CombatHealth target,Vector3 point,Vector3 direction,float power,Color tint,bool melee=false)
+        bool Deal(InventoryWeapon item,CombatHealth target,Vector3 point,Vector3 direction,float power,Color tint,bool melee=false,bool hitSlow=true,bool cameraFeedback=true,float fixedDamage=-1)
         {
             if(!target||target.Dead)return false;
-            if(!CombatFeedback.DealDamage(target,item.damage*power,point,direction,1,transform,tint))return false;
+            // 유물로 대체된 근접 공격에도 같은 콤보별 슬로 규칙을 적용합니다.
+            var attackCombo=melee?GetComponent<BasicWeaponCombat>():null;
+            if(!CombatFeedback.DealDamage(target,fixedDamage>=0?fixedDamage:item.damage*power,point,direction,1,transform,tint,hitSlow:hitSlow&&(!attackCombo||attackCombo.AllowsMeleeHitSlow),cameraFeedback:cameraFeedback,lightMeleeHit:attackCombo&&attackCombo.LightMeleeHitSlow))return false;
             if(melee){var combo=GetComponent<BasicWeaponCombat>();var response=target.GetComponent<CombatFeedback>();if(combo&&response)response.ApplyMeleeAdvantage(item.weaponCategory,combo.MeleeFinisher,combo.MeleePoise);}
             GameAudio.WeaponHit(item,point);if(target.Dead&&karma)karma.RecordDefeat(target,item);return true;
         }
@@ -147,7 +153,8 @@ namespace DogLife
             Vector3 from=center+offset;
             StrikeVisual(item,move,from,-side,1.5f,0);
             RelicShadowEcho.Create(transform,new Vector3(from.x,transform.position.y+offset.y,from.z),-side);
-            Deal(item,target,center,-side,power,tint);
+            // 그림자의 추가 피해는 플레이어 카메라와 게임 속도를 변경하지 않습니다.
+            Deal(item,target,center,-side,power,tint,hitSlow:false,cameraFeedback:false);
             if(relics.Level(RelicEffect.DaggerPhantomStrike)==3)MasteryAccent(item,move,from,-side,.45f);
         }
         static Color WeaponTint(InventoryWeapon item)=>item.boneOrigin==InventoryWeapon.BoneOrigin.Humanoid?new Color(1,.12f,.18f,.85f):new Color(.12f,.55f,1,.85f);
@@ -207,7 +214,10 @@ namespace DogLife
                     if(!MonsterHurtbox.Accepts(c))continue;var h=c.GetComponentInParent<CombatHealth>();if(!h||h.player||h.Dead||!seen.Add(h))continue;
                     if(orbitHits[index].TryGetValue(h,out float until)&&Time.time<until)continue;
                     Vector3 delta=c.ClosestPoint(center)-center;if(Physics.Raycast(center,delta.normalized,delta.magnitude,1<<8,QueryTriggerInteraction.Ignore))continue;
-                    orbitHits[index][h]=Time.time+orbitHitInterval;Deal(item,h,c.ClosestPoint(blade.position),delta,orbitDamage/(karma?karma.AttackSpeedMultiplier:1),WeaponTint(item));
+                    // 회전 부메랑은 투척 피해·카르마와 독립된 개당 고정 피해를 사용합니다.
+                    float damage=item.weaponForm==InventoryWeapon.WeaponForm.Synthesized?3f:1.5f;
+                    orbitHits[index][h]=Time.time+orbitHitInterval;
+                    Deal(item,h,c.ClosestPoint(blade.position),delta,1,WeaponTint(item),hitSlow:false,fixedDamage:damage);
                 }
             }
         }

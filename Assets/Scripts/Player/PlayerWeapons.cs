@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using UnityEngine;
 namespace DogLife
 {
@@ -67,7 +67,7 @@ namespace DogLife
                 bool finisher=attackCombo&&attackCombo.MeleeFinisher;
                 float relicBonus=relics?relics.DamageMultiplier(equipped.weaponCategory,equipped.weaponForm==InventoryWeapon.WeaponForm.Synthesized,finisher,DarkFactor):1f;
                 // 일반형·합성형 모두 공통 적중 효과를 한 번만 재생합니다.
-                if(CombatFeedback.DealDamage(target,equipped.damage*power*(attackCombo?attackCombo.MeleeFinishBonus*attackCombo.KarmaDamageMultiplier:1)*relicBonus,point,point-origin,feedbackPower,transform,tint,emphasized:finisher,numberGroup:attackCombo?attackCombo.DamageNumberGroup:0))
+                if(CombatFeedback.DealDamage(target,equipped.damage*power*(attackCombo?attackCombo.MeleeFinishBonus*attackCombo.KarmaDamageMultiplier:1)*relicBonus,point,point-origin,feedbackPower,transform,tint,emphasized:finisher,numberGroup:attackCombo?attackCombo.DamageNumberGroup:0,hitSlow:!attackCombo||attackCombo.AllowsMeleeHitSlow,lightMeleeHit:attackCombo&&attackCombo.LightMeleeHitSlow))
                 {
                     LastMeleeHit=true;LastMeleeTarget=target;
                     // 유효한 근접 명중만 경직과 보스 무력화에 기여합니다.

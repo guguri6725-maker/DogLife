@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.AI;
 
 namespace DogLife
@@ -16,13 +16,16 @@ namespace DogLife
         [SerializeField,Range(.1f,1f)] float normalHitTimeScale=.4f,heavyHitTimeScale=.25f;
         [SerializeField,Range(.02f,1f)] float normalHitSlowSeconds=.39f,heavyHitSlowSeconds=.54f;
         [SerializeField,Range(.02f,1f)] float rangedNormalHitSlowSeconds=.26f,rangedHeavyHitSlowSeconds=.36f;
-        [SerializeField,Min(.15f)] float hitSlowCooldown=.5f;
+        [SerializeField,Min(.15f)] float hitSlowCooldown=.8f;
         static CombatFeedback slowOwner;
         float slowStarted,slowDuration,slowScale,savedScale,savedFixed,lastScale,lastFixed,nextSlow;
         // UI가 일시정지 직전 정상 속도를 저장하도록 공통 취소 진입점을 제공합니다.
         public static void CancelGlobalHitSlow(){if(slowOwner)slowOwner.EndHitSlow();}
-        void StartHitSlow(float power,bool rangedHit)
+        void StartHitSlow(float power,bool rangedHit,bool boomerangHit=false,bool lightMeleeHit=false,bool bowHit=false)
         {
+            // 대시 중에는 모든 명중 슬로를 막고, 화살·부메랑은 공중에서도 생략합니다.
+            var motor=GetComponent<PlayerMotor>();
+            if(motor&&(motor.IsDashing||((boomerangHit||bowHit)&&!motor.Grounded)))return;
             if(!hitSlowEnabled||slowOwner||Time.unscaledTime<nextSlow||!Mathf.Approximately(Time.timeScale,1f)
                 ||SkillWindow.BlocksGameplayInput||StoryBook.BlocksInput||BossCinematicUI.Hidden||PlayerDeathSequence.IsActive||SeasonLoadingScreen.IsLoading)return;
             savedScale=Time.timeScale;savedFixed=Time.fixedDeltaTime;slowOwner=this;
@@ -30,6 +33,10 @@ namespace DogLife
             // 발사체 자체의 명중 종류를 사용하므로 비행 중 무기를 바꿔도 원거리 지속시간을 유지합니다.
             slowDuration=rangedHit?(heavy?rangedHeavyHitSlowSeconds:rangedNormalHitSlowSeconds):(heavy?heavyHitSlowSeconds:normalHitSlowSeconds);
             slowScale=heavy?heavyHitTimeScale:normalHitTimeScale;
+            // 부메랑의 첫 명중은 이동 흐름을 방해하지 않도록 짧고 약하게 처리합니다.
+            // 근접 1·2타도 짧은 슬로를 사용하고 마지막 강타 설정은 유지합니다.
+            if(boomerangHit||bowHit||lightMeleeHit){slowDuration=.08f;slowScale=.65f;}
+            // 무기나 대상이 바뀌어도 플레이어의 실제 시간 기준 재발동 간격을 공유합니다.
             nextSlow=slowStarted+Mathf.Max(hitSlowCooldown,slowDuration);
             ApplyHitScale(slowScale);
         }
@@ -123,7 +130,7 @@ namespace DogLife
         }
         public static bool Paused(Component actor)
         {var feedback=actor.GetComponent<CombatFeedback>();return feedback&&feedback.IsStopped;}
-        public static bool DealDamage(CombatHealth target,float amount,Vector3 contact,Vector3 direction,float power,Transform attacker,Color tint,bool useFullPlayerDamage=false,bool emphasized=false,int numberGroup=0,bool rangedHit=false)
+        public static bool DealDamage(CombatHealth target,float amount,Vector3 contact,Vector3 direction,float power,Transform attacker,Color tint,bool useFullPlayerDamage=false,bool emphasized=false,int numberGroup=0,bool rangedHit=false,bool hitSlow=true,bool cameraFeedback=true,bool boomerangHit=false,bool lightMeleeHit=false,bool bowHit=false)
         {
             if(!target)return false;
             float before=target.Current;target.Damage(amount,useFullPlayerDamage,emphasized,numberGroup,contact);
@@ -132,9 +139,10 @@ namespace DogLife
             if(!target.player&&attacker&&attacker.GetComponent<PlayerWeapons>())
             {
                 var view=Camera.main;var playerCamera=view?view.GetComponent<PlayerCamera>():null;
-                if(playerCamera)playerCamera.WeaponContact(attacker,power);
+                // 소환 공격과 연속 공격은 피해 처리와 화면 연출을 개별적으로 선택합니다.
+                if(cameraFeedback&&playerCamera)playerCamera.WeaponContact(attacker,power);
                 var playerFeedback=attacker.GetComponent<CombatFeedback>();
-                if(playerFeedback)playerFeedback.StartHitSlow(power,rangedHit);
+                if(hitSlow&&playerFeedback)playerFeedback.StartHitSlow(power,rangedHit,boomerangHit,lightMeleeHit,bowHit);
             }
             var targetFeedback=target.GetComponent<CombatFeedback>();
             if(!target.player)CombatContactVfx.Spawn(contact,direction,tint,power,targetFeedback?targetFeedback.contactEffectScale:1);

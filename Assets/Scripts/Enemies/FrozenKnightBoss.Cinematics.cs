@@ -35,16 +35,11 @@ namespace DogLife
             if(cinematicStage)cinematicStage.BeginDeath(player,transform);
             Play(horseAnimator,"Idle");horseAnimator.Update(0);horseAnimator.speed=0;
             StormSound(false);Play(knightAnimator,"MountedDeath");
-            float duration=mountedDeath.length;bool emitted=false,deathSoundPlayed=false;
-            CinematicCue(FrozenKnightVfx.CinematicMoment.Death,riderRoot,duration+deathPoseHold,5);
+            // 사망 모션과 소리는 유지하고 추가 냉기/파편 연출은 재생하지 않습니다.
+            float duration=mountedDeath.length;bool deathSoundPlayed=false;
             for(float t=0;t<duration;t+=Time.deltaTime)
             {
                 if(!deathSoundPlayed&&t>=duration*.25f){deathSoundPlayed=true;BossSound("Death_Fall",riderRoot);}
-                if(!emitted&&t>=duration*deathIceMoment)
-                {
-                    emitted=true;
-                    if(deathIceEffect){var fx=Instantiate(deathIceEffect,riderRoot.position+Vector3.up,Quaternion.identity);fx.Play(FrozenIceBurst.Mode.Chip,new Vector3(1.5f,2,1.5f),null);}
-                }
                 yield return null;
             }
             knightAnimator.speed=0;
@@ -116,8 +111,8 @@ namespace DogLife
             cinematicStage.Begin(player,transform,false);
             try
             {
+                // 입장 연출은 추가 파동/섬광 없이 보행과 발검 동작만 보여줍니다.
                 yield return new WaitForSeconds(cinematicStage.seatedHold);
-                CinematicCue(FrozenKnightVfx.CinematicMoment.Wake,transform,throneRise.length+1,4.5f);
                 yield return Stage(CombatState.Transition,throneRise.length,"ThroneRise");
                 // 왕좌 앞 접지 지점으로 나온 뒤 NavMesh 이동으로 돌려줍니다.
                 Play(knightAnimator,"UnarmedWalk");Vector3 start=transform.position;
@@ -144,7 +139,6 @@ namespace DogLife
                 StopMovement();Aim(true);Play(knightAnimator,"ThroneStand");yield return new WaitForSeconds(.4f);
                 // 중앙에 도착해 완전히 멈춘 다음 등 뒤 검을 뽑습니다.
                 cinematicStage.ShowDraw();
-                CinematicCue(FrozenKnightVfx.CinematicMoment.Draw,swordRoot,throneDraw1.length+throneDraw2.length,3);
                 yield return Stage(CombatState.Transition,throneDraw1.length,"ThroneDraw1");
                 yield return Stage(CombatState.Transition,throneDraw2.length,"ThroneDraw2");
                 introductionSwordDrawn=true;

@@ -54,11 +54,11 @@ namespace DogLife
             uv[n+3]=uv[n];uv[n+4]=uv[n+2];uv[n+5]=new Vector4(0,1,mode,seed);
         }
         // 경계선과 같은 외곽으로 채워 표시와 실제 캡슐 폭의 차이를 없앱니다.
-        void FillAttackOutline(Color tint)
+        void FillAttackOutline(Color tint,float progress=1,float lift=0)
         {
             enemy.GetWarningOutline(warningPoints,.085f);
             var center=enemy.WarningCenter+Vector3.up*.085f;
-            for(int i=1;i<warningPoints.Count;i++)Triangle(center,warningPoints[i-1],warningPoints[i],tint);
+            for(int i=1;i<warningPoints.Count;i++)Triangle(center+Vector3.up*lift,Vector3.Lerp(center,warningPoints[i-1],progress)+Vector3.up*lift,Vector3.Lerp(center,warningPoints[i],progress)+Vector3.up*lift,tint);
         }
         Color Alpha(Color c,float a){c.a=a;return c;}
         void Leaf(Vector3 p,Vector3 along,Vector3 side,float size,Color c)
@@ -176,8 +176,9 @@ namespace DogLife
             vertices.Clear();colors.Clear();indices.Clear();uv.Clear();
             if(!viewCamera)viewCamera=Camera.main;
             var center=enemy.WarningCenter+Vector3.up*.085f;
-            float progress=ready?enemy.Progress:1;
-            var tint=Alpha(leafColor,active?warningOpacity*.75f:warningOpacity);
+            float progress=enemy.TelegraphProgress;
+            // 옅은 빨강 바탕 위로 기존 낙엽색이 차오릅니다.
+            var tint=new Color(1,.30f,.36f,.24f);
             var pattern=enemy.AttackPattern;
             if(pattern==FallMonsterEnemy.Pattern.Spikes&&presentation)BurrowMark(center,presentation.BurrowAmount);
             if(warning)
@@ -186,6 +187,7 @@ namespace DogLife
                 {
                     var start=enemy.AttackOrigin+Vector3.up*.085f;var dir=enemy.LockedDirection;var side=Vector3.Cross(Vector3.up,dir)*.65f;var end=start+dir*enemy.DashDistance;
                     FillAttackOutline(tint);
+                    FillAttackOutline(Alpha(leafColor,.42f),progress,.009f);
                     for(float d=.7f;d<enemy.DashDistance-.3f;d+=1.25f)
                     {
                         var p=start+dir*d;float pulse=.3f+.5f*Mathf.Max(0,1-Mathf.Abs(d/enemy.DashDistance-progress)*3);
@@ -197,7 +199,7 @@ namespace DogLife
                 {
                     bool sweep=pattern==FallMonsterEnemy.Pattern.ArmSweep;
                     float radius=sweep?enemy.ArmLength+enemy.ArmThickness:enemy.Radius;
-                    if(sweep)FillAttackOutline(tint);
+                    if(sweep){FillAttackOutline(tint);FillAttackOutline(Alpha(leafColor,.42f),progress,.009f);}
                     float inner=pattern==FallMonsterEnemy.Pattern.Spikes?enemy.SpikeSafeRadius:0;
                     for(int i=0;i<64;i++)
                     {
@@ -205,6 +207,8 @@ namespace DogLife
                         float b=sweep?Mathf.Lerp(-enemy.SweepAngle*.5f,enemy.SweepAngle*.5f,(i+1)/64f):(i+1)*360f/64;
                         Vector3 da=Quaternion.AngleAxis(a,Vector3.up)*(sweep?enemy.LockedDirection:Vector3.forward),db=Quaternion.AngleAxis(b,Vector3.up)*(sweep?enemy.LockedDirection:Vector3.forward);
                         if(!sweep)Quad(center+da*inner,center+da*radius,center+db*radius,center+db*inner,tint);
+                        // 고슴도치 중앙 안전지대는 채우지 않습니다.
+                        if(!sweep){float edge=Mathf.Lerp(inner,radius,progress);var p=center+Vector3.up*.009f;Quad(p+da*inner,p+da*edge,p+db*edge,p+db*inner,Alpha(leafColor,.42f));}
                         if(i/64f<progress)Quad(center+da*(radius-.16f),center+da*(radius-.12f),center+db*(radius-.12f),center+db*(radius-.16f),Alpha(brightColor,.68f));
                         if(i%4<2)Quad(center+da*(radius-.28f),center+da*(radius-.265f),center+db*(radius-.265f),center+db*(radius-.28f),Alpha(brightColor,.28f));
                         if(i%8==4){var d=(da+db).normalized;Leaf(center+d*radius*.78f,d,Vector3.Cross(Vector3.up,d),.24f,Alpha(leafColor,.65f));}

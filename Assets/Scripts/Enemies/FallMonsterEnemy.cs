@@ -78,6 +78,8 @@ namespace DogLife
             if(points.Count>0)points.Add(points[0]);
         }
         public float Progress=>Mathf.Clamp01(elapsed/Mathf.Max(.01f,Duration(CurrentPhase)));
+        // 가시는 실제로 솟는 Active 20%까지, 나머지는 Active 시작까지 예고합니다.
+        public float TelegraphProgress=>Mathf.Clamp01((CurrentPhase==Phase.Anticipation?elapsed:CurrentPhase==Phase.Attack?anticipation+elapsed:anticipation+attackMotion+elapsed)/Mathf.Max(.01f,anticipation+attackMotion+(pattern==Pattern.Spikes?activeDuration*.2f:0)));
         public bool Windup=>CurrentPhase==Phase.Anticipation;
         NavMeshAgent agent;
         FallMonsterAudio sound;

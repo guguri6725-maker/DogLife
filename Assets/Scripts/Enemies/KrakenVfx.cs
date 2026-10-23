@@ -43,7 +43,8 @@ namespace DogLife
   void CircleWarning(Vector3 p,float radius,float t)
   {
    surfaceKind=0;
-   Ring(p,0,radius,A(deep,.22f));Ring(p+Vector3.up*.01f,0,radius*t,A(ocean,fillOpacity));
+   // 전체 예고는 옅은 빨강, 진행 채움은 기존 바다색을 유지합니다.
+   Ring(p,0,radius,new Color(1,.30f,.36f,.24f));Ring(p+Vector3.up*.01f,0,radius*t,A(ocean,fillOpacity));
    Ring(p+Vector3.up*.02f,Mathf.Max(0,radius*t-border),radius*t,A(foam,.95f));
    Ring(p,radius-border,radius,A(foam,.95f));Ring(p,radius-.45f,radius-.34f,A(ocean,.8f));
    surfaceKind=1;
@@ -52,7 +53,7 @@ namespace DogLife
   {
    surfaceKind=0;
    Vector3 side=Vector3.Cross(Vector3.up,forward)*width*.5f,end=p+forward*length,tip=Vector3.Lerp(p,end,t);
-   Quad(p-side,p+side,end+side,end-side,A(deep,.22f));Quad(p-side+Vector3.up*.01f,p+side+Vector3.up*.01f,tip+side+Vector3.up*.01f,tip-side+Vector3.up*.01f,A(ocean,fillOpacity));
+   Quad(p-side,p+side,end+side,end-side,new Color(1,.30f,.36f,.24f));Quad(p-side+Vector3.up*.01f,p+side+Vector3.up*.01f,tip+side+Vector3.up*.01f,tip-side+Vector3.up*.01f,A(ocean,fillOpacity));
    Line(p-side,end-side,border,A(foam,.95f));Line(p+side,end+side,border,A(foam,.95f));Line(end-side,end+side,border,A(foam,.95f));Line(tip-side,tip+side,border,A(foam,1));
    surfaceKind=1;
   }

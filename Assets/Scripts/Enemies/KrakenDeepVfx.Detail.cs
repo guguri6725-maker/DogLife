@@ -80,7 +80,7 @@ namespace DogLife
                 for(int i=0;i<96;i++){
                     float a=-span*.5f+span*i/96,b=-span*.5f+span*(i+1)/96;
                     if(!Impact){
-                        Quad(Vector3.up*y,Radial(a,radius,y),Radial(b,radius,y),Vector3.up*y,new Color(.015f,.07f,.12f,.27f),4);
+                        Quad(Vector3.up*y,Radial(a,radius,y),Radial(b,radius,y),Vector3.up*y,new Color(1,.30f,.36f,.24f),4);
                         Quad(Vector3.up*y,Radial(a,front,y),Radial(b,front,y),Vector3.up*y,new Color(.08f,.52f,.62f,.30f),9);
                         Quad(Radial(a,Mathf.Max(0,front-.1f),y),Radial(a,front,y),Radial(b,front,y),Radial(b,Mathf.Max(0,front-.1f),y),Alpha(Pearl,.72f),6);
                     }else{

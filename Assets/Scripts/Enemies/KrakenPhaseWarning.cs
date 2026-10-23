@@ -29,7 +29,8 @@ namespace DogLife
         }
         void RectangleWarning(float q)
         {
-            Rect(Length,Width,Deep,4);Rect(Length*q,Width,Fill,5);
+            // 물결/충격 색은 유지하고 공격 예고 바탕만 빨강으로 구분합니다.
+            Rect(Length,Width,new Color(1,.30f,.36f,.24f),4);Rect(Length*q,Width,Fill,5);
             float half=Width*.5f-.12f;
             var a=new Vector3(-half,0,.12f);var b=new Vector3(half,0,.12f);var c=new Vector3(half,0,Length-.12f);var d=new Vector3(-half,0,Length-.12f);
             Color edge=Color.Lerp(new Color(.2f,.7f,.8f,.8f),Foam,Mathf.SmoothStep(0,1,q));
@@ -56,7 +57,7 @@ namespace DogLife
                 }
                 Stroke(D(head)*.6f,D(head)*Length,.15f,Foam);
             }
-            else if(Mode==Shape.Circle||Mode==Shape.Sector){Ring(0,Length,Angle,Deep,4);Ring(0,Length*Mathf.Sqrt(q),Angle,Fill,5);Ring(Mathf.Max(0,Length-.11f),Length,Angle,Foam,6);float front=Length*Mathf.Sqrt(q);Ring(Mathf.Max(0,front-.16f),front,Angle,Foam,6);if(Mode==Shape.Sector){Stroke(Vector3.zero,D(-Angle*.5f)*(Length-.1f),.09f,Foam);Stroke(Vector3.zero,D(Angle*.5f)*(Length-.1f),.09f,Foam);}}
+            else if(Mode==Shape.Circle||Mode==Shape.Sector){Ring(0,Length,Angle,new Color(1,.30f,.36f,.24f),4);Ring(0,Length*Mathf.Sqrt(q),Angle,Fill,5);Ring(Mathf.Max(0,Length-.11f),Length,Angle,Foam,6);float front=Length*Mathf.Sqrt(q);Ring(Mathf.Max(0,front-.16f),front,Angle,Foam,6);if(Mode==Shape.Sector){Stroke(Vector3.zero,D(-Angle*.5f)*(Length-.1f),.09f,Foam);Stroke(Vector3.zero,D(Angle*.5f)*(Length-.1f),.09f,Foam);}}
             else if(Mode==Shape.SlamImpact){
                 Rect(Length,Width,new Color(.16f,.57f,.66f,(1-q)*.65f),1);
                 for(int i=0;i<28;i++){

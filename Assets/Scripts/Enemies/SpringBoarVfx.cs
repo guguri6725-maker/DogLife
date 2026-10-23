@@ -22,6 +22,9 @@ namespace DogLife
         [SerializeField] private Color Ivory=new Color(.97f,.92f,.82f),Blush=new Color(.91f,.73f,.77f),Deep=new Color(.43f,.34f,.31f);
         [SerializeField,Range(0,1)] private float petalOpacity=.65f;
         Transform view;
+        readonly RaycastHit[] chargeWalls=new RaycastHit[32];
+        bool wasChargeStunned;
+        float chargeImpactAt=-10;
         static readonly Vector2[] PetalOutline={new Vector2(0,0),new Vector2(-.24f,.20f),new Vector2(-.38f,.48f),new Vector2(-.35f,.73f),new Vector2(-.20f,.94f),new Vector2(-.07f,1),new Vector2(0,.88f),new Vector2(.07f,1),new Vector2(.20f,.94f),new Vector2(.35f,.73f),new Vector2(.38f,.48f),new Vector2(.24f,.20f)};
         public void Initialize(Material mat){material=mat;if(surface)surface.sharedMaterial=mat;}
         void Awake(){mesh=new Mesh{name="Spring sakura petals and bone warning",indexFormat=UnityEngine.Rendering.IndexFormat.UInt32};mesh.MarkDynamic();GetComponent<MeshFilter>().sharedMesh=mesh;surface=GetComponent<MeshRenderer>();surface.sharedMaterial=material;surface.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;surface.receiveShadows=false;if(boss)health=boss.GetComponent<CombatHealth>();}
@@ -95,7 +98,10 @@ namespace DogLife
         void Warning(Vector3 p,Vector3 forward,float radius,float angle,float progress)
         {
             p+=Vector3.up*.10f;int segments=48;
-            for(int i=0;i<segments;i++)Tri(p,p+Dir(forward,-angle/2+angle*i/segments)*radius,p+Dir(forward,-angle/2+angle*(i+1)/segments)*radius,A(Blush,.09f));
+            for(int i=0;i<segments;i++)Tri(p,p+Dir(forward,-angle/2+angle*i/segments)*radius,p+Dir(forward,-angle/2+angle*(i+1)/segments)*radius,new Color(1,.30f,.36f,.24f));
+            // 빨강 바탕 위로 기존 벚꽃색이 차오릅니다. 같은 외곽과 진행도를 사용합니다.
+            var filledCenter=p+Vector3.up*.009f;
+            for(int i=0;i<segments;i++)Tri(filledCenter,filledCenter+Dir(forward,-angle/2+angle*i/segments)*radius*progress,filledCenter+Dir(forward,-angle/2+angle*(i+1)/segments)*radius*progress,A(Blush,.42f));
             Arc(p,forward,radius,angle,.11f,A(Deep,.55f));Arc(p+Vector3.up*.005f,forward,radius-.025f,angle,.045f,A(Ivory,.82f));
             Arc(p+Vector3.up*.009f,forward,radius*Mathf.Lerp(.2f,.98f,progress),angle,.055f,A(Blush,.65f));
             if(angle<359){Line(p,p+Dir(forward,-angle/2)*radius,.055f,A(Ivory,.9f));Line(p,p+Dir(forward,angle/2)*radius,.055f,A(Ivory,.9f));}
@@ -183,6 +189,32 @@ namespace DogLife
             }
             Arc(p+Vector3.up*.07f,Vector3.forward,boss.SpikeRadius,360,.09f,A(Blush,fade*.65f));
         }
+        // 뿔이 벽 안쪽을 향해도 이펙트 중심은 벽의 보스 쪽 면에 둡니다.
+        Vector3 ChargeVisualPoint(Vector3 origin,Vector3 forward,float length)
+        {
+            float clear=length;
+            int count=Physics.RaycastNonAlloc(origin+Vector3.up*1.2f,forward,chargeWalls,length+.3f,~0,QueryTriggerInteraction.Ignore);
+            for(int i=0;i<count;i++)
+            {
+                var hit=chargeWalls[i];
+                if(hit.collider.GetComponentInParent<CombatHealth>()||Mathf.Abs(hit.normal.y)>.7f)continue;
+                clear=Mathf.Min(clear,Mathf.Max(0,hit.distance-.35f));
+            }
+            return origin+forward*clear;
+        }
+        void ChargeWindup(Vector3 origin,Vector3 forward,float progress)
+        {
+            // 길이가 0인 돌진도 준비 동작을 읽을 수 있게 몸 양옆에 꽃가루를 모읍니다.
+            var right=Vector3.Cross(Vector3.up,forward);
+            float alpha=.35f+.55f*progress;
+            for(int side=-1;side<=1;side+=2)
+            {
+                var shoulder=origin+right*side*2.7f+Vector3.up*(1.5f+progress*.8f);
+                Petals(shoulder, .65f,1.2f,alpha);
+                Sakura(shoulder,.28f+progress*.18f,alpha,Time.time*90);
+            }
+            Petals(origin-forward+Vector3.up*.3f,2,1,.3f+progress*.4f);
+        }
         void LateUpdate()
         {
             if(!view&&Camera.main)view=Camera.main.transform;
@@ -192,10 +224,13 @@ namespace DogLife
                 Vector3 p=boss.transform.position+Vector3.up*.12f,forward=boss.Forward,right=Vector3.Cross(Vector3.up,forward);
                 if(state==SpringBoarBoss.Phase.Warning){
                     if(pattern==SpringBoarBoss.Pattern.Charge){
-                        Vector3 front=p+forward*boss.HornOffset,end=front+forward*boss.ChargeLength;float w=boss.ChargeWidth;
-                        Quad(front-right*w,front+right*w,end+right*w,end-right*w,A(Blush,.09f));
+                        ChargeWindup(p,forward,t);
+                        Vector3 front=ChargeVisualPoint(p,forward,boss.HornOffset),end=ChargeVisualPoint(p,forward,boss.HornOffset+boss.ChargeLength);float w=boss.ChargeWidth;
+                        Quad(front-right*w,front+right*w,end+right*w,end-right*w,new Color(1,.30f,.36f,.24f));
+                        Vector3 filledEnd=Vector3.Lerp(front,end,t),lift=Vector3.up*.009f;
+                        Quad(front-right*w+lift,front+right*w+lift,filledEnd+right*w+lift,filledEnd-right*w+lift,A(Blush,.42f));
                         Line(front-right*w,end-right*w,.12f,A(Blush,.70f));Line(front+right*w,end+right*w,.12f,A(Blush,.70f));
-                        for(int j=1;j<10;j++){Vector3 q=front+forward*(j*boss.ChargeLength/10);Line(q-right*w*.7f,q+forward,.10f,A(Ivory,.8f));Line(q+right*w*.7f,q+forward,.10f,A(Ivory,.8f));}
+                        for(int j=1;j<10;j++){Vector3 q=Vector3.Lerp(front,end,j/10f);Line(q-right*w*.7f,q+forward,.10f,A(Ivory,.8f));Line(q+right*w*.7f,q+forward,.10f,A(Ivory,.8f));}
                         Petals(p+forward*2-right,3,2.5f,1);
                     }else if(pattern==SpringBoarBoss.Pattern.Tusk){
                         Warning(p,forward,boss.TuskRange,boss.TuskAngle,t);
@@ -213,7 +248,7 @@ namespace DogLife
                         for(int side=-1;side<=1;side+=2)for(int j=0;j<12;j++){
                             Vector3 q=p+right*side*(2.3f+j*.05f)-forward*j*.6f+Vector3.up*(.5f+Mathf.Sin(j*.3f)*.6f);
                             Line(q,q-forward*.8f,.25f,A(j%3==0?Ivory:Blush,1-j/12f));}
-                        Shards(p+forward*4,Mathf.Repeat(Time.time*3,1),3);
+                        Shards(ChargeVisualPoint(p,forward,4),Mathf.Repeat(Time.time*3,1),3);
                     }else if(pattern==SpringBoarBoss.Pattern.Tusk){
                         float rise=Mathf.InverseLerp(.20f,.78f,t),alpha=Mathf.Sin(rise*Mathf.PI);
                         for(int j=0;j<30;j++)for(int k=0;k<12;k++){
@@ -230,7 +265,7 @@ namespace DogLife
                         for(int i=0;i<boss.SpikeCount;i++){BoneSpike(boss.SpikePoint(i),grow,fade,i);Petals(boss.SpikePoint(i),1.4f,4,fade);}
                     }
                 }else if(state==SpringBoarBoss.Phase.Stunned){
-                    if(t<.3f)Shards(p+forward*3,t/.3f,5);
+                    if(t<.3f)Shards(ChargeVisualPoint(p,forward,3),t/.3f,5);
                     for(int i=0;i<5;i++){Vector3 q=p+forward*3+Vector3.up*5+Dir(forward,Time.time*90+i*72)*1.5f;Sakura(q,.38f,1,i*20);}
                     Petals(p+forward*3,2,2,.5f);
                 }
@@ -259,21 +294,27 @@ namespace DogLife
                 }
                 if(h.age<h.warning)
                 {
+                    if(h.effect==SpringBoarPhaseTwo.Effect.Charge)
+                    {
+                        var body=phaseTwo.transform.position+Vector3.up*.11f;
+                        ChargeWindup(body,h.forward,t);
+                        p=ChargeVisualPoint(body,h.forward,Vector3.Distance(body,h.origin));
+                    }
                     if(h.shape==SpringBoarPhaseTwo.Shape.Lane)
                     {
                         var side=Vector3.Cross(Vector3.up,h.forward)*h.width;var end=p+h.forward*h.range;
-                        Quad(p-side,p+side,end+side,end-side,A(Blush,.12f));
-                        var fill=p+h.forward*h.range*t;
-                        Quad(p-side,p+side,fill+side,fill-side,A(Blush,.30f));
+                        if(h.effect==SpringBoarPhaseTwo.Effect.Charge)end=ChargeVisualPoint(p,h.forward,h.range);
+                        Quad(p-side,p+side,end+side,end-side,new Color(1,.30f,.36f,.24f));
+                        var fill=Vector3.Lerp(p,end,t);
+                        Quad(p-side+Vector3.up*.009f,p+side+Vector3.up*.009f,fill+side+Vector3.up*.009f,fill-side+Vector3.up*.009f,A(Blush,.42f));
                         Line(p-side,end-side,.1f,A(Ivory,.8f));Line(p+side,end+side,.1f,A(Ivory,.8f));
-                        for(int j=1;j<8;j++)Sakura(p+h.forward*(h.range*j/8),.24f,.6f,0);
+                        for(int j=1;j<8;j++)Sakura(Vector3.Lerp(p,end,j/8f),.24f,.6f,0);
                     }
                     else
                     {
                         float angle=h.shape==SpringBoarPhaseTwo.Shape.Circle?360:h.angle;
                         Warning(p,h.forward,h.range,angle,t);
-                        // A filled area, not just a timing outline. Geometry matches Hazard.Contains.
-                        for(int i=0;i<48;i++)Tri(p,p+Dir(h.forward,-angle*.5f+angle*i/48)*h.range*t,p+Dir(h.forward,-angle*.5f+angle*(i+1)/48)*h.range*t,A(Blush,.32f));
+                        // 공통 Warning에서 채워 중복 반투명 면을 피합니다.
                         Cracks(p,h.forward,h.range,angle,t,.55f);
                     }
                     if(h.effect==SpringBoarPhaseTwo.Effect.Spike)Sakura(p,.55f+t*.25f,.8f,t*35);
@@ -315,6 +356,14 @@ namespace DogLife
                 }
             }
             var center=phaseTwo.transform.position;
+            if(phaseTwo.Stunned&&!wasChargeStunned)chargeImpactAt=Time.time;
+            wasChargeStunned=phaseTwo.Stunned;
+            float impact=(Time.time-chargeImpactAt)/.7f;
+            if(phaseTwo.Stunned&&impact>=0&&impact<1)
+            {
+                var contact=ChargeVisualPoint(center+Vector3.up*.12f,phaseTwo.transform.forward,3);
+                Shards(contact,impact,3);Petals(contact,2.5f,3,1-impact);
+            }
             if(phaseTwo.Charging){Petals(center,4,3,.85f);Atmosphere(center,4,.8f);}
             if(phaseTwo.Pulse>0)Petals(center+Vector3.up*4,2,1,phaseTwo.Pulse);
             if(phaseTwo.Special)Petals(center+Vector3.up*2,5,5,.7f);

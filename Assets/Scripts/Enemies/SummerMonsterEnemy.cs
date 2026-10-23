@@ -46,6 +46,8 @@ namespace DogLife
         public Vector3 SurfaceCenter=>transform.position+Vector3.up*surfaceEffectHeight;
         public Vector3 SubmergedEffectPosition=>submergedEffectAnchor?submergedEffectAnchor.position:transform.position+Vector3.up*.065f;
         public float Progress=>Mathf.Clamp01(elapsed/Mathf.Max(.01f,Duration(State)));
+        // 준비와 공격 선행 동작을 합쳐 첫 판정/발사 순간에 채움을 완료합니다.
+        public float TelegraphProgress=>Mathf.Clamp01((State==Phase.Warning?elapsed:warningTime+elapsed)/Mathf.Max(.01f,warningTime+attackTime*.30f));
         public Vector3 AreaCenter=>transform.position+(species==Species.Tortoise?facing*1.05f:Vector3.zero);
         public bool Submerged=>State==Phase.Dive||State==Phase.Burrow||State==Phase.Warning&&species==Species.Mermaid;
         public bool Defending=>State==Phase.GuardIn||State==Phase.Guard||State==Phase.GuardOut;

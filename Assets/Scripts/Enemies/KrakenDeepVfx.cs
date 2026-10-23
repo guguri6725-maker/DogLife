@@ -62,12 +62,13 @@ namespace DogLife
             v.Clear();ix.Clear();col.Clear();uv.Clear();mesh.Clear();float q=Mathf.Clamp01(Progress);
             var camera=Camera.main;if(camera){viewForward=transform.InverseTransformDirection(camera.transform.forward);viewRight=transform.InverseTransformDirection(camera.transform.right);viewUp=transform.InverseTransformDirection(camera.transform.up);}
             Color edge=Color.Lerp(new Color(.15f,.65f,.82f,.7f),Foam,q);
+            // 충전 범위만 빨강 바탕으로 표시하고 실제 물/충격 이펙트는 유지합니다.
             if(Shape==Form.PressureBurst){DrawPressureBurst(q);}
             else if(Shape==Form.Sector){DrawSector(q,time);}
             else if(Shape==Form.Band){
                 Vector3 h=Size*.5f;float front=Mathf.Lerp(-h.z,h.z,q);
                 for(int s=-1;s<=1;s+=2){float y=s*h.y;
-                    Quad(new Vector3(-h.x,y,-h.z),new Vector3(h.x,y,-h.z),new Vector3(h.x,y,h.z),new Vector3(-h.x,y,h.z),new Color(.012f,.075f,.12f,.30f),4);
+                    Quad(new Vector3(-h.x,y,-h.z),new Vector3(h.x,y,-h.z),new Vector3(h.x,y,h.z),new Vector3(-h.x,y,h.z),Impact?new Color(.012f,.075f,.12f,.30f):new Color(1,.30f,.36f,.24f),4);
                     Quad(new Vector3(-h.x,y,-h.z),new Vector3(h.x,y,-h.z),new Vector3(h.x,y,front),new Vector3(-h.x,y,front),Impact?new Color(.32f,.8f,.9f,.5f):Blue);
                     Vector3 a=new Vector3(-h.x,y,-h.z),b=new Vector3(h.x,y,-h.z),c=new Vector3(h.x,y,h.z),d=new Vector3(-h.x,y,h.z);
                     Stroke(a,b,.08f,edge);Stroke(b,c,.08f,edge);Stroke(c,d,.08f,edge);Stroke(d,a,.08f,edge);
@@ -78,7 +79,7 @@ namespace DogLife
                 float radius=Size.x*.5f;
                 for(int i=0;i<24;i++){
                     float a=i*Mathf.PI/12,b=(i+1)*Mathf.PI/12;var d=new Vector3(Mathf.Cos(a),Mathf.Sin(a),0)*radius;var e=new Vector3(Mathf.Cos(b),Mathf.Sin(b),0)*radius;
-                    Quad(d,e,e+Vector3.forward*Size.z,d+Vector3.forward*Size.z,new Color(.06f,.36f,.52f,Impact?.32f:.07f),5);
+                    Quad(d,e,e+Vector3.forward*Size.z,d+Vector3.forward*Size.z,Impact?new Color(.06f,.36f,.52f,.32f):new Color(1,.30f,.36f,.24f),5);
                     if(!Impact)Quad(d,e,e+Vector3.forward*Size.z*q,d+Vector3.forward*Size.z*q,new Color(.18f,.64f,.74f,.2f),5);
                 }
                 Ring(Vector3.zero,radius,.07f,Quaternion.Euler(90,0,0),edge);Ring(Vector3.forward*Size.z,radius,.07f,Quaternion.Euler(90,0,0),edge);

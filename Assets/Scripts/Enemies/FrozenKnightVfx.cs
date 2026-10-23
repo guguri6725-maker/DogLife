@@ -97,7 +97,8 @@ namespace DogLife
         void DrawArea()
         {
             if(theme!=Theme.Auto){DrawStyledArea();return;}
-            Clear();var center=origin+Vector3.up*floorOffset;Color fill=active?activeColor:warningColor;
+            Clear();var center=origin+Vector3.up*floorOffset;// 옅은 빨강 예고 위로 기존 얼음빛 진행 채움을 표시합니다.
+            Color fill=active?activeColor:new Color(1,.30f,.36f,.24f);
             Color edge=edgeColor;edge.a*=.8f+.2f*Mathf.Sin((Time.time-started)*7);
             if(shape==Shape.Line)
             {
@@ -181,6 +182,7 @@ namespace DogLife
                 }
                 if(inner<.01f)Snowflake(center,Mathf.Min(2,length*.2f),new Color(.55f,.9f,1,.42f));
             }
+            DrawWarningFill(center);
             Submit(areaMesh);
             if(active&&crystalMesh&&showCrystals)
             {

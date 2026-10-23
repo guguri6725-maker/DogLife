@@ -513,16 +513,15 @@ namespace DogLife
             // 검을 꽂는 동작 직후 빙판 확산을 보여준 뒤 군마 탑승으로 연결합니다.
             Play(knightAnimator,"Idle");
             if(cinematicStage)cinematicStage.ShowIceField(swordRoot,transform);
+            // 전투에 쓰이는 빙판은 유지하고 전환 전용 파동/섬광은 생략합니다.
             BeginSwordField();
             if(swordIcePatch)swordIcePatch.SetGrowthDuration(iceSpreadDuration);
-            CinematicCue(FrozenKnightVfx.CinematicMoment.IceSpread,swordRoot,iceSpreadDuration+iceSpreadHold,12);
             yield return new WaitForSeconds(iceSpreadDuration+iceSpreadHold);
             if(cinematicStage)cinematicStage.ShowMount(transform);BossSound("Summon",horseRoot,.65f);
             effects.Show(FrozenKnightVfx.Shape.Ring,transform.position,Forward,frostBurst.range,0,FrozenKnightVfx.Theme.Summon);effects.Activate();
             // 검을 꽂은 뒤 쓰러지지 않고 서서 군마를 기다립니다.
             Play(knightAnimator,"Idle");effects.Hide();
             if(!horseRoot.gameObject.activeSelf){horseRoot.position=HorseArrivalRoute(transform.position)[0];horseRoot.gameObject.SetActive(true);}
-            CinematicCue(FrozenKnightVfx.CinematicMoment.Summon,horseRoot,2.8f,4);
             Vector3 destination;Vector3[] route;
             while(!TryBoardingRoute(out destination,out route))yield return new WaitForSeconds(.5f);
             Vector3 standing=riderRoot.position,boarding=destination-transform.right*boardingStandDistance;
@@ -556,7 +555,6 @@ namespace DogLife
             horseRoot.rotation=transform.rotation;
             // 왼발을 걸고 몸을 올린 뒤 오른다리를 넘기는 동작과 이동 곡선을 맞춥니다.
             float boardingDuration=cinematicMount?cinematicMount.length:mountDuration;
-            CinematicCue(FrozenKnightVfx.CinematicMoment.Mount,horseRoot,boardingDuration,5);
             Play(knightAnimator,cinematicMount?"CinematicMount":"Mount",boardingDuration);Vector3 start=riderRoot.position;
             for(float t=0;t<boardingDuration;t+=Time.deltaTime)
             {
@@ -571,7 +569,6 @@ namespace DogLife
                 riderRoot.position=position;yield return null;
             }
             riderRoot.position=mountSeat.position;
-            CinematicCue(FrozenKnightVfx.CinematicMoment.IceSpread,horseRoot,1.7f,6);
             // 탑승 완료 지점을 새 이동 기준으로 삼되 군마/기사/꽂힌 검은 월드 위치를 보존합니다.
             Vector3 riderPosition=riderRoot.position,horsePosition=horseRoot.position;Quaternion horseRotation=horseRoot.rotation;
             if(Nav)agent.Warp(destination);else transform.position=destination;

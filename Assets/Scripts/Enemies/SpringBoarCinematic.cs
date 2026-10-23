@@ -31,6 +31,8 @@ namespace DogLife
         CursorLockMode cursor;bool cursorVisible;
         Vector3 fromPosition;Quaternion fromRotation;float oldFov,elapsed,progress,side;
         Canvas overlay;RectTransform top,bottom;
+        float shotYaw;
+        Quaternion subjectYaw;
         readonly RaycastHit[] hits=new RaycastHit[64];
         public bool Active {get;private set;}
         public float Speed(float p)=>Mathf.Clamp(playbackSpeed.Evaluate(p),.15f,1.5f);
@@ -64,6 +66,8 @@ namespace DogLife
             BossCinematicUI.Begin(this);
             foliage?.Dispose();
             foliage=new SpringCinematicFoliage(transform,foliageFadeShader);
+            subjectYaw=Quaternion.Euler(0,transform.eulerAngles.y,0);
+            shotYaw=ChooseShotYaw();
         }
         void BuildBars()
         {
@@ -86,14 +90,15 @@ namespace DogLife
             float a=Mathf.SmoothStep(0,1,Mathf.InverseLerp(.15f,.58f,progress));
             float b=Mathf.SmoothStep(0,1,Mathf.InverseLerp(.65f,.94f,progress));
             Vector3 offset=Vector3.Lerp(Vector3.Lerp(opening,reveal,a),finale,b);offset.x*=side;
-            var yaw=Quaternion.Euler(0,transform.eulerAngles.y,0);
+            var yaw=subjectYaw;
+            var cameraYaw=yaw*Quaternion.Euler(0,shotYaw,0);
             Vector3 look=transform.position+yaw*Vector3.Lerp(Vector3.Lerp(openingLook,revealLook,a),finalLook,b);
-            Vector3 position=transform.position+yaw*offset;
+            Vector3 position=transform.position+cameraYaw*offset;
             if(deathShot)
             {
                 float sink=Mathf.SmoothStep(0,1,Mathf.InverseLerp(.28f,.87f,progress));
                 var deathOffset=Vector3.Lerp(deathOpening,deathFinal,sink);deathOffset.x*=side;
-                position=transform.position+yaw*deathOffset;
+                position=transform.position+cameraYaw*deathOffset;
                 look=transform.position+yaw*Vector3.Lerp(deathLookStart,deathLookEnd,sink);
             }
             position=AvoidScenery(look,position);
@@ -103,7 +108,12 @@ namespace DogLife
             float pulse=Mathf.Max(0,1-Mathf.Abs(progress-.535f)/.025f)*.24f+Mathf.Max(0,1-Mathf.Abs(progress-.8f)/.018f)*.35f;
             if(deathShot)pulse=Mathf.Max(0,1-Mathf.Abs(progress-.58f)/.035f)*.18f+Mathf.Max(0,1-Mathf.Abs(progress-.77f)/.03f)*.12f;
             rotation*=Quaternion.Euler(Mathf.Sin(elapsed*43)*pulse,0,Mathf.Sin(elapsed*31)*pulse*.5f);
-            shot.transform.SetPositionAndRotation(Vector3.Lerp(fromPosition,position,entrance),Quaternion.Slerp(fromRotation,rotation,entrance));
+            // 진입 보간 경로도 벽을 통과하지 않도록 매 프레임 확인합니다.
+            var blended=AvoidScenery(look,Vector3.Lerp(fromPosition,position,entrance));
+            var blendedRotation=Quaternion.Slerp(fromRotation,rotation,entrance);
+            if((blended-Vector3.Lerp(fromPosition,position,entrance)).sqrMagnitude>.01f)
+                blendedRotation=Quaternion.LookRotation(look-blended);
+            shot.transform.SetPositionAndRotation(blended,blendedRotation);
             shot.Lens.FieldOfView=Mathf.Lerp(oldFov,Mathf.Lerp(Mathf.Lerp(openingFov,revealFov,a),finalFov,b),entrance);
             if(deathShot)shot.Lens.FieldOfView=Mathf.Lerp(oldFov,deathFov,entrance);
             brain.ManualUpdate();
@@ -112,11 +122,37 @@ namespace DogLife
             top.anchorMin=new Vector2(0,1-height);top.anchorMax=Vector2.one;top.offsetMin=top.offsetMax=Vector2.zero;
             bottom.anchorMin=Vector2.zero;bottom.anchorMax=new Vector2(1,height);bottom.offsetMin=bottom.offsetMax=Vector2.zero;
         }
+        // 벽 옆에서도 연출 전체가 보이는 방향을 한 번 선택해 촬영 중 좌우 전환을 막습니다.
+        float ChooseShotYaw()
+        {
+            float bestAngle=0,bestScore=float.NegativeInfinity;
+            foreach(float angle in new[]{0f,45f,-45f,90f,-90f,135f,-135f,180f})
+            {
+                var cameraYaw=subjectYaw*Quaternion.Euler(0,angle,0);
+                float score=1;
+                for(int i=0;i<5;i++)
+                {
+                    float t=i/4f;
+                    Vector3 offset=deathShot?Vector3.Lerp(deathOpening,deathFinal,t):
+                        (t<.5f?Vector3.Lerp(opening,reveal,t*2):Vector3.Lerp(reveal,finale,(t-.5f)*2));
+                    Vector3 focus=deathShot?Vector3.Lerp(deathLookStart,deathLookEnd,t):
+                        (t<.5f?Vector3.Lerp(openingLook,revealLook,t*2):Vector3.Lerp(revealLook,finalLook,(t-.5f)*2));
+                    offset.x*=side;
+                    var look=transform.position+subjectYaw*focus;
+                    var desired=transform.position+cameraYaw*offset;
+                    float clearance=Vector3.Distance(look,AvoidScenery(look,desired));
+                    score=Mathf.Min(score,clearance/Mathf.Max(.1f,Vector3.Distance(look,desired)));
+                }
+                score-=Mathf.Abs(angle)*.0005f;
+                if(score>bestScore){bestScore=score;bestAngle=angle;}
+            }
+            return bestAngle;
+        }
         Vector3 AvoidScenery(Vector3 from,Vector3 to)
         {
             Vector3 delta=to-from;float distance=delta.magnitude;
             int count=Physics.SphereCastNonAlloc(from,.35f,delta.normalized,hits,distance,sceneryMask,QueryTriggerInteraction.Ignore);
-            for(int i=0;i<count;i++)if(!hits[i].collider.transform.IsChildOf(transform)&&!hits[i].collider.GetComponentInParent<CombatHealth>()&&!(foliage?.Covers(hits[i])??false))distance=Mathf.Min(distance,Mathf.Max(1,hits[i].distance-.4f));
+            for(int i=0;i<count;i++)if(!hits[i].collider.transform.IsChildOf(transform)&&!hits[i].collider.GetComponentInParent<CombatHealth>()&&!(foliage?.Covers(hits[i])??false))distance=Mathf.Min(distance,Mathf.Max(.05f,hits[i].distance-.4f));
             return from+delta.normalized*distance;
         }
         void UpdateFoliage()

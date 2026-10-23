@@ -98,6 +98,21 @@ namespace DogLife
                     collisionBakePending=false;
                 }
             }
+            // 방 내부에서는 거리·그래픽 품질과 관계없이 원본 형태를 유지합니다.
+            // 스트리밍 프리팹까지 로드된 뒤 적용하므로 재방문한 방에도 동일하게 적용됩니다.
+            foreach(var root in gameObject.scene.GetRootGameObjects())
+                foreach(var lod in root.GetComponentsInChildren<LODGroup>(true))
+                {
+                    // 전투 대상과 캐릭터의 LOD는 방 구조물 정책에서 제외합니다.
+                    if(lod.GetComponentInParent<CombatHealth>(true) ||
+                       lod.GetComponentInChildren<SkinnedMeshRenderer>(true))continue;
+                    // 화면 점유율 기준을 낮춰 전환 거리를 약 1만 배 뒤로 미룹니다.
+                    var levels=lod.GetLODs();
+                    for(int i=0;i<levels.Length;i++)
+                        levels[i].screenRelativeTransitionHeight*=.0001f;
+                    lod.SetLODs(levels);
+                    lod.ForceLOD(0);
+                }
             double frameStarted=Time.realtimeSinceStartupAsDouble;
             int groupsThisFrame=0;
             foreach(var item in geometry)

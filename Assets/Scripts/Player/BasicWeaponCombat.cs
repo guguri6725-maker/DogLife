@@ -70,6 +70,9 @@ namespace DogLife
         public bool BoomerangInFlight=>activeBoomerang;
         public float ChargeAmount=>charging?Mathf.Clamp01((Time.time-chargeStarted)*AttackSpeed/Mathf.Max(.1f,bowChargeSeconds)):shotCharge;
         public int ComboStep=>step+1;
+        // 연속 찌르기는 첫 판정만 슬로를 허용해 이후 연타의 속도를 유지합니다.
+        public bool AllowsMeleeHitSlow=>!item||item.weaponCategory!=InventoryWeapon.WeaponCategory.Spear||step!=2||thrustCount==1;
+        public bool LightMeleeHitSlow=>step>=0&&step<2;
         // 조작 연습에서 실제 콤보 입력 가능 구간을 안내합니다.
         public bool ComboInputWindow=>IsAttacking&&!SingleAttack&&move&&step>=0&&step<move.attacks.Length-1&&Time.time>=ComboLinkTime-ComboBuffer;
         // 3타 완주 보상. 창은 12회 전체에 나눠 적용해 연타 횟수를 유지합니다.
@@ -80,8 +83,8 @@ namespace DogLife
         bool UsesUpperBody=>item&&(item.weaponCategory==InventoryWeapon.WeaponCategory.Dagger||item.weaponCategory==InventoryWeapon.WeaponCategory.Bow||item.weaponCategory==InventoryWeapon.WeaponCategory.Boomerang||((item.weaponCategory==InventoryWeapon.WeaponCategory.Sword||item.weaponCategory==InventoryWeapon.WeaponCategory.Spear)&&step<2));
         bool SingleAttack=>item&&(item.weaponCategory==InventoryWeapon.WeaponCategory.Bow||item.weaponCategory==InventoryWeapon.WeaponCategory.Boomerang);
         public bool LocksMovement=>IsAttacking&&!UsesUpperBody&&!RelicChannel;
-        // 활·부메랑과 검 1·2타는 상체 공격을 유지하면서 점프와 앉기를 허용합니다.
-        public bool LocksPosture=>IsAttacking&&!RelicChannel&&!(item&&(item.weaponCategory==InventoryWeapon.WeaponCategory.Bow||item.weaponCategory==InventoryWeapon.WeaponCategory.Boomerang||(item.weaponCategory==InventoryWeapon.WeaponCategory.Sword&&step>=0&&step<2)));
+        // 단검·활·부메랑 전체와 검·창 1·2타는 공격 중에도 점프와 앉기를 허용합니다.
+        public bool LocksPosture=>IsAttacking&&!RelicChannel&&!(item&&(item.weaponCategory==InventoryWeapon.WeaponCategory.Dagger||item.weaponCategory==InventoryWeapon.WeaponCategory.Bow||item.weaponCategory==InventoryWeapon.WeaponCategory.Boomerang||((item.weaponCategory==InventoryWeapon.WeaponCategory.Sword||item.weaponCategory==InventoryWeapon.WeaponCategory.Spear)&&step>=0&&step<2)));
         // 기본형과 합성형은 같은 무기별 콤보와 애니메이션을 공유합니다.
         public bool Ready=>isActiveAndEnabled&&animator&&inventory&&inventory.EquippedWeapon;
         void Awake(){inventory=GetComponent<PlayerInventory>();motor=GetComponent<PlayerMotor>();weapons=GetComponent<PlayerWeapons>();health=GetComponent<CombatHealth>();karma=GetComponent<PlayerKarma>();relics=RelicLoadout.Get(gameObject);relicEffects=GetComponent<RelicCombatEffects>()??gameObject.AddComponent<RelicCombatEffects>();}
@@ -140,7 +143,7 @@ namespace DogLife
             step=index;queued=false;queuedUntil=0;struck=false;secondStruck=false;thrustCount=0;started=Time.time;endsAt=started+move.attacks[index].length/AttackSpeed;
             nextWhirlwind=0;
             whirlwindLooping=false;whirlwindRecovering=false;
-            if(Whirlwind){whirlwindStarts=started+(move.axeWhirlwindEnter?move.axeWhirlwindEnter.length:move.strikeTimes[index]/AttackSpeed);whirlwindEnds=whirlwindStarts+whirlwindDuration+Mathf.Max(0,relics.Level(RelicEffect.AxeWhirlwind)-1);endsAt=whirlwindEnds+(move.axeWhirlwindExit?move.axeWhirlwindExit.length:0);}
+            if(Whirlwind){relicEffects.BeginWhirlwind();whirlwindStarts=started+(move.axeWhirlwindEnter?move.axeWhirlwindEnter.length:move.strikeTimes[index]/AttackSpeed);whirlwindEnds=whirlwindStarts+whirlwindDuration+Mathf.Max(0,relics.Level(RelicEffect.AxeWhirlwind)-1);endsAt=whirlwindEnds+(move.axeWhirlwindExit?move.axeWhirlwindExit.length:0);}
             spearFinisherThreshold=relics?relics.SpearFinisherThreshold():12;
             attackSoundPlayed=secondarySoundPlayed=false;thrustSounds=0;
             // Animator 전체 속도가 아니라 공격 상태의 배율만 변경합니다.
@@ -238,7 +241,8 @@ namespace DogLife
                 origin=weapons.SafeLaunchOrigin(origin);
                 var shotDirection=weapons.GetProjectileDirection(origin);
                 if(motor)motor.FaceForAttack(shotDirection);
-                var projectile=BoneWeaponProjectile.Launch(origin,shotDirection,transform,item,move,color,reach,boomerang?0:shotCharge,KarmaDamageMultiplier);
+                var shotFeedback=new BoneWeaponProjectile.ShotFeedback();
+                var projectile=BoneWeaponProjectile.Launch(origin,shotDirection,transform,item,move,color,reach,boomerang?0:shotCharge,KarmaDamageMultiplier,shotFeedback);
                 if(boomerang){activeBoomerang=projectile;inventory.SetHeldVisible(false);projectile.Returned+=()=>{if(inventory)inventory.SetHeldVisible(true);};}
                 // 유물: 완충 사격을 세 갈래로, 부메랑을 두 자루로 늘립니다. 본 발사체와 별개로 날아갑니다.
                 if(relics&&!boomerang&&shotCharge>=.99f&&relics.Has(RelicEffect.BowSplitShot,item.weaponCategory))
@@ -246,7 +250,7 @@ namespace DogLife
                     float spread=relics.Value(RelicEffect.BowSplitShot,item.weaponCategory);
                     int level=relics.Level(RelicEffect.BowSplitShot);
                     for(int side=-level;side<=level;side++){if(side==0)continue;float angle=side*spread;
-                        BoneWeaponProjectile.Launch(origin,Quaternion.Euler(0,angle,0)*shotDirection,transform,item,move,color,reach,shotCharge,KarmaDamageMultiplier);
+                        BoneWeaponProjectile.Launch(origin,Quaternion.Euler(0,angle,0)*shotDirection,transform,item,move,color,reach,shotCharge,KarmaDamageMultiplier,shotFeedback);
                     }
                 }
 

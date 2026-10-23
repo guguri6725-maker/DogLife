@@ -88,12 +88,15 @@ namespace DogLife
                 for(int j=1;j<=2;j++){Vector3 q=p+d*size*j*.32f;Line(q,q+Dir(d,45)*size*.23f,.012f,A(White,alpha));Line(q,q+Dir(d,-45)*size*.23f,.012f,A(White,alpha));}
             }
         }
-        void Warning(Vector3 p,Vector3 forward,float radius,float angle,float progress)
+        void Warning(Vector3 p,Vector3 forward,float radius,float angle,float progress,bool original=false)
         {
             p+=Vector3.up*.10f;int segments=48;
-            for(int i=0;i<segments;i++)Tri(p,p+Dir(forward,-angle/2+angle*i/segments)*radius,p+Dir(forward,-angle/2+angle*(i+1)/segments)*radius,A(Deep,.30f));
+            for(int i=0;i<segments;i++)Tri(p,p+Dir(forward,-angle/2+angle*i/segments)*radius,p+Dir(forward,-angle/2+angle*(i+1)/segments)*radius,original?A(Deep,.30f):new Color(1,.30f,.36f,.24f));
+            // 옅은 빨강 바탕을 기존 얼음빛으로 채웁니다. 장판 정령은 기존 표시를 유지합니다.
+            var fillCenter=p+Vector3.up*.009f;
+            if(!original)for(int i=0;i<segments;i++)Tri(fillCenter,fillCenter+Dir(forward,-angle/2+angle*i/segments)*radius*progress,fillCenter+Dir(forward,-angle/2+angle*(i+1)/segments)*radius*progress,A(Ice,.42f));
             Arc(p,forward,radius,angle,.11f,A(Deep,.95f));Arc(p+Vector3.up*.005f,forward,radius-.025f,angle,.045f,A(White,.95f));
-            Arc(p+Vector3.up*.009f,forward,radius*Mathf.Lerp(.2f,.98f,progress),angle,.055f,A(Ice,.85f));
+            Arc(p+Vector3.up*.009f,forward,radius*(original?Mathf.Lerp(.2f,.98f,progress):progress),angle,original?.055f:.065f,original?A(Ice,.85f):A(White,.9f));
             if(angle<359){Line(p,p+Dir(forward,-angle/2)*radius,.055f,A(White,.9f));Line(p,p+Dir(forward,angle/2)*radius,.055f,A(White,.9f));}
             for(int i=0;i<8;i++){float a=-angle/2+angle*(i+.5f)/8;Vector3 d=Dir(forward,a);Line(p+d*(radius-.2f),p+d*(radius-.4f),.035f,A(Ice,.8f));}
             Snowflake(p+forward*radius*.48f,.25f+.1f*progress,.8f,0);
@@ -157,14 +160,14 @@ namespace DogLife
             {
                 var state=enemy.State;float t=enemy.Progress;Vector3 p=enemy.Origin+Vector3.up*.10f;var kind=enemy.Kind;
                 bool warning=state==WinterMonsterEnemy.Phase.Warning||state==WinterMonsterEnemy.Phase.Reaim;
-                if(warning)
+                if(warning||kind!=WinterMonsterEnemy.Species.Spirit&&enemy.Attacking&&enemy.TelegraphProgress<1)
                 {
-                    if(kind==WinterMonsterEnemy.Species.Wolf){if(enemy.ClawPhase)Warning(enemy.Origin,enemy.Forward,enemy.Range,enemy.Angle,t);else Warning(enemy.TargetPoint,enemy.Forward,enemy.LandingRadius,360,t);}
-                    else if(kind==WinterMonsterEnemy.Species.Spirit){Warning(enemy.TargetPoint,enemy.Forward,enemy.IceRadius,360,t);Cracks(p,enemy.Forward,Vector3.Distance(enemy.TargetPoint,enemy.Origin),30,t,.7f);}
-                    else Warning(kind==WinterMonsterEnemy.Species.Mammoth?enemy.TargetPoint:enemy.Origin,enemy.Forward,enemy.Range,enemy.Angle,t);
+                    if(kind==WinterMonsterEnemy.Species.Wolf){if(enemy.ClawPhase)Warning(enemy.Origin,enemy.Forward,enemy.Range,enemy.Angle,enemy.TelegraphProgress);else Warning(enemy.TargetPoint,enemy.Forward,enemy.LandingRadius,360,enemy.TelegraphProgress);}
+                    else if(kind==WinterMonsterEnemy.Species.Spirit){Warning(enemy.TargetPoint,enemy.Forward,enemy.IceRadius,360,t,true);Cracks(p,enemy.Forward,Vector3.Distance(enemy.TargetPoint,enemy.Origin),30,t,.7f);}
+                    else Warning(kind==WinterMonsterEnemy.Species.Mammoth?enemy.TargetPoint:enemy.Origin,enemy.Forward,enemy.Range,enemy.Angle,enemy.TelegraphProgress);
                     // 매머드 준비 동작은 엄니 장식 없이 바닥의 공격 범위만 표시합니다.
                 }
-                else if(enemy.Attacking)
+                if(enemy.Attacking)
                 {
                     if(kind==WinterMonsterEnemy.Species.Golem)
                     {
@@ -194,7 +197,7 @@ namespace DogLife
                         }
                         else
                         {
-                        Warning(enemy.TargetPoint,enemy.Forward,enemy.LandingRadius,360,1);
+                        if(enemy.TelegraphProgress>=1)Warning(enemy.TargetPoint,enemy.Forward,enemy.LandingRadius,360,1);
                         if(t>=.80f)Shards(enemy.TargetPoint+Vector3.up*.08f,Mathf.InverseLerp(.80f,1,t),enemy.LandingRadius);
                         else for(int i=0;i<12;i++){Vector3 q=enemy.transform.position-enemy.Forward*i*.12f+Vector3.up*(.45f+Mathf.Sin(t*Mathf.PI)*.8f);Crystal(q,.08f,.035f,(1-i/12f)*.8f,i);}
                         }
