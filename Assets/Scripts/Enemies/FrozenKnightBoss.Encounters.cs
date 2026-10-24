@@ -24,8 +24,8 @@ namespace DogLife
         [Header("확장 원형 검기 — 점프 또는 앉기")]
         [SerializeField,Min(.1f)] float waveWarning=1.5f,waveSpeed=8,waveWidth=.6f,waveHeight=1.5f,waveDamage=1,waveCooldown=12;
         [SerializeField,Min(0)] float jumpClearance=.65f;
-        [Header("70% / 30% 한기")]
-        [SerializeField,Range(0,1)] float coldHighHP=.7f,coldLowHP=.3f;
+        [Header("30% 한기")]
+        [SerializeField,Range(0,1)] float coldLowHP=.3f;
         [SerializeField,Min(1)] int coldCrystalCount=8;
         [SerializeField,Min(.1f)] float coldWarning=4,coldDuration=15,coldTick=1,coldDamage=1,crystalSpeed=.65f,crystalImmunity=3;
         [Header("기마 분신 / 소환 / 원격검")]
@@ -47,7 +47,7 @@ namespace DogLife
         [SerializeField,Min(.1f)] float encounterRecovery=2,remoteSwingDuration=.6f,remoteReturnDuration=1,finaleMoveTimeout=6;
         readonly List<GameObject> encounterObjects=new List<GameObject>();
         readonly List<CombatHealth> summonedMinions=new List<CombatHealth>();
-        bool coldHighUsed,coldLowUsed,finaleUsed,remoteSwordActive;
+        bool coldLowUsed,finaleUsed,remoteSwordActive;
         [SerializeField,Min(.1f)] float remoteSwordHeight=.8f,spearMarkerLength=3;
         [Header("원본 애니메이션 내 시전 시점 — 1배속")]
         [SerializeField,Range(.1f,.9f)] float wallCastMoment=.65f,iceSwordCastMoment=.65f,pushCastMoment=.55f,spinCastMoment=.55f,remoteFirstMoment=.38f,remoteSecondMoment=.72f;
@@ -70,7 +70,6 @@ namespace DogLife
         {
             if(PhaseNumber!=1)return false;
             float fraction=health.Current/Mathf.Max(1,health.maxHealth);
-            if(!coldHighUsed&&fraction<=coldHighHP){coldHighUsed=true;Begin(Pattern.ColdWave);return true;}
             if(!Phase1SpecialUsed&&fraction<=swordFury.triggerHP){Begin(Pattern.SwordFury);return true;}
             if(!coldLowUsed&&fraction<=coldLowHP){coldLowUsed=true;Begin(Pattern.ColdWave);return true;}
             return false;

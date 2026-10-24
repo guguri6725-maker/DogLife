@@ -36,7 +36,7 @@ namespace DogLife
         }
         [Serializable] public class RingSettings
         {
-            [Range(0,1)] public float triggerHP=.5f;
+            [Range(0,1)] public float triggerHP=.7f;
             [Min(1)] public int count=3;
             [Min(0)] public float damage=1,firstRadius=3,width=2.6f,distanceBetween=3,warning=1.15f,delay=.25f,activeTime=.22f,recovery=2.8f,prepareTime=1.4f;
             [Min(.1f)] public float comboSpeedMultiplier=1.25f,projectileSpeedMultiplier=1.3f,recoveryMultiplier=.8f;
@@ -53,7 +53,7 @@ namespace DogLife
         }
         [Serializable] public class MountedSpecialSettings
         {
-            [Range(0,1)] public float triggerHP=.5f;
+            [Range(0,1)] public float triggerHP=.7f;
             [Min(1)] public int count=4;
             [Min(.1f)] public float damage=1,speed=17,width=3,warning=1.2f,distance=24,delay=.55f;
             [Min(.1f)] public float trailWidth=2.8f,trailDuration=12,trailDamage=1,trailTick=1,trailSpacing=1.2f;

@@ -22,7 +22,7 @@ namespace DogLife
   }
   [Serializable] public class SpecialSettings
   {
-   [Range(0,1)] public float firstHP=.7f,stormHP=.5f,lastHP=.3f;
+   [Range(0,1)] public float stormHP=.7f,lastHP=.3f;
    [Min(0)] public float innerRadius=7,outerRadius=23,warning=1.7f,explosionDuration=.45f,delay=.45f,damage=1,knockback=3,stormTick=1;
    [Header("Outer storm / gather near boss")]
    [Min(.05f)] public float gatherWarning=3,gatherDuration=2,outerTickInterval=1;
@@ -129,7 +129,7 @@ namespace DogLife
    float yaw=Mathf.SmoothDampAngle(current,targetYaw,ref turnVelocity,turnSmoothTime,Mathf.Max(0,turnSpeed),dt);
    transform.rotation=Quaternion.Euler(0,yaw,0);
   }
-  int PendingSpecial(){float ratio=health.Current/Mathf.Max(1,health.maxHealth);if(!consumed[0]&&ratio<=special.firstHP)return 0;if(!consumed[1]&&ratio<=special.stormHP)return 1;if(!consumed[2]&&ratio<=special.lastHP)return 2;return -1;}
+  int PendingSpecial(){float ratio=health.Current/Mathf.Max(1,health.maxHealth);if(!consumed[1]&&ratio<=special.stormHP)return 1;if(!consumed[2]&&ratio<=special.lastHP)return 2;return -1;}
   int Choose(float distance)
   {
    if(closeClock>=closeDwell&&distance<=shockwave.range&&Time.time>=ready[2])return 2;

@@ -8,6 +8,7 @@ namespace DogLife
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Install()
         {
+            if(!CampaignBuildMode.ExhibitionEnabled)return;
             if(FindFirstObjectByType<SeasonTestWeaponShortcut>())return;
             var host=new GameObject("SeasonTestWeaponShortcut");
             DontDestroyOnLoad(host);
@@ -26,7 +27,7 @@ namespace DogLife
 
         public static bool TryGrant(PlayerInventory inventory,string seasonScene)
         {
-            if(!inventory)return false;
+            if(!CampaignBuildMode.ExhibitionEnabled||!inventory)return false;
             string weaponId;
             switch(seasonScene)
             {

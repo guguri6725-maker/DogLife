@@ -22,7 +22,7 @@ namespace DogLife
         void OnEnable(){if(instance&&instance!=this){Destroy(gameObject);return;}instance=this;SceneManager.sceneLoaded-=Loaded;SceneManager.sceneLoaded+=Loaded;}
         void OnDisable(){SceneManager.sceneLoaded-=Loaded;if(closeModal!=null)closeModal();}
         void OnDestroy(){SceneManager.sceneLoaded-=Loaded;if(closeModal!=null)closeModal();if(instance==this)instance=null;}
-        public static void Prepare(int index,string path){var owner=Get();owner.season=index;owner.scenePath=path;owner.seconds=0;owner.running=false;owner.finished=false;owner.director=null;}
+        public static void Prepare(int index,string path){if(!CampaignBuildMode.ExhibitionEnabled)return;var owner=Get();owner.season=index;owner.scenePath=path;owner.seconds=0;owner.running=false;owner.finished=false;owner.director=null;}
         public static void Cancel(){if(!instance)return;instance.season=-1;instance.running=false;instance.finished=false;instance.director=null;instance.StopAllCoroutines();}
         void Loaded(Scene scene,LoadSceneMode mode){
             if(mode==LoadSceneMode.Additive)return;
@@ -95,7 +95,7 @@ namespace DogLife
             AdventureUI.Button(panel,"SkipRecord","기록을 남기지 않고 계속",new Vector2(0,-305),new Vector2(470,55),font,()=>closeModal?.Invoke());
             AdventureUI.Theme(panel.gameObject);input.ActivateInputField();
         }
-        public static void ShowBoard(int index){if(IsOpen||index<0||index>=4)return;Get().ShowBoardInternal(index,"이 PC의 기록 · 로딩 / 메뉴 / 연출 시간 제외");}
+        public static void ShowBoard(int index){if(!CampaignBuildMode.ExhibitionEnabled)return;if(IsOpen||index<0||index>=4)return;Get().ShowBoardInternal(index,"이 PC의 기록 · 로딩 / 메뉴 / 연출 시간 제외");}
         void ShowBoardInternal(int index,string caption){
             var panel=Panel(Names[index]+" 계절 체험 · TOP 5");var font=Font();var entries=Read(index);
             AdventureUI.Label(panel,"Caption",caption,new Vector2(0,235),new Vector2(850,55),21,font);
@@ -108,6 +108,7 @@ namespace DogLife
             AdventureUI.Button(panel,"CloseRecords","닫기",new Vector2(0,-305),new Vector2(340,60),font,()=>closeModal?.Invoke());AdventureUI.Theme(panel.gameObject);
         }
         public static void AttachTitle(TitleScreen title){
+            if(!CampaignBuildMode.ExhibitionEnabled)return;
             foreach(var button in FindObjectsByType<Button>(FindObjectsInactive.Include,FindObjectsSortMode.None)){
                 if(button.gameObject.scene!=title.gameObject.scene)continue;
                 if(!button.name.StartsWith("Demo Season Button "))continue;int index;if(!int.TryParse(button.name.Substring("Demo Season Button ".Length),out index)||index<0||index>3)continue;

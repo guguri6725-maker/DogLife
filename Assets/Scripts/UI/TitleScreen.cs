@@ -55,7 +55,13 @@ namespace DogLife
             Time.timeScale = 1;
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;
-            EnsureResetButton();
+            if(CampaignBuildMode.ExhibitionEnabled)EnsureResetButton();
+            else
+                foreach(var root in gameObject.scene.GetRootGameObjects())
+                    foreach(var item in root.GetComponentsInChildren<UnityEngine.Transform>(true))
+                        if(item.name.StartsWith("Demo Season Button ") || item.name=="Demo Header" ||
+                           item.name=="Demo invitation" || item.name=="Reset Data Button")
+                            item.gameObject.SetActive(false);
         }
 
         // 전시회 빌드 전용: 다음 관람객을 위해 저장된 진행도·발자국을 전부 지웁니다.
@@ -125,6 +131,7 @@ namespace DogLife
         // 전시용 버튼: 진행 상황을 저장/불러오지 않고 선택한 계절 스테이지만 단독으로 체험합니다.
         public void PlaySeasonDemo(int season)
         {
+            if(!CampaignBuildMode.ExhibitionEnabled)return;
             if (loading || GameSettingsWindow.BlocksGameplayInput) return;
             if (season < 0 || season >= seasonDemoScenes.Length) return;
             string scene = seasonDemoScenes[season];

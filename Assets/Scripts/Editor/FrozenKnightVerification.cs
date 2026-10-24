@@ -405,10 +405,10 @@ namespace DogLife.EditorTools
             Set(boss,"coldDuration",.6f);Set(boss,"coldWarning",.5f);
             Get<FrozenKnightBoss.CavalryFurySettings>(boss,"cavalryFury").charges=1;
             hp.Damage(hp.maxHealth*.31f);yield return Delay(.2f);
-            Check(boss.CurrentPattern==FrozenKnightBoss.Pattern.ColdWave&&Get<bool>(boss,"coldHighUsed"),"70 percent starts cold wave");
+            Check(boss.CurrentPattern==FrozenKnightBoss.Pattern.SwordFury&&boss.Phase1SpecialUsed,"70 percent starts safe-zone horse curse");
             while(boss.State!=FrozenKnightBoss.CombatState.Idle)yield return null;
-            yield return Delay(.5f);Check(boss.State==FrozenKnightBoss.CombatState.Idle,"70 percent cold wave only once");
-            hp.Damage(hp.maxHealth*.2f);yield return Delay(.2f);Check(boss.CurrentPattern==FrozenKnightBoss.Pattern.SwordFury&&boss.Phase1SpecialUsed,"50 percent retains safe-zone horse curse");
+            yield return Delay(.5f);Check(boss.State==FrozenKnightBoss.CombatState.Idle,"70 percent special only once");
+            hp.Damage(hp.maxHealth*.2f);yield return Delay(.2f);Check(boss.State==FrozenKnightBoss.CombatState.Idle,"50 percent does not start another special");
             while(boss.State!=FrozenKnightBoss.CombatState.Idle)yield return null;
             hp.Damage(hp.maxHealth*.2f);yield return Delay(.2f);Check(boss.CurrentPattern==FrozenKnightBoss.Pattern.ColdWave&&Get<bool>(boss,"coldLowUsed"),"30 percent starts independent cold wave");
             while(boss.State!=FrozenKnightBoss.CombatState.Idle)yield return null;

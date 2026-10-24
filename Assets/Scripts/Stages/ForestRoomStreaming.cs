@@ -183,7 +183,7 @@ namespace DogLife
         void Update()
         {
             // 임시 테스트 단축키: 일반 빌드에서도 사용합니다.
-            if(Input.GetKeyDown(KeyCode.L)&&Time.timeScale>0&&!SkillWindow.BlocksGameplayInput)
+            if(CampaignBuildMode.ExhibitionEnabled&&Input.GetKeyDown(KeyCode.L)&&Time.timeScale>0&&!SkillWindow.BlocksGameplayInput)
                 RequestBossTestJump();
             if (!Ready || !string.IsNullOrEmpty(LoadError) || Hud.health.Dead || Hud.completed) return;
             // 다음 방 준비 중에는 중복 로딩과 전투 시작을 방지합니다.
