@@ -45,7 +45,8 @@ namespace DogLife
         {
             if(!opened||index<0||index>=choices.Length)return;
             var item=choices[index];
-            if(!item||item.weaponForm!=InventoryWeapon.WeaponForm.Basic||item.boneOrigin!=InventoryWeapon.BoneOrigin.Dog)return;
+            // 전시용 계절 체험에서는 합성형 강아지뼈 무기로 시작합니다.
+            if(!item||item.weaponForm!=InventoryWeapon.WeaponForm.Synthesized||item.boneOrigin!=InventoryWeapon.BoneOrigin.Dog)return;
             selected=index;
             for(int i=0;i<cards.Length;i++)if(cards[i]){cards[i].accent=i==index;cards[i].SetAllDirty();}
             selectionLabel.text=item.displayName+" · 이 무기로 시작합니다";

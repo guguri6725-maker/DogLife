@@ -17,6 +17,8 @@ namespace DogLife
         [SerializeField] Transform moveGoal, attacker;
         [SerializeField] Transform[] attackArms;
         [SerializeField] Transform dummyModel;
+        [SerializeField] EconomyStation practiceShop, practiceFusion;
+        bool boughtWeapon, fusedWeapon;
         Quaternion[] armHome;
         Quaternion dummyHome;
         float lastDummyHit=-10;
@@ -30,7 +32,7 @@ namespace DogLife
         [SerializeField] Text focusText;
         [SerializeField] RectTransform dashFocus, inventoryFocus, slotOneFocus, slotTwoFocus, karmaFocus, timingFocus;
         readonly Vector3[] focusCorners=new Vector3[4];
-        const int KarmaStep=10, PotionStep=11, CompletionStep=12, FreePracticeStep=13;
+        const int KarmaStep=10, PotionStep=11, ShopStep=12, FusionStep=13, CompletionStep=14, FreePracticeStep=15;
         int potionPracticeCount;
         [SerializeField, Min(.5f)] float windup=1.1f;
         // 공격 후 긴 대쉬 쿨타임 전체를 다시 기다리지 않고 일정한 박자로 반복합니다.
@@ -44,7 +46,7 @@ namespace DogLife
         public int Step=>step;
         public bool Warning=>warning;
         public float AttackProgress=>warning?Mathf.Clamp01((Time.time-attackStarted)/windup):0;
-        static readonly string[] titles={"주변을 둘러보고 이동하기","점프하기","허수아비를 공격하기","콤보 이어가기","대쉬하기","몸을 낮추기","인벤토리 열기","무기 바꿔 들기","공격 범위 밖으로 피하기","대쉬 무적으로 통과하기","카르마와 전투 성향","회복 물약 사용하기"};
+        static readonly string[] titles={"주변을 둘러보고 이동하기","점프하기","허수아비를 공격하기","콤보 이어가기","대쉬하기","몸을 낮추기","인벤토리 열기","무기 바꿔 들기","공격 범위 밖으로 피하기","대쉬 무적으로 통과하기","카르마와 전투 성향","회복 물약 사용하기","상점에서 무기 구매하기","무기 합성하기"};
         static readonly string[] hints={
             "W A S D  이동  ·  마우스  시점\n앞의 푸른 원 안으로 이동하세요.",
             "Space  점프\n한 번 뛰고 바닥에 착지하세요.",
@@ -57,7 +59,9 @@ namespace DogLife
             "오른쪽 훈련 허수아비 가까이 가세요.\n노란 원이 차오르면 붉게 변하기 전에 범위 밖으로 피하세요.",
             "이번에는 원 안에서 발동 직전에 대쉬하세요.\n노란 막대가 끝에 닿는 순간의 무적 시간으로 공격을 통과하세요.",
             "하단 중앙 구슬의 안개 색을 살펴보세요.\n카르마에 따라 공격이 빠르고 가볍게,\n또는 느리고 묵직하게 바뀝니다.",
-            "Q로 체력 1칸 회복 · 연습용 물약 지급\n상점 50G · 사용 후 재사용 대기 5초\n체력이 가득 차면 소모되지 않아요."};
+            "Q로 체력 1칸 회복 · 연습용 물약 지급\n상점 50G · 사용 후 재사용 대기 5초\n체력이 가득 차면 소모되지 않아요.",
+            "벚꽃 천막 상점 가까이에서 F\n무기 1개 구매 → F / Esc로 닫기\n연습용 150G · 물약 50G / 재고 2개",
+            "꽃나무 합성대에서 F → 재료 2개 선택\n합성 → 결과 확인 → F로 창 닫기\n같은 뼈는 유지 · 혼합은 각각 50%\n무료 · 방당 2회 · 일반 무기만 재료"};
         IEnumerator Start()
         {
             Time.timeScale=1;Cursor.lockState=CursorLockMode.Locked;Cursor.visible=false;
@@ -71,12 +75,16 @@ namespace DogLife
             dummy.Damaged+=OnDummyHit;
             motor.Dashed+=OnDash;
             inventory.QuickSlotSelected+=OnQuickSlotSelected;
+            if(practiceShop){practiceShop.interactionLocked=true;practiceShop.WeaponPurchased+=OnPracticePurchase;}
+            if(practiceFusion){practiceFusion.interactionLocked=true;practiceFusion.WeaponFused+=OnPracticeFusion;}
             // 프리팹 초기화가 끝난 후 일반형 목록만 지급하고 검/창을 두 칸에 배치합니다.
             yield return null;
             inventory.RestoreRunInventory(basicWeapons,0,new[]{0,1},0);
             SetStep(0);
         }
-        void OnDestroy(){if(dummy)dummy.Damaged-=OnDummyHit;if(motor)motor.Dashed-=OnDash;if(inventory)inventory.QuickSlotSelected-=OnQuickSlotSelected;}
+        void OnDestroy(){if(dummy)dummy.Damaged-=OnDummyHit;if(motor)motor.Dashed-=OnDash;if(inventory)inventory.QuickSlotSelected-=OnQuickSlotSelected;if(practiceShop)practiceShop.WeaponPurchased-=OnPracticePurchase;if(practiceFusion)practiceFusion.WeaponFused-=OnPracticeFusion;}
+        void OnPracticePurchase(){if(step==ShopStep)boughtWeapon=true;}
+        void OnPracticeFusion(){if(step==FusionStep)fusedWeapon=true;}
         void OnQuickSlotSelected(int slot)
         {
             if(step!=7||advancing||slot<0||slot>1)return;
@@ -116,9 +124,13 @@ namespace DogLife
             if(karmaPanel)karmaPanel.SetActive(step==KarmaStep);
             attackPanel.SetActive(step==8||step==9||step==FreePracticeStep);
             feedback.text="";
+            if(practiceShop)practiceShop.interactionLocked=step<ShopStep;
+            if(practiceFusion)practiceFusion.interactionLocked=step<FusionStep;
+            if(step==ShopStep){boughtWeapon=false;var wallet=RunEconomy.Instance;if(wallet)wallet.SetGold(Mathf.Max(wallet.Gold,150));}
+            if(step==FusionStep){fusedWeapon=false;int count=0;foreach(var item in inventory.OwnedWeapons)if(item&&item.weaponForm==InventoryWeapon.WeaponForm.Basic)count++;for(int i=count;i<2;i++)inventory.AddWeapon(basicWeapons[i%basicWeapons.Length]);}
             if(step==7){PrepareSwapPractice();feedback.text="1번과 2번 키를 각각 한 번씩 누르세요.";}
             if(step<CompletionStep){stepLabel.text=(step+1).ToString("00")+" / "+titles.Length+"  ·  조작 연습";heading.text=titles[step];instruction.text=hints[step];}
-            else {stepLabel.text="조작 연습 완료";heading.text=step==CompletionStep?"이제 모험을 시작할 준비가 됐어요":"자유롭게 연습하세요";instruction.text="일반형 무기 12종 · E 인벤토리\n1 / 2 무기 교체";}
+            else {stepLabel.text="조작 연습 완료";heading.text=step==CompletionStep?"이제 모험을 시작할 준비가 됐어요":"자유롭게 연습하세요";instruction.text="E 인벤토리 · 1 / 2 무기 교체\n상점 구매와 합성형 무기도 연습해 보세요";}
             if(step==8||step==9||step==FreePracticeStep)attackLabel.text="오른쪽 허수아비 가까이에서 회피 연습";
             if(step==3){inventory.SelectSlot(0);if(inventory.EquippedWeapon!=basicWeapons[0])inventory.Equip(basicWeapons[0]);}
             // 회복을 직접 연습할 수 있게 한 칸만 비우고 연습용 물약을 보충합니다.
@@ -149,6 +161,9 @@ namespace DogLife
             if(dummyModel){float age=Time.time-lastDummyHit;float angle=age<.65f?Mathf.Sin(age*24)*5*(1-age/.65f):0;dummyModel.localRotation=dummyHome*Quaternion.Euler(0,angle,0);}
             // 인벤토리는 시간을 멈추므로 열림/닫힘 확인을 전투 입력 차단보다 먼저 처리합니다.
             if(step==6){sawInventory|=SkillWindow.IsOpen;if(sawInventory&&!SkillWindow.IsOpen)CompleteStep("인벤토리 확인 완료!");}
+            // 메뉴가 시간을 멈춰도 거래 성공을 읽고, 닫은 뒤 자동으로 다음 단계로 진행합니다.
+            if(step==ShopStep&&boughtWeapon&&!advancing){feedback.text="구매 성공! F / Esc로 창을 닫으세요.";if(!EconomyWindow.IsOpen)CompleteStep("구매 완료! E 인벤토리에서 확인하세요.");}
+            if(step==FusionStep&&fusedWeapon&&!advancing){feedback.text="합성 성공! 결과 확인 후 F로 닫으세요.";if(!EconomyWindow.IsOpen)CompleteStep("합성 완료! E에서 장착해 보세요.");}
             if(SkillWindow.BlocksGameplayInput||StoryBook.BlocksInput||Time.timeScale<=0)return;
             if(advancing){if(Time.time>=advanceAt)SetStep(step+1);return;}
             if(step==KarmaStep&&(Input.GetKeyDown(KeyCode.Space)||Input.GetMouseButtonDown(0))){ConfirmKarma();return;}
@@ -179,6 +194,13 @@ namespace DogLife
                 else if(step==8||step==9){target=timingFocus;caption="공격 발동 타이밍\n노란 막대가 끝에 닿으면 공격!";}
                 else if(step==KarmaStep){target=karmaFocus;caption="카르마 구슬\n안개 색과 양으로 현재 상태 확인";}
                 else if(step==PotionStep&&EconomyWindow.Instance&&EconomyWindow.Instance.potionHud){target=EconomyWindow.Instance.potionHud.transform as RectTransform;caption="회복 물약 · 남은 수량\nQ로 사용 · 체력 1칸 회복";}
+                else if((step==ShopStep||step==FusionStep)&&EconomyWindow.Instance)
+                {
+                    var ui=EconomyWindow.Instance;
+                    if(!EconomyWindow.IsOpen){target=ui.prompt.rectTransform;caption=step==ShopStep?"벚꽃 천막 상점 · F로 열기":"꽃나무 합성대 · F로 열기";}
+                    else if(step==ShopStep&&!boughtWeapon){foreach(var button in ui.buyButtons)if(button&&button.gameObject.activeInHierarchy&&button.interactable){target=button.transform as RectTransform;break;}caption="구매 버튼 · 연습용 150G\n무기 1개를 구매해 보세요";}
+                    else if(step==FusionStep&&!fusedWeapon){target=ui.fusionPanel.transform as RectTransform;caption="양쪽 화살표로 재료 선택 → 합성\n같은 무기 종류는 그 종류의 합성형";}
+                }
             }
             bool show=target&&target.gameObject.activeInHierarchy;
             focusRoot.gameObject.SetActive(show);
@@ -245,7 +267,7 @@ namespace DogLife
         public void ConfirmKarma(){if(step==KarmaStep)SetStep(PotionStep);}
         public void FreePractice(){SetStep(FreePracticeStep);}
         public void Restart()
-        {if(SkillWindow.Instance)SkillWindow.Instance.Close();motor.Respawn();playerHealth.Restore();inventory.RestoreRunInventory(basicWeapons,0,new[]{0,1},0);SetStep(0);}
+        {if(returning)return;if(SkillWindow.Instance)SkillWindow.Instance.Close();if(EconomyWindow.Instance)EconomyWindow.Instance.Close();RunEconomy.ClearCarry();returning=SeasonLoadingScreen.Load(ScenePath);}
         public void ReturnToTitle()
         {
             if(returning)return;

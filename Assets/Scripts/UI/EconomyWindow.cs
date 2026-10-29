@@ -74,7 +74,7 @@ namespace DogLife
             GameAudio.EnterEconomyMenu();
             Time.timeScale=0;Cursor.lockState=CursorLockMode.None;Cursor.visible=true;consumed=Time.frameCount;
             panel.SetActive(true);prompt.text="";bool shop=station.kind==EconomyStation.StationKind.Shop;
-            shopPanel.SetActive(shop);fusionPanel.SetActive(!shop);title.text=shop?"뼈 상점":"영혼의 합성";message.text=shop?"무기는 가방에 보관됩니다. 물약은 Q키로 사용합니다.":"같은 계열의 일반 무기 2개를 선택하세요.\n비용 없음  ·  남은 합성 "+station.RemainingFusions+"회 / 방당 2회";
+            shopPanel.SetActive(shop);fusionPanel.SetActive(!shop);title.text=shop?"뼈 상점":"영혼의 합성";message.text=shop?"무기는 가방에 보관됩니다. 물약은 Q키로 사용합니다.":"일반 무기 2개 · 같은 뼈는 유지 / 혼합은 동물·인간 각 50%\n비용 없음  ·  남은 합성 "+station.RemainingFusions+"회 / 방당 2회";
             first=null;second=null;Cycle(true,1);Cycle(false,1);Refresh();
             GameAudio.Play("UI_Window_Open",Vector3.zero,.6f,ui:true);
             for(int i=0;i<buyButtons.Length;i++)if(!buyButtons[i].GetComponent<EconomyItemAudio>())buyButtons[i].gameObject.AddComponent<EconomyItemAudio>();
@@ -143,7 +143,8 @@ namespace DogLife
             }
             var a=wallet.inventory.FindInstance(first);var b=wallet.inventory.FindInstance(second);
             firstLabel.text=a?a.displayName:"재료 없음";secondLabel.text=b?b.displayName:"재료 없음";firstIcon.sprite=a?a.icon:null;secondIcon.sprite=b?b.icon:null;firstIcon.enabled=a&&a.icon;secondIcon.enabled=b&&b.icon;
-            fuseButton.interactable=!station.Used&&a&&b&&a.boneOrigin==b.boneOrigin&&first!=second;
+            // 같은 뼈와 혼합 뼈 모두 허용하되, 별개의 일반 무기 두 개만 재료로 사용합니다.
+            fuseButton.interactable=!station.Used&&a&&b&&first!=second&&a.weaponForm==InventoryWeapon.WeaponForm.Basic&&b.weaponForm==InventoryWeapon.WeaponForm.Basic;
         }
     }
 }

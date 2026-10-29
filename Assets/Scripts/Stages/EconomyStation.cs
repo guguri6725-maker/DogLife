@@ -13,6 +13,9 @@ namespace DogLife
         // Hierarchy에 배치한 두 병을 저장된 상점 재고와 동기화합니다.
         public GameObject[] healingPotionDisplays=new GameObject[0];
         public Transform fusionFocus;
+        // 튜토리얼은 메뉴 클릭이 아니라 실제 거래 성공을 확인합니다.
+        public event System.Action WeaponPurchased, WeaponFused;
+        [System.NonSerialized] public bool interactionLocked;
         [Min(0)] public int price=30;
         public const int HealingPotionPrice=50;
         public const int HealingPotionStock=2;
@@ -79,7 +82,7 @@ namespace DogLife
             item.transform.position+=anchor.position-new Vector3(bounds.center.x,bounds.min.y,bounds.center.z);
         }
         public bool InReach(PlayerInventory player)
-        {return player&&Vector3.Distance(player.transform.position,transform.position)<=interactionDistance;}
+        {return !interactionLocked&&player&&Vector3.Distance(player.transform.position,transform.position)<=interactionDistance;}
         public bool Buy(int index,RunEconomy wallet,out string message)
         {
             message="구매할 수 없는 상품입니다.";
@@ -87,20 +90,18 @@ namespace DogLife
             if(!wallet.Spend(price)){message="골드가 부족합니다.";return false;}
             var item=stock.items[index];
             if(!wallet.inventory.AddWeapon(item)){wallet.Add(price);return false;}
-            stock.items[index]=null;if(visuals[index])Destroy(visuals[index]);message=item.displayName+" 구매 완료";return true;
+            stock.items[index]=null;if(visuals[index])Destroy(visuals[index]);message=item.displayName+" 구매 완료";WeaponPurchased?.Invoke();return true;
         }
         public bool Fuse(string first,string second,RunEconomy wallet,out string message)
         { InventoryWeapon result;return Fuse(first,second,wallet,out message,out result); }
         public bool Fuse(string first,string second,RunEconomy wallet,out string message,out InventoryWeapon result)
         {
             result=null;
-            message="같은 계열의 일반 무기 두 개를 선택하세요.";
+            message="일반 무기 두 개를 선택하세요. 다른 뼈끼리도 합성할 수 있습니다.";
             if(kind!=StationKind.Fusion||stock==null||Used||stock.fusing||!wallet||!InReach(wallet.inventory)){message="합성 횟수를 모두 사용했거나 너무 멉니다.";return false;}
             var a=wallet.inventory.FindInstance(first);var b=wallet.inventory.FindInstance(second);
-            if(!a||!b||first==second||a.weaponForm!=InventoryWeapon.WeaponForm.Basic||b.weaponForm!=InventoryWeapon.WeaponForm.Basic||a.boneOrigin!=b.boneOrigin)return false;
-            result=a.weaponCategory==b.weaponCategory?a.sameWeaponEvolution:null;
-            if(a.weaponCategory!=b.weaponCategory)
-            {var pool=catalog?catalog.weapons.Where(w=>w&&w.boneOrigin==a.boneOrigin&&w.weaponForm==InventoryWeapon.WeaponForm.Synthesized).ToArray():new InventoryWeapon[0];if(pool.Length>0)result=pool[Random.Range(0,pool.Length)];}
+            if(!a||!b||first==second||a.weaponForm!=InventoryWeapon.WeaponForm.Basic||b.weaponForm!=InventoryWeapon.WeaponForm.Basic)return false;
+            result=ChooseFusionResult(a,b,catalog);
             if(!result){message="합성 결과 데이터가 연결되지 않았습니다.";return false;}
             // 인벤토리 이벤트의 재진입을 막고, 성공했을 때만 사용 횟수를 차감합니다.
             stock.fusing=true;
@@ -110,7 +111,21 @@ namespace DogLife
                 stock.fusionCount++;
             }
             finally {stock.fusing=false;}
-            message=result.displayName+" 합성 완료! 남은 합성 "+RemainingFusions+"회";return true;
+            message=result.displayName+" 합성 완료! 남은 합성 "+RemainingFusions+"회";WeaponFused?.Invoke();return true;
+        }
+        static InventoryWeapon ChooseFusionResult(InventoryWeapon a,InventoryWeapon b,WeaponCatalog source)
+        {
+            // 뼈 종류를 먼저 반반 추첨하므로 카탈로그의 무기 개수에 확률이 치우치지 않습니다.
+            var origin=a.boneOrigin==b.boneOrigin?a.boneOrigin:
+                (Random.Range(0,2)==0?InventoryWeapon.BoneOrigin.Dog:InventoryWeapon.BoneOrigin.Humanoid);
+            bool sameCategory=a.weaponCategory==b.weaponCategory;
+            var evolution=(a.boneOrigin==origin?a:b).sameWeaponEvolution;
+            if(sameCategory&&evolution&&evolution.boneOrigin==origin&&
+                evolution.weaponForm==InventoryWeapon.WeaponForm.Synthesized&&evolution.weaponCategory==a.weaponCategory)return evolution;
+            // 같은 무기 종류는 해당 합성형, 서로 다른 무기 종류는 기존처럼 무작위 합성형입니다.
+            var pool=source?source.weapons.Where(w=>w&&w.boneOrigin==origin&&
+                w.weaponForm==InventoryWeapon.WeaponForm.Synthesized&&(!sameCategory||w.weaponCategory==a.weaponCategory)).ToArray():new InventoryWeapon[0];
+            return pool.Length>0?pool[Random.Range(0,pool.Length)]:null;
         }
     }
 }
