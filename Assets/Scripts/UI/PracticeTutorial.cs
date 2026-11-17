@@ -27,6 +27,10 @@ namespace DogLife
         [SerializeField] Image attackFill;
         [SerializeField] GameObject attackPanel, completionPanel;
         [SerializeField] GameObject karmaPanel;
+        [SerializeField] GameObject entryPrompt, tutorialCard;
+        public static bool ChoosingEntry { get; private set; }
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetEntryChoice(){ChoosingEntry=false;}
         [SerializeField] RectTransform focusRoot, focusFrame, focusCallout;
         [SerializeField] CanvasGroup focusOpacity;
         [SerializeField] Text focusText;
@@ -56,7 +60,7 @@ namespace DogLife
             "Ctrl 또는 C 누르기  앉기\n1초간 몸을 낮춰 보세요.",
             "E  인벤토리 열기 / 닫기\n일반형 무기 12종을 확인한 뒤 E로 닫으세요.",
             "1 / 2  장착 무기 교체\n두 칸을 한 번씩 선택하세요. 다른 무기는 E에서 장착할 수 있습니다.",
-            "오른쪽 훈련 허수아비 가까이 가세요.\n노란 원이 차오르면 붉게 변하기 전에 범위 밖으로 피하세요.",
+            "발밑에 공격 범위가 표시됩니다.\n노란 원이 차오르면 붉게 변하기 전에 범위 밖으로 피하세요.",
             "이번에는 원 안에서 발동 직전에 대쉬하세요.\n노란 막대가 끝에 닿는 순간의 무적 시간으로 공격을 통과하세요.",
             "하단 중앙 구슬의 안개 색을 살펴보세요.\n카르마에 따라 공격이 빠르고 가볍게,\n또는 느리고 묵직하게 바뀝니다.",
             "Q로 체력 1칸 회복 · 연습용 물약 지급\n상점 50G · 사용 후 재사용 대기 5초\n체력이 가득 차면 소모되지 않아요.",
@@ -81,8 +85,28 @@ namespace DogLife
             yield return null;
             inventory.RestoreRunInventory(basicWeapons,0,new[]{0,1},0);
             SetStep(0);
+            // 선택 화면은 씬에 제작한 UI를 표시하며, 선택 전에는 연습 입력을 막습니다.
+            ChoosingEntry=entryPrompt;
+            if(entryPrompt){entryPrompt.SetActive(true);tutorialCard.SetActive(false);SetControl(false);}
         }
-        void OnDestroy(){if(dummy)dummy.Damaged-=OnDummyHit;if(motor)motor.Dashed-=OnDash;if(inventory)inventory.QuickSlotSelected-=OnQuickSlotSelected;if(practiceShop)practiceShop.WeaponPurchased-=OnPracticePurchase;if(practiceFusion)practiceFusion.WeaponFused-=OnPracticeFusion;}
+        void OnDestroy(){ChoosingEntry=false;if(dummy)dummy.Damaged-=OnDummyHit;if(motor)motor.Dashed-=OnDash;if(inventory)inventory.QuickSlotSelected-=OnQuickSlotSelected;if(practiceShop)practiceShop.WeaponPurchased-=OnPracticePurchase;if(practiceFusion)practiceFusion.WeaponFused-=OnPracticeFusion;}
+        public void BeginTutorial()
+        {
+            if(returning||SeasonLoadingScreen.IsLoading)return;
+            ChoosingEntry=false;entryPrompt.SetActive(false);tutorialCard.SetActive(true);SetStep(0);
+        }
+        public void ContinueToAdventure()
+        {
+            if(returning||SeasonLoadingScreen.IsLoading)return;
+            if(SkillWindow.Instance)SkillWindow.Instance.Close();
+            if(EconomyWindow.Instance)EconomyWindow.Instance.Close();
+            // 연습용 무기·골드가 본편으로 넘어가지 않도록 정리합니다.
+            RunEconomy.ClearCarry();
+            EnemyIntroduction.Prepare("Assets/Scenes/Stage1_Spring.unity",false);
+            returning=SeasonLoadingScreen.Load(EnemyIntroduction.ScenePath);
+            if(returning){ChoosingEntry=false;SetControl(false);}
+            else feedback.text="몬스터 설명을 불러오지 못했습니다. 다시 시도해 주세요.";
+        }
         void OnPracticePurchase(){if(step==ShopStep)boughtWeapon=true;}
         void OnPracticeFusion(){if(step==FusionStep)fusedWeapon=true;}
         void OnQuickSlotSelected(int slot)
@@ -121,6 +145,8 @@ namespace DogLife
             warning=false;struck=false;nextAttack=Time.time+.4f;attackRange.enabled=false;
             ResetArms();
             moveGoal.gameObject.SetActive(step==0);completionPanel.SetActive(step==CompletionStep);
+            // 완료 화면에서는 이전 단계 안내와 겹치지 않게 합니다.
+            if(tutorialCard)tutorialCard.SetActive(step!=CompletionStep);
             if(karmaPanel)karmaPanel.SetActive(step==KarmaStep);
             attackPanel.SetActive(step==8||step==9||step==FreePracticeStep);
             feedback.text="";
@@ -131,7 +157,8 @@ namespace DogLife
             if(step==7){PrepareSwapPractice();feedback.text="1번과 2번 키를 각각 한 번씩 누르세요.";}
             if(step<CompletionStep){stepLabel.text=(step+1).ToString("00")+" / "+titles.Length+"  ·  조작 연습";heading.text=titles[step];instruction.text=hints[step];}
             else {stepLabel.text="조작 연습 완료";heading.text=step==CompletionStep?"이제 모험을 시작할 준비가 됐어요":"자유롭게 연습하세요";instruction.text="E 인벤토리 · 1 / 2 무기 교체\n상점 구매와 합성형 무기도 연습해 보세요";}
-            if(step==8||step==9||step==FreePracticeStep)attackLabel.text="오른쪽 허수아비 가까이에서 회피 연습";
+            if(step==8||step==9)attackLabel.text="발밑의 범위를 보고 회피하세요";
+            else if(step==FreePracticeStep)attackLabel.text="훈련 허수아비 가까이에서 회피 연습";
             if(step==3){inventory.SelectSlot(0);if(inventory.EquippedWeapon!=basicWeapons[0])inventory.Equip(basicWeapons[0]);}
             // 회복을 직접 연습할 수 있게 한 칸만 비우고 연습용 물약을 보충합니다.
             if(step==PotionStep&&RunEconomy.Instance)
@@ -154,7 +181,7 @@ namespace DogLife
         }
         void Update()
         {
-            if(!rangeBlockInitialized||returning)return;
+            if(!rangeBlockInitialized||returning||ChoosingEntry)return;
             if(motor.transform.position.y < -5){motor.Respawn();playerHealth.Restore();}
             if(dummy.Current<dummy.maxHealth*.5f)dummy.Restore();
             // Blender에서 제작한 고정 허수아비도 명중하면 짧게 흔들려 손맛을 전달합니다.
@@ -232,7 +259,10 @@ namespace DogLife
         {
             if(!warning)
             {
-                if(Time.time<nextAttack||FlatDistance(motor.transform.position,attacker.position)>7)return;
+                if(Time.time<nextAttack)return;
+                // 필수 회피 단계는 이동 방향·허수아비 거리와 무관하게 반복합니다.
+                // 자유 연습에서만 허수아비 근처에 있을 때 공격합니다.
+                if(step==FreePracticeStep&&FlatDistance(motor.transform.position,attacker.position)>7)return;
                 lockedCenter=motor.transform.position;lockedCenter.y=.035f;
                 attackRange.transform.position=lockedCenter;attackRange.transform.localScale=new Vector3(attackRadius*2,attackRadius*2,1);
                 warning=true;struck=false;attackStarted=Time.time;attackRange.enabled=true;

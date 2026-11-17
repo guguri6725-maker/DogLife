@@ -67,6 +67,8 @@ namespace DogLife
             // START always opens the first page; collected memories survive a new run.
             Play("prologue",continuation,true);
         }
+        // 프롤로그 없이 새 게임을 시작할 때도 이전 여정의 입장 연출 기록을 비웁니다.
+        public void ResetNewGameEntries(){entered.Clear();}
         public bool Play(string id,Action onFinished=null,bool unlock=false)
         {
             var c=library.Find(id);if(c==null||c.pages==null||c.pages.Length==0)return false;

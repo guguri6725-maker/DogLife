@@ -15,7 +15,7 @@ namespace DogLife
             "Assets/Scenes/Stage3_Fall.unity", "Assets/Scenes/Stage4_Winter.unity" };
         bool loading;
         AudioClip titleMusic;
-        void Start(){ResumeMenuMusic();SeasonTrialRecords.AttachTitle(this);}
+        void Start(){ResumeMenuMusic();}
         public void ResumeMenuMusic()
         {
             if(loading||!isActiveAndEnabled||gameObject.scene.name!="Title")return;
@@ -55,13 +55,7 @@ namespace DogLife
             Time.timeScale = 1;
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;
-            if(CampaignBuildMode.ExhibitionEnabled)EnsureResetButton();
-            else
-                foreach(var root in gameObject.scene.GetRootGameObjects())
-                    foreach(var item in root.GetComponentsInChildren<UnityEngine.Transform>(true))
-                        if(item.name.StartsWith("Demo Season Button ") || item.name=="Demo Header" ||
-                           item.name=="Demo invitation" || item.name=="Reset Data Button")
-                            item.gameObject.SetActive(false);
+            // 전시용 버튼은 타이틀 Hierarchy에서 제거하고 실행 중에도 생성하지 않습니다.
         }
 
         // 전시회 빌드 전용: 다음 관람객을 위해 저장된 진행도·발자국을 전부 지웁니다.
@@ -107,8 +101,13 @@ namespace DogLife
                 status.text = "모험 안내 화면을 불러올 수 없습니다.";
                 return;
             }
-            EnemyIntroduction.Prepare(springScene, false);
-            SceneManager.LoadSceneAsync(EnemyIntroduction.ScenePath);
+            // 새 게임은 조작 연습의 진행/건너뛰기 선택부터 시작합니다.
+            if (!SeasonLoadingScreen.Load(PracticeTutorial.ScenePath))
+            {
+                loading = false;
+                startButton.interactable = true;
+                status.text = "튜토리얼을 불러올 수 없습니다.";
+            }
         }
 
         public void OpenMemories()

@@ -83,7 +83,8 @@ namespace DogLife
             AdventureUI.Label(panel,"Prompt","기록에 남길 닉네임을 입력하세요",new Vector2(0,95),new Vector2(820,50),25,font);
             var box=AdventureUI.Rect("Nickname",panel,new Vector2(0,15),new Vector2(630,75));box.gameObject.AddComponent<Image>().color=new Color(.09f,.065f,.045f);
             var input=box.gameObject.AddComponent<InputField>();input.characterLimit=16;input.lineType=InputField.LineType.SingleLine;
-            input.textComponent=AdventureUI.Label(box,"Text","",Vector2.zero,new Vector2(580,65),29,font);input.textComponent.alignment=TextAnchor.MiddleLeft;
+            // 입력 전 안내와 입력한 이름이 같은 중심선을 사용합니다.
+            input.textComponent=AdventureUI.Label(box,"Text","",Vector2.zero,new Vector2(580,65),29,font);input.textComponent.alignment=TextAnchor.MiddleCenter;
             var placeholder=AdventureUI.Label(box,"Placeholder","닉네임 (최대 16자)",Vector2.zero,new Vector2(580,65),25,font);placeholder.color=new Color(.6f,.55f,.48f);input.placeholder=placeholder;
             var message=AdventureUI.Label(panel,"Validation","이 PC에 저장됩니다 · 빠른 기록 순으로 5명 표시",new Vector2(0,-90),new Vector2(820,60),21,font);
             bool submitted=false;

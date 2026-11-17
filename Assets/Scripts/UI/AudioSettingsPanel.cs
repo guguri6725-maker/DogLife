@@ -48,7 +48,8 @@ namespace DogLife
         static RectTransform Rect(string name,Transform parent,Vector2 pos,Vector2 size)
         {var r=new GameObject(name,typeof(RectTransform)).GetComponent<RectTransform>();r.SetParent(parent,false);r.anchorMin=r.anchorMax=new Vector2(.5f,.5f);r.anchoredPosition=pos;r.sizeDelta=size;return r;}
         Text Label(Transform parent,string text,Vector2 pos,Vector2 size,int fs)
-        {var t=Rect(text==""?"Value":text,parent,pos,size).gameObject.AddComponent<Text>();t.text=text;t.font=font;t.fontSize=fs;t.color=new Color(.94f,.91f,.81f);t.alignment=TextAnchor.MiddleLeft;t.raycastTarget=false;return t;}
+        // 실행 중 생성하는 소리 설정도 각 표시 영역의 가운데에 맞춥니다.
+        {var t=Rect(text==""?"Value":text,parent,pos,size).gameObject.AddComponent<Text>();t.text=text;t.font=font;t.fontSize=fs;t.color=new Color(.94f,.91f,.81f);t.alignment=TextAnchor.MiddleCenter;t.raycastTarget=false;return t;}
         Image MakeButton(Transform parent,string name,string text,Vector2 pos,UnityEngine.Events.UnityAction click)
         {var r=Rect(name,parent,pos,new Vector2(220,54));var image=r.gameObject.AddComponent<Image>();image.color=new Color(.1f,.16f,.14f);var edge=r.gameObject.AddComponent<Outline>();edge.effectColor=new Color(.65f,.53f,.3f);edge.effectDistance=new Vector2(1,-1);var b=r.gameObject.AddComponent<Button>();b.targetGraphic=image;b.onClick.AddListener(click);var label=Label(r,text,Vector2.zero,r.sizeDelta,24);label.alignment=TextAnchor.MiddleCenter;return image;}
         public void Begin(){GameAudio.Revert();Refresh();}

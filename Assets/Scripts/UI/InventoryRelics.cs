@@ -30,7 +30,7 @@ namespace DogLife
             view.tooltip=AdventureUI.Rect("Ability description",window.windowRoot.transform,new Vector2(0,-145),new Vector2(470,240));
             AdventureUI.Surface(view.tooltip.gameObject).raycastTarget=false;
             view.explanation=AdventureUI.Label(view.tooltip,"Description","",Vector2.zero,new Vector2(426,208),22,font);
-            view.explanation.alignment=TextAnchor.UpperLeft;view.explanation.supportRichText=true;
+            view.explanation.alignment=TextAnchor.MiddleCenter;view.explanation.supportRichText=true;
             view.tooltip.gameObject.SetActive(false);
             view.loadout.Changed+=view.Refresh;view.Refresh();
         }
@@ -39,7 +39,29 @@ namespace DogLife
         void Refresh()
         {
             Hide();heading.text="보유 능력  "+loadout.Active.Count+" / "+RelicLoadout.MaxSlots+"\n마우스로 설명 확인";
-            for(int i=0;i<names.Length;i++){bool owned=i<loadout.Active.Count;names[i].text=owned?loadout.Active[i].WeaponLabel+"\n"+loadout.DisplayName(loadout.Active[i]):"빈 능력 칸";pictures[i].sprite=owned?Resources.Load<Sprite>("UI/RelicArt/"+loadout.Active[i].id):null;pictures[i].enabled=owned;names[i].color=owned?AdventureUI.Cream:new Color(.6f,.55f,.46f);}
+            for(int i=0;i<names.Length;i++)
+            {
+                bool owned=i<loadout.Active.Count;
+                names[i].text=owned?loadout.Active[i].WeaponLabel+"\n"+loadout.DisplayName(loadout.Active[i]):"빈 능력 칸";
+                pictures[i].sprite=owned?Resources.Load<Sprite>("UI/RelicArt/"+loadout.Active[i].id):null;
+                pictures[i].enabled=owned&&pictures[i].sprite;
+                names[i].color=owned?AdventureUI.Cream:new Color(.6f,.55f,.46f);
+                CenterContents(names[i],pictures[i]);
+            }
+        }
+        static void CenterContents(Text label,Image picture)
+        {
+            // 빈 칸은 중앙에, 아이콘이 있으면 실제 글자 너비와 함께 묶어서 중앙에 배치합니다.
+            var card=(RectTransform)label.transform.parent;
+            float available=Mathf.Max(1,card.rect.width-20);
+            float iconWidth=picture.enabled?picture.rectTransform.rect.width:0;
+            float gap=picture.enabled?10:0;
+            float textWidth=Mathf.Min(label.preferredWidth,Mathf.Max(1,available-iconWidth-gap));
+            label.alignment=TextAnchor.MiddleCenter;
+            label.rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal,picture.enabled?textWidth:available);
+            label.rectTransform.anchoredPosition=new Vector2((iconWidth+gap)*.5f,0);
+            if(picture.enabled)
+                picture.rectTransform.anchoredPosition=new Vector2(-(textWidth+gap)*.5f,0);
         }
         public void Show(int index)
         {

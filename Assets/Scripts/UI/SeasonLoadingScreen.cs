@@ -89,8 +89,10 @@ namespace DogLife
             group.gameObject.SetActive(false);
             busy = false;
             Time.timeScale = 1;
-            Cursor.lockState = title ? CursorLockMode.None : CursorLockMode.Locked;
-            Cursor.visible = title;
+            // 선택·설명 화면에서는 로딩 완료 후에도 버튼을 누를 수 있게 커서를 유지합니다.
+            bool pointerUI = title || PracticeTutorial.ChoosingEntry || path == EnemyIntroduction.ScenePath;
+            Cursor.lockState = pointerUI ? CursorLockMode.None : CursorLockMode.Locked;
+            Cursor.visible = pointerUI;
         }
 
         IEnumerator Fade(float target, float duration)

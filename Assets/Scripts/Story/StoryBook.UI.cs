@@ -29,7 +29,8 @@ namespace DogLife
         }
         Image Panel(string name,Transform parent,Vector2 pos,Vector2 size,Color color)
         {var i=R(name,parent,pos,size).gameObject.AddComponent<Image>();i.color=color;i.raycastTarget=false;return i;}
-        Text T(string name,Transform parent,string value,Vector2 pos,Vector2 size,int fontSize,Color color,TextAnchor alignment=TextAnchor.MiddleLeft)
+        // 추억 목록과 설명은 재생성되어도 지정된 칸의 중앙 정렬을 유지합니다.
+        Text T(string name,Transform parent,string value,Vector2 pos,Vector2 size,int fontSize,Color color,TextAnchor alignment=TextAnchor.MiddleCenter)
         {
             var t=R(name,parent,pos,size).gameObject.AddComponent<Text>();t.font=library.font;t.text=value;t.fontSize=fontSize;t.color=color;
             t.alignment=alignment;t.raycastTarget=false;t.supportRichText=false;t.horizontalOverflow=HorizontalWrapMode.Wrap;t.verticalOverflow=VerticalWrapMode.Truncate;t.lineSpacing=1.35f;return t;

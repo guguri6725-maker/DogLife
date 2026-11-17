@@ -93,6 +93,8 @@ namespace DogLife
         public void Close() { SetOpen(false); }
         public void SetOpen(bool value)
         {
+            // 새 게임의 튜토리얼 선택창 위로 인벤토리가 열리지 않게 합니다.
+            if(value&&PracticeTutorial.ChoosingEntry)return;
             // 숨겨진 인벤토리가 연출 도중 입력을 가져가지 않게 합니다.
             if(value&&BossCinematicUI.Hidden)return;
             if(value&&StoryBook.BlocksInput)return;

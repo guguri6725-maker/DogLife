@@ -55,9 +55,7 @@ namespace DogLife
         {
             // 연속 클릭으로 프롤로그나 로딩이 두 번 시작되지 않도록 막습니다.
             if (continuing || StoryBook.BlocksInput || GameSettingsWindow.BlocksGameplayInput) return;
-            if (!Application.CanStreamedLevelBeLoaded(destination) ||
-                (!seasonDemo && (!StoryBook.Instance || !StoryBook.Instance.Library ||
-                StoryBook.Instance.Library.Find("prologue") == null)))
+            if (!Application.CanStreamedLevelBeLoaded(destination))
             {
                 status.text = "시작 정보를 불러오지 못했습니다. 다시 시도해 주세요.";
                 return;
@@ -68,15 +66,19 @@ namespace DogLife
             guide.alpha = 0;
             guide.blocksRaycasts = false;
             guide.interactable = false;
-            if (seasonDemo) BeginAdventure();
-            else StoryBook.Instance.BeginNewGame(BeginAdventure);
+            // 튜토리얼 → 몬스터 설명 → 봄맵. 시작 프롤로그는 이 경로에서 재생하지 않습니다.
+            BeginAdventure();
         }
 
         void BeginAdventure()
         {
-            // 안내 확인 → 프롤로그 종료(건너뛰기 포함) → 기존 로딩 화면 순서입니다.
+            // 안내 확인 후 기존 로딩 화면으로 계절에 진입합니다.
             // 전시 체험은 선택한 계절로 바로 이동하며 기존 저장을 초기화하지 않습니다.
-            if (!seasonDemo) SeasonRunSave.NewGame();
+            if (!seasonDemo)
+            {
+                if(StoryBook.Instance)StoryBook.Instance.ResetNewGameEntries();
+                SeasonRunSave.NewGame();
+            }
             if (SeasonLoadingScreen.Load(destination)) return;
             continuing = false;
             guide.alpha = 1;

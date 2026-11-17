@@ -104,3 +104,10 @@ Tools/video-edit-runtime/
 # Local scratch scripts and pre-edit backups
 /tmp/
 ArtSource/**/Backup/
+
+# Raw character sculpting/texturing work (multi-GB .blend/.blend1 working files,
+# several exceed GitHub's 100MB hard limit) — export finished assets into Assets/ or ArtSource/ instead
+/CharacterWork/
+
+# OptiX denoiser cache (regenerated locally by GPU-accelerated renders)
+optix7cache.db
